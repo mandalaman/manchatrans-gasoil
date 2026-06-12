@@ -126,7 +126,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
     <span class="topbar-title">⛽ Manchatrans</span>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="topbar-user" id="driver-name-display"></span>
-      <button class="topbar-logout" onclick="doLogout()">Salir</button>
+      <button class="topbar-logout" id="btn-logout-driver">Salir</button>
     </div>
   </div>
   <div class="driver-body">
@@ -178,14 +178,14 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <div id="screen-admin" class="screen">
   <div class="topbar">
     <span class="topbar-title">⛽ Panel Admin</span>
-    <button class="topbar-logout" onclick="doLogout()">Salir</button>
+    <button class="topbar-logout" id="btn-logout-admin">Salir</button>
   </div>
   <div class="admin-body">
     <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
-      <button class="btn btn-secondary atab-btn" id="atab-btn-registros" onclick="switchAdminTab('registros')">Registros</button>
-      <button class="btn btn-ghost atab-btn" id="atab-btn-deposito" onclick="switchAdminTab('deposito')">Depósito</button>
-      <button class="btn btn-ghost atab-btn" id="atab-btn-consumo" onclick="switchAdminTab('consumo')">Consumo</button>
-      <button class="btn btn-ghost atab-btn" id="atab-btn-conductores" onclick="switchAdminTab('conductores')">Conductores</button>
+      <button class="btn btn-secondary atab-btn" id="atab-btn-registros" >Registros</button>
+      <button class="btn btn-ghost atab-btn" id="atab-btn-deposito" >Depósito</button>
+      <button class="btn btn-ghost atab-btn" id="atab-btn-consumo" >Consumo</button>
+      <button class="btn btn-ghost atab-btn" id="atab-btn-conductores" >Conductores</button>
     </div>
 
     <!-- REGISTROS -->
@@ -194,17 +194,17 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="refuel-card" style="margin-bottom:1rem;">
         <div class="section-title">Exportar a Excel</div>
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" onclick="setExportRange('hoy')">Hoy</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" onclick="setExportRange('semana')">Esta semana</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" onclick="setExportRange('mes')">Este mes</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" onclick="setExportRange('año')">Este año</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" onclick="setExportRange('todo')">Todo</button>
+          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="hoy">Hoy</button>
+          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="semana">Esta semana</button>
+          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="mes">Este mes</button>
+          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="año">Este año</button>
+          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="todo">Todo</button>
         </div>
         <div class="two-col" style="margin-bottom:0.75rem;">
           <div><label class="form-label">Desde</label><input class="form-input" type="date" id="export-desde" style="font-size:14px;padding:0.6rem;"></div>
           <div><label class="form-label">Hasta</label><input class="form-input" type="date" id="export-hasta" style="font-size:14px;padding:0.6rem;"></div>
         </div>
-        <button class="btn-export" onclick="exportExcel()">⬇ Exportar Excel (.xlsx)</button>
+        <button class="btn-export" id="btn-export-excel">⬇ Exportar Excel (.xlsx)</button>
       </div>
       <div class="filter-row">
         <select class="form-input" id="filter-driver" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
@@ -239,7 +239,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <label class="form-label">Proveedor / Albarán (opcional)</label>
           <input class="form-input" type="text" id="recarga-obs" placeholder="Nombre proveedor, nº albarán...">
         </div>
-        <button class="btn btn-primary" onclick="registrarRecarga()">Registrar recarga</button>
+        <button class="btn btn-primary" id="btn-registrar-recarga">Registrar recarga</button>
       </div>
       <div class="section-title">Historial de recargas</div>
       <div id="recarga-hist-list"></div>
@@ -264,7 +264,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <label class="form-label">Código de acceso</label>
           <input class="form-input" type="text" id="new-driver-code" placeholder="Ej: 3062" autocomplete="off">
         </div>
-        <button class="btn btn-primary" onclick="addDriver()">Añadir conductor</button>
+        <button class="btn btn-primary" id="btn-add-driver">Añadir conductor</button>
       </div>
       <div class="section-title">Conductores activos (<span id="driver-count">0</span>)</div>
       <div id="driver-list"></div>
@@ -370,23 +370,51 @@ async function initApp() {
   buildLoginForm();
   showScreen('login');
 
-  // Event listeners conductor
+  // Logout buttons
+  document.getElementById('btn-logout-driver').addEventListener('click', doLogout);
+  document.getElementById('btn-logout-admin').addEventListener('click', doLogout);
+
+  // Admin tab buttons
+  document.getElementById('atab-btn-registros').addEventListener('click', ()=>switchAdminTab('registros'));
+  document.getElementById('atab-btn-deposito').addEventListener('click', ()=>switchAdminTab('deposito'));
+  document.getElementById('atab-btn-consumo').addEventListener('click', ()=>switchAdminTab('consumo'));
+  document.getElementById('atab-btn-conductores').addEventListener('click', ()=>switchAdminTab('conductores'));
+
+  // Depósito recarga
+  const btnRecarga = document.getElementById('btn-registrar-recarga');
+  if(btnRecarga) btnRecarga.addEventListener('click', ()=>window.registrarRecarga());
+
+  // Añadir conductor
+  const btnAddDriver = document.getElementById('btn-add-driver');
+  if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+
+  // Conductor form
   document.getElementById('matricula').addEventListener('change', () => {
     const val = document.getElementById('matricula').value;
     document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB') ? 'block' : 'none';
     if (val==='TOROS CESAB') document.getElementById('km-act').value='';
   });
-  document.getElementById('lectura-ini').addEventListener('input', () => {
-    const ini=parseFloat(document.getElementById('lectura-ini').value)||0;
-    const fin=parseFloat(document.getElementById('lectura-fin').value)||0;
-    document.getElementById('litros-calc').textContent=Math.max(0,fin-ini).toFixed(1);
+  document.getElementById('lectura-ini').addEventListener('input', calcLitrosLocal);
+  document.getElementById('lectura-fin').addEventListener('input', calcLitrosLocal);
+  document.getElementById('btn-registrar').addEventListener('click', ()=>window.submitRepostaje());
+
+  // Filtros admin
+  document.getElementById('filter-driver').addEventListener('change', renderAdminRecords);
+  document.getElementById('filter-mat').addEventListener('change', renderAdminRecords);
+  document.getElementById('filter-date').addEventListener('input', renderAdminRecords);
+
+  // Export range buttons
+  document.querySelectorAll('[data-range]').forEach(btn => {
+    btn.addEventListener('click', ()=>window.setExportRange(btn.dataset.range));
   });
-  document.getElementById('lectura-fin').addEventListener('input', () => {
-    const ini=parseFloat(document.getElementById('lectura-ini').value)||0;
-    const fin=parseFloat(document.getElementById('lectura-fin').value)||0;
-    document.getElementById('litros-calc').textContent=Math.max(0,fin-ini).toFixed(1);
-  });
-  document.getElementById('btn-registrar').addEventListener('click', () => window.submitRepostaje());
+  const btnExcel = document.getElementById('btn-export-excel');
+  if(btnExcel) btnExcel.addEventListener('click', ()=>window.exportExcel());
+}
+
+function calcLitrosLocal() {
+  const ini=parseFloat(document.getElementById('lectura-ini').value)||0;
+  const fin=parseFloat(document.getElementById('lectura-fin').value)||0;
+  document.getElementById('litros-calc').textContent=Math.max(0,fin-ini).toFixed(1);
 }
 
 // ══════════════════════════════
@@ -400,12 +428,19 @@ function buildLoginForm() {
         <label class="form-label">Código de acceso</label>
         <input class="form-input" type="password" id="login-code" placeholder="••••••" autocomplete="off" inputmode="numeric">
       </div>
-      <button class="btn btn-primary" onclick="doLogin()">Entrar</button>
+      <button class="btn btn-primary" id="btn-login">Entrar</button>
       <div style="text-align:center;margin-top:1rem;">
-        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" onclick="toggleLoginMode()">Acceso administrador</span>
+        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-admin">Acceso administrador</span>
       </div>
       <div class="error-msg" id="login-error"></div>`;
-    setTimeout(()=>{ const el=document.getElementById('login-code'); if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); },50);
+    setTimeout(()=>{
+      const el=document.getElementById('login-code');
+      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      const btn=document.getElementById('btn-login');
+      if(btn) btn.addEventListener('click', doLogin);
+      const lnk=document.getElementById('link-admin');
+      if(lnk) lnk.addEventListener('click', toggleLoginMode);
+    },50);
   } else {
     card.innerHTML = `
       <div class="form-group">
@@ -416,11 +451,17 @@ function buildLoginForm() {
         <label class="form-label">Contraseña</label>
         <input class="form-input" type="password" id="admin-pass" placeholder="••••••" autocomplete="off">
       </div>
-      <button class="btn btn-primary" onclick="doLogin()">Entrar como admin</button>
+      <button class="btn btn-primary" id="btn-login-admin">Entrar como admin</button>
       <div style="text-align:center;margin-top:1rem;">
-        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" onclick="toggleLoginMode()">← Acceso conductores</span>
+        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Acceso conductores</span>
       </div>
       <div class="error-msg" id="login-error"></div>`;
+    setTimeout(()=>{
+      const btn=document.getElementById('btn-login-admin');
+      if(btn) btn.addEventListener('click', doLogin);
+      const lnk=document.getElementById('link-driver');
+      if(lnk) lnk.addEventListener('click', toggleLoginMode);
+    },50);
   }
 }
 
@@ -565,7 +606,7 @@ function renderAdminStats() {
     <div class="stat-card"><div class="stat-val">${litrosHoy.toFixed(0)}<span style="font-size:14px"> L</span></div><div class="stat-label">Litros hoy</div></div>
     <div class="stat-card"><div class="stat-val">${recordsCache.length}</div><div class="stat-label">Registros</div></div>
     <div class="stat-card"><div class="stat-val">${mats}</div><div class="stat-label">Vehículos</div></div>
-    <div class="stat-card" style="grid-column:span 2;cursor:pointer;" onclick="switchAdminTab('deposito')">
+    <div class="stat-card" style="grid-column:span 2;cursor:pointer;" >
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">🛢 Nivel del depósito</div>
       <div style="font-size:28px;font-weight:800;color:${nivelColor}">${nivel.toLocaleString('es-ES',{maximumFractionDigits:0})} L <span style="font-size:14px;color:var(--text-muted)">(${nivelPct.toFixed(0)}%)</span></div>
       <div style="background:var(--input-bg);border-radius:99px;height:8px;margin-top:8px;overflow:hidden;"><div style="height:100%;border-radius:99px;width:${nivelPct}%;background:${nivelColor};transition:width 0.5s"></div></div>
