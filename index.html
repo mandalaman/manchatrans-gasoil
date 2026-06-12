@@ -520,19 +520,17 @@ window.submitRepostaje = async () => {
 function renderAdminPage() { populateFilters(); renderAdminStats(); renderAdminRecords(); renderDriverList(); }
 
 function populateFilters() {
-  // Conductores
+  // Conductores fijos
   const dSel = document.getElementById('filter-driver');
   const curD = dSel.value;
   dSel.innerHTML = '<option value="">Todos los conductores</option>';
-  const conductoresUnicos = [...new Map(recordsCache.map(r=>[r.driverCode, r])).values()].sort((a,b)=>a.driverName.localeCompare(b.driverName));
-  conductoresUnicos.forEach(r=>{ const o=document.createElement('option'); o.value=r.driverCode; o.textContent=r.driverName+' ('+r.driverCode+')'; dSel.appendChild(o); });
+  [...DEFAULT_DRIVERS].sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>{ const o=document.createElement('option'); o.value=d.code; o.textContent=d.name+' ('+d.code+')'; dSel.appendChild(o); });
   dSel.value = curD;
-  // Matrículas
+  // Matrículas fijas
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  const matsUnicas = [...new Set(recordsCache.map(r=>r.matricula))].sort();
-  matsUnicas.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  ['TOROS CESAB',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
   mSel.value = curM;
 }
 
