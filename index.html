@@ -483,7 +483,7 @@ window.doLogin = () => {
   const driver = driversCache.find(d => d.code === code);
   if (driver) {
     currentUser = { name:driver.name, code:driver.code, isAdmin:false };
-    document.getElementById('driver-name-display').textContent = driver.name.split(' ')[0];
+    document.getElementById('driver-name-display').textContent = driver.name.split(' ').slice(0,2).join(' ');
     showScreen('driver'); populateMatriculas();
   } else {
     err.textContent = 'Código incorrecto. Contacta con tu jefe.';
