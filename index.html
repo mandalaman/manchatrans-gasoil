@@ -391,8 +391,9 @@ async function initApp() {
   // Conductor form
   document.getElementById('matricula').addEventListener('change', () => {
     const val = document.getElementById('matricula').value;
-    document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB') ? 'block' : 'none';
-    if (val==='TOROS CESAB') document.getElementById('km-act').value='';
+    const sinKm = currentUser.code === '3006';
+    document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
+    if (val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
   });
   document.getElementById('lectura-ini').addEventListener('input', calcLitrosLocal);
   document.getElementById('lectura-fin').addEventListener('input', calcLitrosLocal);
