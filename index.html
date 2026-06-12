@@ -207,9 +207,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <button class="btn-export" onclick="exportExcel()">⬇ Exportar Excel (.xlsx)</button>
       </div>
       <div class="filter-row">
-        <input class="form-input" type="text" id="filter-driver" placeholder="Conductor..." oninput="renderAdminRecords()">
-        <input class="form-input" type="text" id="filter-mat" placeholder="Matrícula..." oninput="renderAdminRecords()">
-        <input class="form-input" type="date" id="filter-date" oninput="renderAdminRecords()">
+        <select class="form-input" id="filter-driver" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+          <option value="">Todos los conductores</option>
+        </select>
+        <select class="form-input" id="filter-mat" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+          <option value="">Todas las matrículas</option>
+        </select>
+        <input class="form-input" type="date" id="filter-date" oninput="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
       </div>
       <div id="admin-records-list"></div>
     </div>
@@ -513,7 +517,24 @@ window.submitRepostaje = async () => {
 // ══════════════════════════════
 // ADMIN
 // ══════════════════════════════
-function renderAdminPage() { renderAdminStats(); renderAdminRecords(); renderDriverList(); }
+function renderAdminPage() { populateFilters(); renderAdminStats(); renderAdminRecords(); renderDriverList(); }
+
+function populateFilters() {
+  // Conductores
+  const dSel = document.getElementById('filter-driver');
+  const curD = dSel.value;
+  dSel.innerHTML = '<option value="">Todos los conductores</option>';
+  const conductoresUnicos = [...new Map(recordsCache.map(r=>[r.driverCode, r])).values()].sort((a,b)=>a.driverName.localeCompare(b.driverName));
+  conductoresUnicos.forEach(r=>{ const o=document.createElement('option'); o.value=r.driverCode; o.textContent=r.driverName+' ('+r.driverCode+')'; dSel.appendChild(o); });
+  dSel.value = curD;
+  // Matrículas
+  const mSel = document.getElementById('filter-mat');
+  const curM = mSel.value;
+  mSel.innerHTML = '<option value="">Todas las matrículas</option>';
+  const matsUnicas = [...new Set(recordsCache.map(r=>r.matricula))].sort();
+  matsUnicas.forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  mSel.value = curM;
+}
 
 function renderAdminStats() {
   const total = recordsCache.reduce((s,r)=>s+r.litros,0);
@@ -539,11 +560,11 @@ function renderAdminStats() {
 function renderAdminRecords() {
   const list = document.getElementById('admin-records-list');
   let f = [...recordsCache];
-  const fd = document.getElementById('filter-driver').value.toLowerCase();
-  const fm = document.getElementById('filter-mat').value.toLowerCase();
+  const fd = document.getElementById('filter-driver').value;
+  const fm = document.getElementById('filter-mat').value;
   const ff = document.getElementById('filter-date').value;
-  if (fd) f=f.filter(r=>r.driverName.toLowerCase().includes(fd)||r.driverCode.includes(fd));
-  if (fm) f=f.filter(r=>r.matricula.toLowerCase().includes(fm));
+  if (fd) f=f.filter(r=>r.driverCode===fd);
+  if (fm) f=f.filter(r=>r.matricula===fm);
   if (ff) { const [fy,fmo,fd2]=ff.split('-'); const fdate=new Date(+fy,+fmo-1,+fd2).toLocaleDateString('es-ES'); f=f.filter(r=>r.fechaStr===fdate); }
   if (!f.length) { list.innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div>No hay registros con esos filtros</div>'; return; }
   list.innerHTML = f.map(r=>`
