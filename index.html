@@ -185,7 +185,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           </div>
         </div>
         <div class="form-group" id="km-field" style="display:none;">
-          <label class="form-label">Kilómetros actuales del vehículo</label>
+          <label class="form-label">Kilómetros actuales del vehículo <span style="color:var(--danger)">*</span></label>
           <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0">
         </div>
         <div class="form-group">
@@ -618,6 +618,8 @@ window.submitRepostaje = async () => {
     if (fin<=ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
     litros = parseFloat((fin-ini).toFixed(2));
   }
+  const sinKm = currentUser.code === '3006' || matricula === 'TOROS CESAB';
+  if (!sinKm && isNaN(kmAct)) { showAlert(alertEl,'Los kilómetros actuales son obligatorios',true); return; }
   const ultimoVehiculo = recordsCache.find(r=>r.matricula===matricula && r.kmAct!=null);
   const kmAnt = ultimoVehiculo ? ultimoVehiculo.kmAct : null;
   let consumo = null;
