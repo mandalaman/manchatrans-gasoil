@@ -442,7 +442,7 @@ function buildLoginForm() {
     card.innerHTML = `
       <div class="form-group">
         <label class="form-label">Código de acceso</label>
-        <input class="form-input" type="password" id="login-code" placeholder="••••••" autocomplete="off" inputmode="numeric">
+        <input class="form-input" type="password" id="login-code" placeholder="••••••" autocomplete="new-password" inputmode="numeric">
       </div>
       <button class="btn btn-primary" id="btn-login">Entrar</button>
       <div style="text-align:center;margin-top:1rem;">
@@ -517,8 +517,12 @@ window.doLogin = () => {
 
 window.doLogout = () => {
   currentUser = null; loginMode = 'driver';
-  buildLoginForm(); showScreen('login');
-  setTimeout(()=>{ const el=document.getElementById('login-code'); if(el) el.value=''; },50);
+  buildLoginForm();
+  showScreen('login');
+  setTimeout(()=>{
+    const el = document.getElementById('login-code');
+    if(el) { el.value = ''; el.setAttribute('value', ''); el.focus(); el.blur(); }
+  }, 100);
 };
 
 function showScreen(name) {
