@@ -155,22 +155,23 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="form-group">
           <label class="form-label">Modo de introducción de litros</label>
           <select class="form-input" id="modo-litros">
-            <option value="auto">Calcular automáticamente (lectura inicial/final)</option>
-            <option value="manual">Introducir litros manualmente</option>
+            <option value="auto">Automático (lectura inicial / lectura final)</option>
+            <option value="manual">Manual (lectura inicial / lectura final / litros)</option>
           </select>
         </div>
 
-        <div id="campos-auto">
-          <div class="two-col">
-            <div class="form-group">
-              <label class="form-label">Lectura inicial (L)</label>
-              <input class="form-input" type="number" id="lectura-ini" placeholder="0" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Lectura final (L)</label>
-              <input class="form-input" type="number" id="lectura-fin" placeholder="0" min="0">
-            </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Lectura inicial (L)</label>
+            <input class="form-input" type="number" id="lectura-ini" placeholder="0" min="0">
           </div>
+          <div class="form-group">
+            <label class="form-label">Lectura final (L)</label>
+            <input class="form-input" type="number" id="lectura-fin" placeholder="0" min="0">
+          </div>
+        </div>
+
+        <div id="campos-auto">
           <div class="litros-auto">
             <div class="litros-auto-label">✓ Litros echados (calculado)</div>
             <div class="litros-auto-value"><span id="litros-calc">0</span> L</div>
@@ -178,18 +179,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
 
         <div id="campos-manual" style="display:none;">
-          <div class="two-col">
-            <div class="form-group">
-              <label class="form-label">Lectura inicial (L)</label>
-              <input class="form-input" type="number" id="lectura-ini-manual" placeholder="0" min="0">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Lectura final (L)</label>
-              <input class="form-input" type="number" id="lectura-fin-manual" placeholder="0" min="0">
-            </div>
-          </div>
           <div class="form-group">
-            <label class="form-label">Litros echados</label>
+            <label class="form-label">Litros echados (manual)</label>
             <input class="form-input" type="number" id="litros-manual" placeholder="Ej: 45" min="0">
           </div>
         </div>
@@ -615,8 +606,8 @@ window.submitRepostaje = async () => {
   let litros, ini, fin;
   if (modo === 'manual') {
     litros = parseFloat(document.getElementById('litros-manual').value);
-    ini = parseFloat(document.getElementById('lectura-ini-manual').value);
-    fin = parseFloat(document.getElementById('lectura-fin-manual').value);
+    ini = parseFloat(document.getElementById('lectura-ini').value);
+    fin = parseFloat(document.getElementById('lectura-fin').value);
     if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
     if (isNaN(ini)) ini = null;
     if (isNaN(fin)) fin = null;
@@ -656,7 +647,7 @@ window.submitRepostaje = async () => {
     document.getElementById('modo-litros').value='auto';
     document.getElementById('campos-auto').style.display='block';
     document.getElementById('campos-manual').style.display='none';
-    ['lectura-ini','lectura-fin','km-act','obs','litros-manual','lectura-ini-manual','lectura-fin-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['lectura-ini','lectura-fin','km-act','obs','litros-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('litros-calc').textContent='0';
     document.getElementById('km-field').style.display='none';
     showAlert(alertEl,`✓ Registrado: ${litros} L en ${matricula}${consumo?' · '+consumo+' L/100km':''}`,false);
