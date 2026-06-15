@@ -567,6 +567,8 @@ function attachDriverListeners() {
     const sinKm = currentUser && (currentUser.code === '3006' || currentUser.code === '3007');
     document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
     if(val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
+    // Si es 3007, no tocar el select
+    if (currentUser && currentUser.code === '3007') return;
   };}
   if(ini) ini.oninput = calcLitrosLocal;
   if(fin) fin.oninput = calcLitrosLocal;
@@ -588,6 +590,7 @@ function populateMatriculas() {
 
   if (es3007) {
     sel.disabled = false;
+    sel.onchange = null;
     sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
     sel.innerHTML += '<option value="8343-LXM">8343-LXM (vehículo propio)</option>';
     sel.innerHTML += '<option value="5340-LWZ">5340-LWZ (vehículo propio)</option>';
