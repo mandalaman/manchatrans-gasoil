@@ -155,6 +155,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div class="form-group">
           <label class="form-label">Modo de introducción de litros</label>
           <select class="form-input" id="modo-litros">
+            <option value="">— Selecciona modo de introducción —</option>
             <option value="auto">Automático (lectura inicial / lectura final)</option>
             <option value="manual">Manual (lectura inicial / lectura final / litros)</option>
           </select>
@@ -625,7 +626,7 @@ window.submitRepostaje = async () => {
   const alertEl = document.getElementById('driver-alert');
   const btn = document.getElementById('btn-registrar');
 
-  if (!matricula) { showAlert(alertEl,'Selecciona el vehículo',true); return; }
+  if (!modo) { showAlert(alertEl,'Selecciona el modo de introducción de litros',true); return; }
 
   let litros, ini, fin;
   if (modo === 'manual') {
@@ -670,7 +671,7 @@ window.submitRepostaje = async () => {
     const docRef = await addDoc(collection(db,'repostajes'), record);
     recordsCache.unshift({ id:docRef.id, ...record });
     document.getElementById('matricula').value='';
-    document.getElementById('modo-litros').value='auto';
+    document.getElementById('modo-litros').value='';
     document.getElementById('campos-auto').style.display='block';
     document.getElementById('campos-manual').style.display='none';
     ['lectura-ini','lectura-fin','km-act','obs','litros-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
