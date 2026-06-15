@@ -329,7 +329,7 @@ const MATRICULAS = [
   '3341-GZJ','3402-NMD','3570-MWX','3817-BBW','3911-KZK','4324-MDJ',
   '4470-MLB','4870-CZR','4953-CYB','5039-MSZ','5167-BHZ','5271-KZT',
   '5343-NFD','6319-LKW','6354-LKW','6492-MMP','7062-NJL','7179-FVM',
-  '7511-FWW','7651-MHP','7999-KXZ','8182-MFM','8918-LSR','8929-MXW',
+  '7511-FWW','7651-MHP','7999-KXZ','8918-LSR','8929-MXW',
   '9233-DVZ','CR-9637-X'
 ];
 
@@ -575,6 +575,17 @@ function attachDriverListeners() {
 
 function populateMatriculas() {
   const sel = document.getElementById('matricula');
+  const es3006 = currentUser && currentUser.code === '3006';
+
+  if (es3006) {
+    sel.innerHTML = '<option value="8182-MFM">8182-MFM (vehículo propio)</option>';
+    sel.value = '8182-MFM';
+    sel.disabled = true;
+    document.getElementById('km-field').style.display = 'none';
+    return;
+  }
+
+  sel.disabled = false;
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
   sel.innerHTML += '<option value="TOROS CESAB" style="font-weight:600;">🏭 TOROS CESAB (Carretillas)</option>';
   sel.innerHTML += '<option disabled>──────────────</option>';
@@ -675,7 +686,7 @@ function populateFilters() {
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  ['TOROS CESAB',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  ['TOROS CESAB','8182-MFM',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
   mSel.value = curM;
 }
 
