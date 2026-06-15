@@ -593,7 +593,7 @@ function populateMatriculas() {
     sel.onchange = null;
     sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
     sel.innerHTML += '<option value="8343-LXM">8343-LXM (vehículo propio)</option>';
-    sel.innerHTML += '<option value="5340-LWZ">5340-LWZ (vehículo propio)</option>';
+    sel.innerHTML += '<option value="5340-CWZ">5340-CWZ (vehículo propio)</option>';
     document.getElementById('km-field').style.display = 'none';
     return;
   }
@@ -699,7 +699,7 @@ function populateFilters() {
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  ['TOROS CESAB','8182-MFM','8343-LXM','5340-LWZ',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
   mSel.value = curM;
 }
 
