@@ -1,0 +1,17 @@
+{
+  "name": "Control de Gasoil - Manchatrans",
+  "short_name": "Gasoil",
+  "description": "Control de repostaje Manchatrans S.L.",
+  "start_url": "/manchatrans-gasoil/",
+  "display": "standalone",
+  "background_color": "#111820",
+  "theme_color": "#1a2332",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/rubenmanchatrans-design/manchatrans-gasoil/main/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
