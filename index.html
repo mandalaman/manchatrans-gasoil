@@ -442,7 +442,7 @@ function buildLoginForm() {
     card.innerHTML = `
       <div class="form-group">
         <label class="form-label">Código de acceso</label>
-        <input class="form-input" type="password" id="login-code" placeholder="••••••" autocomplete="new-password" inputmode="numeric">
+        <input class="form-input" type="text" id="login-code" placeholder="••••••" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" style="-webkit-text-security:disc;">
       </div>
       <button class="btn btn-primary" id="btn-login">Entrar</button>
       <div style="text-align:center;margin-top:1rem;">
