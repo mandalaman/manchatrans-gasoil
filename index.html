@@ -409,15 +409,7 @@ async function initApp() {
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
 
   // Conductor form
-  document.getElementById('matricula').addEventListener('change', () => {
-    const val = document.getElementById('matricula').value;
-    const sinKm = currentUser.code === '3006';
-    document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
-    if (val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
-  });
-  document.getElementById('lectura-ini').addEventListener('input', calcLitrosLocal);
-  document.getElementById('lectura-fin').addEventListener('input', calcLitrosLocal);
-  document.getElementById('btn-registrar').addEventListener('click', ()=>window.submitRepostaje());
+  attachDriverListeners();
 
   // Filtros admin
   document.getElementById('filter-driver').addEventListener('change', renderAdminRecords);
@@ -512,7 +504,12 @@ window.doLogin = () => {
   if (driver) {
     currentUser = { name:driver.name, code:driver.code, isAdmin:false };
     document.getElementById('driver-name-display').textContent = driver.name.split(' ').slice(0,2).join(' ');
-    showScreen('driver'); populateMatriculas();
+    // Forzar que el tab repostar sea visible
+    document.getElementById('tab-repostar').style.display = 'block';
+    document.getElementById('tab-repostar').classList.add('active');
+    showScreen('driver');
+    populateMatriculas();
+    attachDriverListeners();
   } else {
     err.textContent = 'Código incorrecto. Contacta con tu jefe.';
   }
@@ -532,6 +529,22 @@ function showScreen(name) {
 // ══════════════════════════════
 // CONDUCTOR
 // ══════════════════════════════
+function attachDriverListeners() {
+  const mat = document.getElementById('matricula');
+  const ini = document.getElementById('lectura-ini');
+  const fin = document.getElementById('lectura-fin');
+  const btn = document.getElementById('btn-registrar');
+  if(mat) { mat.onchange = () => {
+    const val = mat.value;
+    const sinKm = currentUser && currentUser.code === '3006';
+    document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
+    if(val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
+  };}
+  if(ini) ini.oninput = calcLitrosLocal;
+  if(fin) fin.oninput = calcLitrosLocal;
+  if(btn) btn.onclick = () => window.submitRepostaje();
+}
+
 function populateMatriculas() {
   const sel = document.getElementById('matricula');
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
