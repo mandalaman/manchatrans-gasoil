@@ -107,8 +107,9 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <!-- LOADING -->
 <div class="loading-overlay" id="loading-overlay">
   <div style="font-size:36px">⛽</div>
-  <div class="spinner"></div>
-  <div style="font-size:14px;color:var(--text-muted);">Conectando con el servidor...</div>
+  <div class="spinner" id="loading-spinner"></div>
+  <div style="font-size:14px;color:var(--text-muted);" id="loading-msg">Conectando con el servidor...</div>
+  <button id="btn-retry" class="btn btn-primary" style="display:none;max-width:200px;margin-top:0.5rem;" onclick="location.reload()">🔄 Reintentar</button>
 </div>
 
 <!-- LOGIN -->
@@ -340,11 +341,22 @@ let driversCache = [];
 // FIREBASE — CARGA INICIAL
 // ══════════════════════════════
 async function initApp() {
+  // Timeout de 10 segundos — si tarda más muestra botón de reintento
+  const timeoutId = setTimeout(() => {
+    document.getElementById('loading-msg').textContent = 'Tardando más de lo normal...';
+    document.getElementById('loading-msg').style.color = '#f0a030';
+  }, 5000);
+  const timeoutId2 = setTimeout(() => {
+    document.getElementById('loading-msg').textContent = 'Sin conexión. Pulsa reintentar.';
+    document.getElementById('loading-msg').style.color = 'var(--danger)';
+    document.getElementById('loading-spinner').style.display = 'none';
+    document.getElementById('btn-retry').style.display = 'block';
+  }, 12000);
+
   try {
     // Cargar conductores
     const dSnap = await getDocs(collection(db, 'conductores'));
     if (dSnap.empty) {
-      // Primera vez: subir conductores por defecto
       for (const d of DEFAULT_DRIVERS) {
         await setDoc(doc(db, 'conductores', d.code), d);
       }
@@ -361,9 +373,18 @@ async function initApp() {
     const rcSnap = await getDocs(query(collection(db, 'recargas'), orderBy('fecha', 'desc')));
     recargasCache = rcSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    clearTimeout(timeoutId);
+    clearTimeout(timeoutId2);
+
   } catch(e) {
+    clearTimeout(timeoutId);
+    clearTimeout(timeoutId2);
     console.error('Error Firebase:', e);
-    alert('Error al conectar con el servidor. Comprueba tu conexión a internet.');
+    document.getElementById('loading-msg').textContent = 'Error de conexión. Pulsa reintentar.';
+    document.getElementById('loading-msg').style.color = 'var(--danger)';
+    document.getElementById('loading-spinner').style.display = 'none';
+    document.getElementById('btn-retry').style.display = 'block';
+    return;
   }
 
   document.getElementById('loading-overlay').style.display = 'none';
