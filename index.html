@@ -516,13 +516,7 @@ window.doLogin = () => {
 };
 
 window.doLogout = () => {
-  currentUser = null; loginMode = 'driver';
-  buildLoginForm();
-  showScreen('login');
-  setTimeout(()=>{
-    const el = document.getElementById('login-code');
-    if(el) { el.value = ''; el.setAttribute('value', ''); el.focus(); el.blur(); }
-  }, 100);
+  location.reload();
 };
 
 function showScreen(name) {
