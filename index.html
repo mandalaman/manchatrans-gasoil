@@ -483,6 +483,10 @@ function buildLoginForm() {
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-driver');
       if(lnk) lnk.addEventListener('click', toggleLoginMode);
+      const adminUser=document.getElementById('admin-user');
+      const adminPass=document.getElementById('admin-pass');
+      if(adminUser) adminUser.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(adminPass) adminPass.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
     },50);
   }
 }
