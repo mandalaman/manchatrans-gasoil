@@ -162,11 +162,11 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
         <div class="two-col">
           <div class="form-group">
-            <label class="form-label">Lectura inicial (L)</label>
+            <label class="form-label">Lectura inicial (L) <span style="color:var(--danger)">*</span></label>
             <input class="form-input" type="number" id="lectura-ini" placeholder="Lectura contador" min="0">
           </div>
           <div class="form-group">
-            <label class="form-label">Lectura final (L)</label>
+            <label class="form-label">Lectura final (L) <span style="color:var(--danger)">*</span></label>
             <input class="form-input" type="number" id="lectura-fin" placeholder="Lectura al terminar" min="0">
           </div>
         </div>
@@ -633,8 +633,8 @@ window.submitRepostaje = async () => {
     ini = parseFloat(document.getElementById('lectura-ini').value);
     fin = parseFloat(document.getElementById('lectura-fin').value);
     if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
-    if (isNaN(ini)) ini = null;
-    if (isNaN(fin)) fin = null;
+    if (isNaN(ini) || isNaN(fin)) { showAlert(alertEl,'Introduce la lectura inicial y final',true); return; }
+    if (fin <= ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
   } else {
     ini = parseFloat(document.getElementById('lectura-ini').value);
     fin = parseFloat(document.getElementById('lectura-fin').value);
