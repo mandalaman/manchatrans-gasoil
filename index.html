@@ -178,6 +178,16 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
 
         <div id="campos-manual" style="display:none;">
+          <div class="two-col">
+            <div class="form-group">
+              <label class="form-label">Lectura inicial (L)</label>
+              <input class="form-input" type="number" id="lectura-ini-manual" placeholder="0" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Lectura final (L)</label>
+              <input class="form-input" type="number" id="lectura-fin-manual" placeholder="0" min="0">
+            </div>
+          </div>
           <div class="form-group">
             <label class="form-label">Litros echados</label>
             <input class="form-input" type="number" id="litros-manual" placeholder="Ej: 45" min="0">
@@ -605,8 +615,11 @@ window.submitRepostaje = async () => {
   let litros, ini, fin;
   if (modo === 'manual') {
     litros = parseFloat(document.getElementById('litros-manual').value);
-    ini = null; fin = null;
+    ini = parseFloat(document.getElementById('lectura-ini-manual').value);
+    fin = parseFloat(document.getElementById('lectura-fin-manual').value);
     if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
+    if (isNaN(ini)) ini = null;
+    if (isNaN(fin)) fin = null;
   } else {
     ini = parseFloat(document.getElementById('lectura-ini').value);
     fin = parseFloat(document.getElementById('lectura-fin').value);
@@ -643,7 +656,7 @@ window.submitRepostaje = async () => {
     document.getElementById('modo-litros').value='auto';
     document.getElementById('campos-auto').style.display='block';
     document.getElementById('campos-manual').style.display='none';
-    ['lectura-ini','lectura-fin','km-act','obs','litros-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    ['lectura-ini','lectura-fin','km-act','obs','litros-manual','lectura-ini-manual','lectura-fin-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('litros-calc').textContent='0';
     document.getElementById('km-field').style.display='none';
     showAlert(alertEl,`✓ Registrado: ${litros} L en ${matricula}${consumo?' · '+consumo+' L/100km':''}`,false);
