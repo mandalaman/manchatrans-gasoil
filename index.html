@@ -152,7 +152,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <option value="">— Selecciona vehículo —</option>
           </select>
         </div>
-        <div class="form-group" id="km-field" style="display:none;">
+        <div class="form-group" id="km-field">
           <label class="form-label">Kilómetros actuales del vehículo <span style="color:var(--danger)">*</span></label>
           <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0">
         </div>
@@ -541,8 +541,10 @@ function attachDriverListeners() {
   if(mat) { mat.onchange = () => {
     const val = mat.value;
     const sinKm = currentUser && (currentUser.code === '3006' || currentUser.code === '3007');
-    document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
-    if(val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
+    if (!sinKm) {
+      document.getElementById('km-field').style.display = val === 'TOROS CESAB' ? 'none' : 'block';
+      if (val === 'TOROS CESAB') document.getElementById('km-act').value = '';
+    }
     if (currentUser && currentUser.code === '3007') return;
   };}
   if(ini) ini.oninput = calcLitrosLocal;
@@ -555,11 +557,17 @@ function populateMatriculas() {
   const es3006 = currentUser && currentUser.code === '3006';
   const es3007 = currentUser && currentUser.code === '3007';
 
+  // Ocultar km para Santos y Fernando desde el principio
+  if (es3006 || es3007) {
+    document.getElementById('km-field').style.display = 'none';
+  } else {
+    document.getElementById('km-field').style.display = 'block';
+  }
+
   if (es3006) {
     sel.innerHTML = '<option value="8182-MFM">8182-MFM (vehículo propio)</option>';
     sel.value = '8182-MFM';
     sel.disabled = true;
-    document.getElementById('km-field').style.display = 'none';
     return;
   }
 
@@ -569,7 +577,6 @@ function populateMatriculas() {
     sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
     sel.innerHTML += '<option value="8343-LXM">8343-LXM (vehículo propio)</option>';
     sel.innerHTML += '<option value="5340-CWZ">5340-CWZ (vehículo propio)</option>';
-    document.getElementById('km-field').style.display = 'none';
     return;
   }
 
