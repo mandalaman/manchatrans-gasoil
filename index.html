@@ -152,15 +152,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <option value="">— Selecciona vehículo —</option>
           </select>
         </div>
-        <div class="form-group">
-          <label class="form-label">Modo de introducción de litros</label>
-          <select class="form-input" id="modo-litros">
-            <option value="">— Selecciona modo de introducción —</option>
-            <option value="auto">Automático (lectura inicial / lectura final)</option>
-            <option value="manual">Manual (lectura inicial / lectura final / litros)</option>
-          </select>
-        </div>
-
         <div class="two-col">
           <div class="form-group">
             <label class="form-label">Lectura inicial (L) <span style="color:var(--danger)">*</span></label>
@@ -171,19 +162,9 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <input class="form-input" type="number" id="lectura-fin" placeholder="Lectura al terminar" min="0">
           </div>
         </div>
-
-        <div id="campos-auto">
-          <div class="litros-auto">
-            <div class="litros-auto-label">✓ Total litros echados</div>
-            <div class="litros-auto-value"><span id="litros-calc">0</span> L</div>
-          </div>
-        </div>
-
-        <div id="campos-manual" style="display:none;">
-          <div class="form-group">
-            <label class="form-label">Litros echados (manual)</label>
-            <input class="form-input" type="number" id="litros-manual" placeholder="Ej: 45" min="0">
-          </div>
+        <div class="form-group">
+          <label class="form-label">Litros echados <span style="color:var(--danger)">*</span></label>
+          <input class="form-input" type="number" id="litros-manual" placeholder="Litros echados" min="0">
         </div>
         <div class="form-group" id="km-field" style="display:none;">
           <label class="form-label">Kilómetros actuales del vehículo <span style="color:var(--danger)">*</span></label>
@@ -556,19 +537,12 @@ function attachDriverListeners() {
   const ini = document.getElementById('lectura-ini');
   const fin = document.getElementById('lectura-fin');
   const btn = document.getElementById('btn-registrar');
-  const modo = document.getElementById('modo-litros');
 
-  if(modo) modo.onchange = () => {
-    const esManual = modo.value === 'manual';
-    document.getElementById('campos-auto').style.display = esManual ? 'none' : 'block';
-    document.getElementById('campos-manual').style.display = esManual ? 'block' : 'none';
-  };
   if(mat) { mat.onchange = () => {
     const val = mat.value;
     const sinKm = currentUser && (currentUser.code === '3006' || currentUser.code === '3007');
     document.getElementById('km-field').style.display = (val && val!=='TOROS CESAB' && !sinKm) ? 'block' : 'none';
     if(val==='TOROS CESAB' || sinKm) document.getElementById('km-act').value='';
-    // Si es 3007, no tocar el select
     if (currentUser && currentUser.code === '3007') return;
   };}
   if(ini) ini.oninput = calcLitrosLocal;
@@ -626,23 +600,13 @@ window.submitRepostaje = async () => {
   const alertEl = document.getElementById('driver-alert');
   const btn = document.getElementById('btn-registrar');
 
-  if (!modo) { showAlert(alertEl,'Selecciona el modo de introducción de litros',true); return; }
-
   let litros, ini, fin;
-  if (modo === 'manual') {
-    litros = parseFloat(document.getElementById('litros-manual').value);
-    ini = parseFloat(document.getElementById('lectura-ini').value);
-    fin = parseFloat(document.getElementById('lectura-fin').value);
-    if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
-    if (isNaN(ini) || isNaN(fin)) { showAlert(alertEl,'Introduce la lectura inicial y final',true); return; }
-    if (fin <= ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
-  } else {
-    ini = parseFloat(document.getElementById('lectura-ini').value);
-    fin = parseFloat(document.getElementById('lectura-fin').value);
-    if (isNaN(ini)||isNaN(fin)) { showAlert(alertEl,'Introduce las lecturas inicial y final',true); return; }
-    if (fin<=ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
-    litros = parseFloat((fin-ini).toFixed(2));
-  }
+  ini = parseFloat(document.getElementById('lectura-ini').value);
+  fin = parseFloat(document.getElementById('lectura-fin').value);
+  litros = parseFloat(document.getElementById('litros-manual').value);
+  if (isNaN(ini) || isNaN(fin)) { showAlert(alertEl,'Introduce la lectura inicial y final',true); return; }
+  if (fin <= ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
+  if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
   const sinKm = currentUser.code === '3006' || currentUser.code === '3007' || matricula === 'TOROS CESAB';
   if (!sinKm && isNaN(kmAct)) { showAlert(alertEl,'Los kilómetros actuales son obligatorios',true); return; }
   const ultimoVehiculo = recordsCache.find(r=>r.matricula===matricula && r.kmAct!=null);
@@ -671,9 +635,9 @@ window.submitRepostaje = async () => {
     const docRef = await addDoc(collection(db,'repostajes'), record);
     recordsCache.unshift({ id:docRef.id, ...record });
     document.getElementById('matricula').value='';
-    document.getElementById('modo-litros').value='';
-    document.getElementById('campos-auto').style.display='block';
-    document.getElementById('campos-manual').style.display='none';
+    if(document.getElementById('matricula').disabled) {
+      // 3006 keeps its value
+    }
     ['lectura-ini','lectura-fin','km-act','obs','litros-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
     document.getElementById('litros-calc').textContent='0';
     document.getElementById('km-field').style.display='none';
