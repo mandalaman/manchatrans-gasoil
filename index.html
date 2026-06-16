@@ -884,7 +884,7 @@ function renderDriverList() {
     <div class="driver-list-item">
       <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
       <div style="display:flex;gap:0.5rem;">
-        <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">✏️</button>
+        <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         <button class="btn-del" onclick="deleteDriver('${d.code}')">Eliminar</button>
       </div>
     </div>`).join('');
