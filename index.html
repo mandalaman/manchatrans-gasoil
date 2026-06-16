@@ -611,19 +611,25 @@ window.submitRepostaje = async () => {
   ini = parseFloat(document.getElementById('lectura-ini').value);
   fin = parseFloat(document.getElementById('lectura-fin').value);
   litros = parseFloat(document.getElementById('litros-manual').value);
-  if (isNaN(ini) || isNaN(fin)) { showAlert(alertEl,'Introduce la lectura inicial y final',true); return; }
-  if (fin <= ini) { showAlert(alertEl,'La lectura final debe ser mayor que la inicial',true); return; }
-  if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'Introduce los litros echados',true); return; }
   const sinKm = currentUser.code === '3006' || currentUser.code === '3007' || matricula === 'TOROS CESAB';
-  if (!sinKm && isNaN(kmAct)) { showAlert(alertEl,'Los kilómetros actuales son obligatorios',true); return; }
+
+  // Validaciones con mensajes específicos
+  if (!matricula) { showAlert(alertEl,'⚠️ Selecciona el vehículo',true); return; }
+  if (!sinKm && isNaN(kmAct)) { showAlert(alertEl,'⚠️ Faltan los kilómetros actuales del vehículo',true); document.getElementById('km-act').focus(); return; }
+  if (!sinKm && !isNaN(kmAct)) {
+    const ultimoV = recordsCache.find(r=>r.matricula===matricula && r.kmAct!=null);
+    if (ultimoV && kmAct <= ultimoV.kmAct) { showAlert(alertEl,`⚠️ Los km (${kmAct}) deben ser mayores que el último repostaje (${ultimoV.kmAct})`,true); return; }
+  }
+  if (isNaN(ini)) { showAlert(alertEl,'⚠️ Falta la lectura inicial del contador',true); document.getElementById('lectura-ini').focus(); return; }
+  if (isNaN(fin)) { showAlert(alertEl,'⚠️ Falta la lectura final del contador',true); document.getElementById('lectura-fin').focus(); return; }
+  if (fin <= ini) { showAlert(alertEl,'⚠️ La lectura final debe ser mayor que la inicial',true); return; }
+  if (isNaN(litros) || litros <= 0) { showAlert(alertEl,'⚠️ Falta introducir los litros echados',true); document.getElementById('litros-manual').focus(); return; }
+
   const ultimoVehiculo = recordsCache.find(r=>r.matricula===matricula && r.kmAct!=null);
   const kmAnt = ultimoVehiculo ? ultimoVehiculo.kmAct : null;
   let consumo = null;
   if (!isNaN(kmAct) && kmAnt!=null && kmAct>kmAnt && litros>0) {
     consumo = parseFloat(((litros/(kmAct-kmAnt))*100).toFixed(2));
-  }
-  if (!isNaN(kmAct) && kmAnt!=null && kmAct<=kmAnt) {
-    showAlert(alertEl,`Los km (${kmAct}) deben ser mayores que los del último repostaje (${kmAnt})`,true); return;
   }
 
   btn.disabled = true; btn.textContent = 'Guardando...';
@@ -646,8 +652,7 @@ window.submitRepostaje = async () => {
       // 3006 keeps its value
     }
     ['lectura-ini','lectura-fin','km-act','obs','litros-manual'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    document.getElementById('litros-calc').textContent='0';
-    document.getElementById('km-field').style.display='none';
+    if (document.getElementById('litros-calc')) document.getElementById('litros-calc').textContent='0';
     showAlert(alertEl,`✓ Registrado: ${litros} L en ${matricula}${consumo?' · '+consumo+' L/100km':''}`,false);
   } catch(e) {
     showAlert(alertEl,'Error al guardar. Comprueba tu conexión.',true);
