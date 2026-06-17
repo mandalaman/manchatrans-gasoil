@@ -289,14 +289,22 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 
     </div>
 
-    <!-- VEHÍCULOS (Gasoil) -->
+    <!-- VEHÍCULOS (unificado) -->
     <div id="atab-vehiculos" class="tab-pane">
       <div id="mat-alert" class="alert"></div>
       <div class="refuel-card" style="margin-bottom:1rem;">
         <div class="section-title">Añadir vehículo</div>
         <div class="form-group">
           <label class="form-label">Matrícula</label>
-          <input class="form-input" type="text" id="new-mat" placeholder="Ej: 1234-ABC" autocomplete="off" style="text-transform:uppercase;">
+          <input class="form-input" type="text" id="new-mat" placeholder="Ej: 1234-ABC ó R-1234-ABC" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+        <div style="display:flex;gap:1.5rem;margin-bottom:1.25rem;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" id="new-mat-gasoil" checked style="width:18px;height:18px;"> ⛽ Gasoil
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" id="new-mat-flota" checked style="width:18px;height:18px;"> 🚛 Flota
+          </label>
         </div>
         <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
       </div>
@@ -311,7 +319,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="ftab-btn-historial">Cambio/Reparación</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-mantenimiento">Mantenimiento</button>
-        <button class="btn btn-ghost atab-btn" id="ftab-btn-vehiculos">Vehículos</button>
       </div>
 
       <!-- HISTORIAL DE CAMBIOS -->
@@ -375,21 +382,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           </select>
         </div>
         <div id="hist-mant-list"></div>
-      </div>
-
-      <!-- VEHÍCULOS (Flota) -->
-      <div id="ftab-vehiculos" class="tab-pane">
-        <div id="fmat-alert" class="alert"></div>
-        <div class="refuel-card" style="margin-bottom:1rem;">
-          <div class="section-title">Añadir vehículo / remolque</div>
-          <div class="form-group">
-            <label class="form-label">Matrícula</label>
-            <input class="form-input" type="text" id="new-fmat" placeholder="Ej: R-1234-ABC" autocomplete="off" style="text-transform:uppercase;">
-          </div>
-          <button class="btn btn-primary" id="btn-add-fmat">Añadir a Flota</button>
-        </div>
-        <div class="section-title">Vehículos en Flota (<span id="fmat-count">0</span>)</div>
-        <div id="fmat-list"></div>
       </div>
     </div>
     <!-- ═══════════ FIN MÓDULO FLEET ═══════════ -->
@@ -480,6 +472,7 @@ let loginMode = 'driver';
 let recordsCache = [];
 let recargasCache = [];
 let driversCache = [];
+let vehiculosCache = [];
 let matriculasCache = [];
 let remolquesCache = [];
 let historialCache = [];
@@ -516,23 +509,20 @@ async function initApp() {
       driversCache = dSnap.docs.map(d => d.data());
     }
 
-    // Cargar matrículas (Gasoil)
-    const matSnap = await getDocs(collection(db, 'matriculas'));
-    if (matSnap.empty) {
-      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'matriculas', m), { matricula: m }); }
-      matriculasCache = [...DEFAULT_MATRICULAS];
+    // Cargar vehículos (unificado: Gasoil + Flota con casillas)
+    const vehSnap = await getDocs(collection(db, 'vehiculos'));
+    if (vehSnap.empty) {
+      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true }); }
+      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true }); }
+      vehiculosCache = [
+        ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true})),
+        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true}))
+      ];
     } else {
-      matriculasCache = matSnap.docs.map(d => d.id);
+      vehiculosCache = vehSnap.docs.map(d => d.data());
     }
-
-    // Cargar remolques/vehículos de Flota
-    const remSnap = await getDocs(collection(dbFleet, 'remolques'));
-    if (remSnap.empty) {
-      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(dbFleet, 'remolques', r), { matricula: r }); }
-      remolquesCache = [...DEFAULT_REMOLQUES];
-    } else {
-      remolquesCache = remSnap.docs.map(d => d.id);
-    }
+    matriculasCache = vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula);
+    remolquesCache = vehiculosCache.filter(v=>v.flota).map(v=>v.matricula);
 
     // Cargar repostajes
     const rSnap = await getDocs(query(collection(db, 'repostajes'), orderBy('fecha', 'desc')));
@@ -639,13 +629,9 @@ async function initApp() {
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
 
-  // Vehículos Gasoil
+  // Vehículos (unificado)
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
-
-  // Vehículos Flota
-  document.getElementById('ftab-btn-vehiculos').addEventListener('click', ()=>switchFleetTab('vehiculos'));
-  document.getElementById('btn-add-fmat').addEventListener('click', ()=>window.addFMat());
 
   // Conductor form
   attachDriverListeners();
@@ -1276,84 +1262,99 @@ window.deleteDriver = async (code) => {
 };
 
 // ══════════════════════════════
-// VEHÍCULOS (GASOIL)
+// VEHÍCULOS (unificado: Gasoil + Flota)
 // ══════════════════════════════
 function renderMatList() {
   const list = document.getElementById('mat-list');
-  document.getElementById('mat-count').textContent = matriculasCache.length;
-  list.innerHTML = matriculasCache.map(m=>`
+  document.getElementById('mat-count').textContent = vehiculosCache.length;
+  list.innerHTML = vehiculosCache.map(v=>`
     <div class="driver-list-item">
-      <div class="driver-info">🚗 ${m}</div>
-      <button class="btn-del" onclick="deleteMat('${m}')">Eliminar</button>
+      <div>
+        <div class="driver-info">🚗 ${v.matricula}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="editVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
+        <button class="btn-del" onclick="deleteMat('${v.matricula}')">Eliminar</button>
+      </div>
     </div>`).join('');
+}
+
+function actualizarCachesVehiculos() {
+  matriculasCache = vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula);
+  remolquesCache = vehiculosCache.filter(v=>v.flota).map(v=>v.matricula);
+  populateFilters();
+  populateHistMatriculas();
+  populateMantMatriculas();
+  populateHistMantMatriculas();
 }
 
 window.addMat = async () => {
   const matInput = document.getElementById('new-mat');
   const mat = matInput.value.trim().toUpperCase();
+  const gasoil = document.getElementById('new-mat-gasoil').checked;
+  const flota = document.getElementById('new-mat-flota').checked;
   const al = document.getElementById('mat-alert');
   if (!mat) { showAlert(al,'Escribe una matrícula',true); return; }
-  if (matriculasCache.includes(mat)) { showAlert(al,'Esa matrícula ya existe',true); return; }
+  if (vehiculosCache.find(v=>v.matricula===mat)) { showAlert(al,'Esa matrícula ya existe',true); return; }
+  if (!gasoil && !flota) { showAlert(al,'Marca al menos Gasoil o Flota',true); return; }
   try {
-    await setDoc(doc(db,'matriculas',mat),{matricula:mat});
-    matriculasCache.push(mat);
+    const nuevo = {matricula:mat, gasoil, flota};
+    await setDoc(doc(db,'vehiculos',mat),nuevo);
+    vehiculosCache.push(nuevo);
     matInput.value='';
+    document.getElementById('new-mat-gasoil').checked = true;
+    document.getElementById('new-mat-flota').checked = true;
     renderMatList();
-    populateFilters();
-    showAlert(al,`✓ Vehículo "${mat}" añadido a Gasoil`,false);
+    actualizarCachesVehiculos();
+    showAlert(al,`✓ Vehículo "${mat}" añadido`,false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+};
+
+window.editVehiculo = (mat) => {
+  const v = vehiculosCache.find(x=>x.matricula===mat);
+  if (!v) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-veh-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar vehículo — ${mat}</div>
+      <div style="display:flex;gap:1.5rem;margin-bottom:1.25rem;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="edit-veh-gasoil" ${v.gasoil?'checked':''} style="width:18px;height:18px;"> ⛽ Gasoil
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="edit-veh-flota" ${v.flota?'checked':''} style="width:18px;height:18px;"> 🚛 Flota
+        </label>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-veh" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-veh-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-save-veh').addEventListener('click', async ()=>{
+    const gasoil = document.getElementById('edit-veh-gasoil').checked;
+    const flota = document.getElementById('edit-veh-flota').checked;
+    if (!gasoil && !flota) { alert('Marca al menos Gasoil o Flota'); return; }
+    try {
+      v.gasoil = gasoil; v.flota = flota;
+      await setDoc(doc(db,'vehiculos',mat),v);
+      document.getElementById('edit-veh-modal').remove();
+      renderMatList();
+      actualizarCachesVehiculos();
+    } catch(e) { alert('Error: '+e.message); }
+  });
 };
 
 window.deleteMat = async (mat) => {
-  if (!confirm(`¿Eliminar "${mat}" de Gasoil? No podrá usarse para repostar.`)) return;
+  if (!confirm(`¿Eliminar "${mat}" por completo? Dejará de aparecer en Gasoil y Flota.`)) return;
   try {
-    await deleteDoc(doc(db,'matriculas',mat));
-    matriculasCache = matriculasCache.filter(m=>m!==mat);
+    await deleteDoc(doc(db,'vehiculos',mat));
+    vehiculosCache = vehiculosCache.filter(v=>v.matricula!==mat);
     renderMatList();
-    populateFilters();
-  } catch(e) { alert('Error al eliminar: '+e.message); }
-};
-
-// ══════════════════════════════
-// VEHÍCULOS (FLOTA)
-// ══════════════════════════════
-function renderFMatList() {
-  const list = document.getElementById('fmat-list');
-  document.getElementById('fmat-count').textContent = remolquesCache.length;
-  list.innerHTML = remolquesCache.map(m=>`
-    <div class="driver-list-item">
-      <div class="driver-info">🚛 ${m}</div>
-      <button class="btn-del" onclick="deleteFMat('${m}')">Eliminar</button>
-    </div>`).join('');
-}
-
-window.addFMat = async () => {
-  const matInput = document.getElementById('new-fmat');
-  const mat = matInput.value.trim().toUpperCase();
-  const al = document.getElementById('fmat-alert');
-  if (!mat) { showAlert(al,'Escribe una matrícula',true); return; }
-  if (remolquesCache.includes(mat)) { showAlert(al,'Ese vehículo ya existe',true); return; }
-  try {
-    await setDoc(doc(dbFleet,'remolques',mat),{matricula:mat});
-    remolquesCache.push(mat);
-    matInput.value='';
-    renderFMatList();
-    populateHistMatriculas();
-    populateMantMatriculas();
-    populateHistMantMatriculas();
-    showAlert(al,`✓ Vehículo "${mat}" añadido a Flota`,false);
-  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
-};
-
-window.deleteFMat = async (mat) => {
-  if (!confirm(`¿Eliminar "${mat}" de Flota?`)) return;
-  try {
-    await deleteDoc(doc(dbFleet,'remolques',mat));
-    remolquesCache = remolquesCache.filter(m=>m!==mat);
-    renderFMatList();
-    populateHistMatriculas();
-    populateMantMatriculas();
-    populateHistMantMatriculas();
+    actualizarCachesVehiculos();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
@@ -1385,12 +1386,11 @@ function switchModule(mod) {
 function switchFleetTab(tab) {
   document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('ftab-'+tab).classList.add('active');
-  ['historial','mantenimiento','vehiculos'].forEach(t=>{
+  ['historial','mantenimiento'].forEach(t=>{
     document.getElementById('ftab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderHistorial();
   if (tab==='mantenimiento') renderMantenimiento();
-  if (tab==='vehiculos') renderFMatList();
 }
 
 function updateFleetBadge() {
