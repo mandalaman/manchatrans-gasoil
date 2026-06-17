@@ -220,16 +220,19 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
         <button class="btn-export" id="btn-export-excel">⬇ Exportar Excel (.xlsx)</button>
       </div>
-      <div class="filter-row">
-        <select class="form-input" id="filter-driver" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
-          <option value="">Todos los conductores</option>
-        </select>
-        <select class="form-input" id="filter-mat" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
-          <option value="">Todas las matrículas</option>
-        </select>
-        <input class="form-input" type="date" id="filter-date" oninput="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+      <button class="btn btn-secondary" id="btn-toggle-historial" style="margin-bottom:1rem;">📋 Ver historial de repostajes</button>
+      <div id="historial-wrapper" style="display:none;">
+        <div class="filter-row">
+          <select class="form-input" id="filter-driver" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+            <option value="">Todos los conductores</option>
+          </select>
+          <select class="form-input" id="filter-mat" onchange="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+            <option value="">Todas las matrículas</option>
+          </select>
+          <input class="form-input" type="date" id="filter-date" oninput="renderAdminRecords()" style="font-size:14px;padding:0.6rem 0.75rem;">
+        </div>
+        <div id="admin-records-list"></div>
       </div>
-      <div id="admin-records-list"></div>
     </div>
 
     <!-- DEPÓSITO -->
@@ -577,6 +580,19 @@ async function initApp() {
   document.getElementById('filter-mat').addEventListener('change', renderAdminRecords);
   document.getElementById('filter-date').addEventListener('input', renderAdminRecords);
 
+  document.getElementById('btn-toggle-historial').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('historial-wrapper');
+    const btn = document.getElementById('btn-toggle-historial');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.textContent = '📋 Ocultar historial de repostajes';
+      renderAdminRecords();
+    } else {
+      wrapper.style.display = 'none';
+      btn.textContent = '📋 Ver historial de repostajes';
+    }
+  });
+
   const btnExcel = document.getElementById('btn-export-excel');
   if(btnExcel) btnExcel.addEventListener('click', ()=>window.exportExcel());
 }
@@ -816,7 +832,7 @@ window.submitRepostaje = async () => {
 // ══════════════════════════════
 // ADMIN
 // ══════════════════════════════
-function renderAdminPage() { populateFilters(); renderAdminStats(); renderAdminRecords(); renderDriverList(); }
+function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); }
 
 function populateFilters() {
   // Conductores fijos
@@ -1192,7 +1208,7 @@ window.switchAdminTab = (tab) => {
   });
   if (tab==='deposito') renderDeposito();
   if (tab==='consumo') renderConsumo();
-  if (tab==='registros') { renderAdminStats(); renderAdminRecords(); }
+  if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
   if (tab==='conductores') renderDriverList();
 };
 
