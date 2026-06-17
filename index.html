@@ -1594,14 +1594,21 @@ function renderPendientesList(tipo) {
         const dias = Math.ceil((p.fecha - hoy)/(1000*60*60*24));
         const color = dias < 0 ? 'var(--danger)' : dias <= 5 ? '#ff6b00' : 'var(--warning)';
         const txt = dias < 0 ? `Vencida hace ${Math.abs(dias)} días` : dias === 0 ? 'Vence hoy' : `Vence en ${dias} días`;
-        return `<div style="background:var(--input-bg);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:0.5rem;">
+        return `<div onclick="irAEditarDesdePendientes('${p.matricula}','${p.revision}')" style="background:var(--input-bg);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:0.5rem;cursor:pointer;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <span style="font-weight:600;font-size:14px;">🚗 ${p.matricula} — ${p.revision}</span>
+            <span style="color:var(--text-muted);font-size:12px;">›</span>
           </div>
           <div style="font-size:13px;color:${color};font-weight:600;margin-top:4px;">${txt} (${p.fecha.toLocaleDateString('es-ES')})</div>
         </div>`;
       }).join('');
 }
+
+window.irAEditarDesdePendientes = (mat, rev) => {
+  const modalPend = document.getElementById('pendientes-modal');
+  if (modalPend) modalPend.remove();
+  editMant(mat, rev);
+};
 
 // ══════════════════════════════
 // EXPORTAR EXCEL
