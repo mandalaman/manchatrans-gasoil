@@ -339,6 +339,11 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes">📅 Pendientes mes</button>
           <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant">📋 Historial</button>
         </div>
+        <div class="form-group">
+          <select class="form-input" id="mant-filter-mat" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona vehículo —</option>
+          </select>
+        </div>
         <div id="mant-alertas"></div>
         <div id="mant-list"></div>
       </div>
@@ -561,6 +566,8 @@ async function initApp() {
   });
   document.getElementById('hist-mant-filter-mat').addEventListener('change', (e)=>{ histMantFiltroMat=e.target.value; renderHistorialMant(); });
   populateHistMatriculas();
+  populateMantMatriculas();
+  document.getElementById('mant-filter-mat').addEventListener('change', (e)=>{ mantFiltroMat=e.target.value; renderMantenimiento(); });
 
   // Depósito recarga
   const btnRecarga = document.getElementById('btn-registrar-recarga');
@@ -1340,6 +1347,16 @@ window.eliminarHistorial = async (id) => {
 // ══════════════════════════════
 function revKey(rev) { return rev.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
 
+let mantFiltroMat = '';
+
+function populateMantMatriculas() {
+  const sel = document.getElementById('mant-filter-mat');
+  if (!sel) return;
+  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
+  sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
+  todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
+}
+
 function renderMantenimiento() {
   const list=document.getElementById('mant-list');
   if (!list) return;
@@ -1363,7 +1380,13 @@ function renderMantenimiento() {
   });
   alertasEl.innerHTML=alertasHtml?`<div style="margin-bottom:1.25rem;">${alertasHtml}</div>`:'';
 
-  list.innerHTML=todasMat.map((mat)=>{
+  if (!mantFiltroMat) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🚗</div>Selecciona un vehículo arriba para ver su ITV y Tacógrafo</div>';
+    return;
+  }
+
+  const matsAMostrar = [mantFiltroMat];
+  list.innerHTML=matsAMostrar.map((mat)=>{
     const m=mantenimientoCache.find(x=>x.matricula===mat)||{matricula:mat};
     let tieneAlerta = false;
     REVISIONES.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO) tieneAlerta=true; } });
@@ -1373,7 +1396,7 @@ function renderMantenimiento() {
         <span style="font-size:14px;font-weight:600;">🚗 ${mat} ${tieneAlerta?'<span style="color:var(--danger);font-size:12px;">⚠️</span>':''}</span>
         <span id="arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
       </div>
-      <div id="mant-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+      <div id="mant-body-${safeId}" style="display:block;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         ${REVISIONES.map(rev=>{
           const key=revKey(rev);
           const keyUltima=key+'_ultima';
