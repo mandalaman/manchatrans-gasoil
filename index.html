@@ -527,6 +527,18 @@ async function initApp() {
       ];
     } else {
       vehiculosCache = vehSnap.docs.map(d => d.data());
+      // Comprobar si faltan los vehículos propios (de una versión anterior sin este campo)
+      const propiosCheck = [
+        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006'},
+        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007'},
+        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007'}
+      ];
+      for (const p of propiosCheck) {
+        if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
+          await setDoc(doc(db, 'vehiculos', p.matricula), p);
+          vehiculosCache.push(p);
+        }
+      }
     }
     matriculasCache = vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula);
     remolquesCache = vehiculosCache.filter(v=>v.flota).map(v=>v.matricula);
