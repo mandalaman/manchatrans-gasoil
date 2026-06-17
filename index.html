@@ -132,8 +132,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <div id="screen-login" class="screen">
   <div class="login-logo"><img src="icon.png" style="width:80px;height:80px;border-radius:18px;"></div>
   <div class="login-company">MANCHATRANS S.L.</div>
-  <div class="login-title">Control de Gasoil</div>
-  <div class="login-sub">Introduce tu código de acceso</div>
+  <div class="login-title" id="login-title">Control de Gasoil</div>
+  <div class="login-sub" id="login-sub">Introduce tu código de acceso</div>
   <div class="login-card"></div>
   <div style="margin-top:2rem;font-size:13px;color:var(--text-muted);text-align:center;opacity:0.8;">Diseñada por <span style="color:var(--accent);font-weight:600;">Rubén Díaz</span></div>
 </div>
@@ -647,7 +647,12 @@ function buildLoginForm() {
   }
 }
 
-window.toggleLoginMode = () => { loginMode = loginMode==='driver'?'admin':'driver'; buildLoginForm(); };
+window.toggleLoginMode = () => {
+  loginMode = loginMode==='driver'?'admin':'driver';
+  buildLoginForm();
+  document.getElementById('login-title').textContent = loginMode==='admin' ? 'Control Gasoil y Mantenimiento' : 'Control de Gasoil';
+  document.getElementById('login-sub').textContent = loginMode==='admin' ? 'Acceso administrador' : 'Introduce tu código de acceso';
+};
 
 window.doLogin = () => {
   const err = document.getElementById('login-error');
