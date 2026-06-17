@@ -512,11 +512,18 @@ async function initApp() {
     // Cargar vehículos (unificado: Gasoil + Flota con casillas)
     const vehSnap = await getDocs(collection(db, 'vehiculos'));
     if (vehSnap.empty) {
+      const propios = [
+        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006'},
+        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007'},
+        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007'}
+      ];
       for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true }); }
       for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true }); }
+      for (const p of propios) { await setDoc(doc(db, 'vehiculos', p.matricula), p); }
       vehiculosCache = [
         ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true})),
-        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true}))
+        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true})),
+        ...propios
       ];
     } else {
       vehiculosCache = vehSnap.docs.map(d => d.data());
@@ -771,12 +778,11 @@ function attachDriverListeners() {
 
   if(mat) { mat.onchange = () => {
     const val = mat.value;
-    const sinKm = currentUser && (currentUser.code === '3006' || currentUser.code === '3007');
-    if (!sinKm) {
+    const tienePropios = currentUser && vehiculosCache.some(v=>v.gasoil && v.propietario===currentUser.code);
+    if (!tienePropios) {
       document.getElementById('km-field').style.display = val === 'TOROS CESAB' ? 'none' : 'block';
       if (val === 'TOROS CESAB') document.getElementById('km-act').value = '';
     }
-    if (currentUser && currentUser.code === '3007') return;
   };}
   if(ini) ini.oninput = calcLitrosLocal;
   if(fin) fin.oninput = calcLitrosLocal;
@@ -785,37 +791,28 @@ function attachDriverListeners() {
 
 function populateMatriculas() {
   const sel = document.getElementById('matricula');
-  const es3006 = currentUser && currentUser.code === '3006';
-  const es3007 = currentUser && currentUser.code === '3007';
+  const code = currentUser ? currentUser.code : null;
 
-  // Ocultar km para Santos y Fernando desde el principio
-  if (es3006 || es3007) {
+  // Vehículos propios de este conductor (campo "propietario" en vehiculosCache)
+  const vehiculosPropios = vehiculosCache.filter(v => v.gasoil && v.propietario === code);
+
+  if (vehiculosPropios.length > 0) {
+    // Conductor con vehículo(s) propio(s): oculta km y limita el desplegable
     document.getElementById('km-field').style.display = 'none';
-  } else {
-    document.getElementById('km-field').style.display = 'block';
-  }
-
-  if (es3006) {
-    sel.innerHTML = '<option value="8182-MFM">8182-MFM (vehículo propio)</option>';
-    sel.value = '8182-MFM';
-    sel.disabled = true;
+    sel.disabled = vehiculosPropios.length === 1;
+    sel.innerHTML = vehiculosPropios.length === 1
+      ? `<option value="${vehiculosPropios[0].matricula}">${vehiculosPropios[0].matricula} (vehículo propio)</option>`
+      : '<option value="">— Selecciona vehículo —</option>' + vehiculosPropios.map(v=>`<option value="${v.matricula}">${v.matricula} (vehículo propio)</option>`).join('');
+    sel.value = vehiculosPropios.length === 1 ? vehiculosPropios[0].matricula : '';
     return;
   }
 
-  if (es3007) {
-    sel.disabled = false;
-    sel.onchange = null;
-    sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
-    sel.innerHTML += '<option value="8343-LXM">8343-LXM (vehículo propio)</option>';
-    sel.innerHTML += '<option value="5340-CWZ">5340-CWZ (vehículo propio)</option>';
-    return;
-  }
-
+  document.getElementById('km-field').style.display = 'block';
   sel.disabled = false;
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
   sel.innerHTML += '<option value="TOROS CESAB" style="font-weight:600;">🏭 TOROS CESAB (Carretillas)</option>';
   sel.innerHTML += '<option disabled>──────────────</option>';
-  matriculasCache.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  matriculasCache.filter(m => !vehiculosCache.find(v=>v.matricula===m && v.propietario)).forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
 }
 
 window.onMatriculaChange = () => {
@@ -841,7 +838,8 @@ window.submitRepostaje = async () => {
   ini = parseFloat(document.getElementById('lectura-ini').value);
   fin = parseFloat(document.getElementById('lectura-fin').value);
   litros = parseFloat(document.getElementById('litros-manual').value);
-  const sinKm = currentUser.code === '3006' || currentUser.code === '3007' || matricula === 'TOROS CESAB';
+  const tienePropios = vehiculosCache.some(v=>v.gasoil && v.propietario===currentUser.code);
+  const sinKm = tienePropios || matricula === 'TOROS CESAB';
 
   // Validaciones con mensajes específicos
   if (!matricula) { showAlert(alertEl,'⚠️ Selecciona el vehículo',true); return; }
@@ -906,7 +904,7 @@ function populateFilters() {
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...matriculasCache].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  ['TOROS CESAB',...matriculasCache].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
   mSel.value = curM;
 }
 
@@ -1267,17 +1265,19 @@ window.deleteDriver = async (code) => {
 function renderMatList() {
   const list = document.getElementById('mat-list');
   document.getElementById('mat-count').textContent = vehiculosCache.length;
-  list.innerHTML = vehiculosCache.map(v=>`
-    <div class="driver-list-item">
+  list.innerHTML = vehiculosCache.map(v=>{
+    const propietarioNombre = v.propietario ? (driversCache.find(d=>d.code===v.propietario)?.name.split(' ').slice(0,2).join(' ') || v.propietario) : null;
+    return `<div class="driver-list-item">
       <div>
         <div class="driver-info">🚗 ${v.matricula}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}${propietarioNombre?` · 👤 Propio de ${propietarioNombre}`:''}</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         <button class="btn-del" onclick="deleteMat('${v.matricula}')">Eliminar</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function actualizarCachesVehiculos() {
@@ -1314,6 +1314,7 @@ window.addMat = async () => {
 window.editVehiculo = (mat) => {
   const v = vehiculosCache.find(x=>x.matricula===mat);
   if (!v) return;
+  const opcionesDrivers = [...driversCache].sort((a,b)=>a.name.localeCompare(b.name)).map(d=>`<option value="${d.code}" ${v.propietario===d.code?'selected':''}>${d.name} (${d.code})</option>`).join('');
   const modal = document.createElement('div');
   modal.id = 'edit-veh-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
@@ -1328,6 +1329,13 @@ window.editVehiculo = (mat) => {
           <input type="checkbox" id="edit-veh-flota" ${v.flota?'checked':''} style="width:18px;height:18px;"> 🚛 Flota
         </label>
       </div>
+      <div class="form-group">
+        <label class="form-label">Vehículo propio de (opcional)</label>
+        <select class="form-input" id="edit-veh-propietario" style="font-size:14px;padding:0.6rem;">
+          <option value="">— Vehículo de empresa (no propio) —</option>
+          ${opcionesDrivers}
+        </select>
+      </div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-veh" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
         <button onclick="document.getElementById('edit-veh-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
@@ -1337,9 +1345,10 @@ window.editVehiculo = (mat) => {
   document.getElementById('btn-save-veh').addEventListener('click', async ()=>{
     const gasoil = document.getElementById('edit-veh-gasoil').checked;
     const flota = document.getElementById('edit-veh-flota').checked;
+    const propietario = document.getElementById('edit-veh-propietario').value || null;
     if (!gasoil && !flota) { alert('Marca al menos Gasoil o Flota'); return; }
     try {
-      v.gasoil = gasoil; v.flota = flota;
+      v.gasoil = gasoil; v.flota = flota; v.propietario = propietario;
       await setDoc(doc(db,'vehiculos',mat),v);
       document.getElementById('edit-veh-modal').remove();
       renderMatList();
