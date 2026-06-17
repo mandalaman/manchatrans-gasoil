@@ -413,6 +413,11 @@ const MATRICULAS = [
   '9233-DVZ','CR-9637-X'
 ];
 
+// Remolques: no reposta gasoil, solo aparecen en Flota (Historial / Mantenimiento)
+const REMOLQUES = [
+  'R-2060-BBR','R-3046-BCW','R-3148-BBF','R-3149-BBF','R-3179-BCB','R-6152-BCY','R-9839-BCD'
+];
+
 const DEFAULT_DRIVERS = [
   {code:'3035',name:'AGUSTIN CUESTA GUTIERREZ'},{code:'3008',name:'ALBERTO BRIÑAS LOPEZ'},
   {code:'3028',name:'ALEXIS MENDIETA AGUILERA'},{code:'3041',name:'ANGEL PATRICIO ORTEGA DE LA CRUZ'},
@@ -1228,7 +1233,7 @@ function updateFleetBadge() {
 function populateHistMatriculas() {
   const sel = document.getElementById('hist-matricula');
   const selFilter = document.getElementById('hist-filter-mat');
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS];
+  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
   if (sel) { sel.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; }); }
   if (selFilter) { selFilter.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selFilter.innerHTML+=`<option value="${m}">${m}</option>`; }); }
 }
@@ -1336,7 +1341,7 @@ function renderMantenimiento() {
   const alertasEl=document.getElementById('mant-alertas');
   const hoy=new Date();
   let alertasHtml='';
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS];
+  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
 
   mantenimientoCache.forEach(m=>{
     REVISIONES.forEach(rev=>{
@@ -1449,7 +1454,7 @@ window.editMant = (mat, rev) => {
 function populateHistMantMatriculas() {
   const sel = document.getElementById('hist-mant-filter-mat');
   if (!sel) return;
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS];
+  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
   sel.innerHTML = '<option value="">Todos los vehículos</option>';
   todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
 }
