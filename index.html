@@ -1519,23 +1519,13 @@ function renderHistorialMant() {
 
 window.verPendientesMes = (esAutomatico) => {
   const hoy = new Date();
-  const mesActual = hoy.getMonth();
-  const anioActual = hoy.getFullYear();
-  const nombreMes = hoy.toLocaleDateString('es-ES',{month:'long',year:'numeric'});
+  window._pendMes = hoy.getMonth();
+  window._pendAnio = hoy.getFullYear();
 
-  let pendientes = [];
-  mantenimientoCache.forEach(m => {
-    REVISIONES.forEach(rev => {
-      const key = revKey(rev);
-      if (!m[key]) return;
-      const fecha = new Date(m[key]);
-      if (fecha.getMonth() === mesActual && fecha.getFullYear() === anioActual) {
-        pendientes.push({matricula: m.matricula, revision: rev, fecha});
-      }
-    });
-  });
-  pendientes.sort((a,b) => a.fecha - b.fecha);
-  window._pendientesMesData = pendientes;
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const anioActual = hoy.getFullYear();
+  const opcionesMes = meses.map((m,i)=>`<option value="${i}" ${i===window._pendMes?'selected':''}>${m}</option>`).join('');
+  const opcionesAnio = [anioActual-1, anioActual, anioActual+1, anioActual+2].map(a=>`<option value="${a}" ${a===window._pendAnio?'selected':''}>${a}</option>`).join('');
 
   const modal = document.createElement('div');
   modal.id = 'pendientes-modal';
@@ -1543,8 +1533,12 @@ window.verPendientesMes = (esAutomatico) => {
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:450px;margin:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-        <div style="font-size:17px;font-weight:700;color:var(--accent);">📅 Pendientes de ${nombreMes}</div>
+        <div style="font-size:17px;font-weight:700;color:var(--accent);">📅 Pendientes</div>
         <button onclick="document.getElementById('pendientes-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+        <select class="form-input" id="pend-sel-mes" style="font-size:14px;padding:0.6rem;flex:1.3;">${opcionesMes}</select>
+        <select class="form-input" id="pend-sel-anio" style="font-size:14px;padding:0.6rem;flex:0.8;">${opcionesAnio}</select>
       </div>
       <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;">
         <button class="btn btn-secondary" id="pend-btn-todos" style="flex:1;padding:0.5rem;font-size:13px;" onclick="filtrarPendientesMes('todos')">Todos</button>
@@ -1554,8 +1548,31 @@ window.verPendientesMes = (esAutomatico) => {
       <div id="pendientes-list-body"></div>
     </div>`;
   document.body.appendChild(modal);
-  renderPendientesList('todos');
+
+  document.getElementById('pend-sel-mes').addEventListener('change', (e)=>{ window._pendMes=+e.target.value; recalcularPendientes(); });
+  document.getElementById('pend-sel-anio').addEventListener('change', (e)=>{ window._pendAnio=+e.target.value; recalcularPendientes(); });
+
+  recalcularPendientes();
 };
+
+function recalcularPendientes() {
+  let pendientes = [];
+  mantenimientoCache.forEach(m => {
+    REVISIONES.forEach(rev => {
+      const key = revKey(rev);
+      if (!m[key]) return;
+      const fecha = new Date(m[key]);
+      if (fecha.getMonth() === window._pendMes && fecha.getFullYear() === window._pendAnio) {
+        pendientes.push({matricula: m.matricula, revision: rev, fecha});
+      }
+    });
+  });
+  pendientes.sort((a,b) => a.fecha - b.fecha);
+  window._pendientesMesData = pendientes;
+  renderPendientesList('todos');
+  ['todos','itv','taco'].forEach(t=>{ document.getElementById('pend-btn-'+t).className='btn btn-ghost'; });
+  document.getElementById('pend-btn-todos').className='btn btn-secondary';
+}
 
 window.filtrarPendientesMes = (tipo) => {
   ['todos','itv','taco'].forEach(t=>{ document.getElementById('pend-btn-'+t).className='btn btn-ghost'; document.getElementById('pend-btn-'+t).style.cssText='flex:1;padding:0.5rem;font-size:13px;'; });
@@ -1572,7 +1589,7 @@ function renderPendientesList(tipo) {
   if (tipo !== 'todos') pendientes = pendientes.filter(p=>p.revision===tipo);
 
   body.innerHTML = pendientes.length === 0
-    ? '<div class="empty-state"><div class="empty-icon">✅</div>No hay revisiones de este tipo que venzan este mes</div>'
+    ? '<div class="empty-state"><div class="empty-icon">✅</div>No hay revisiones de este tipo que venzan en ese mes</div>'
     : pendientes.map(p => {
         const dias = Math.ceil((p.fecha - hoy)/(1000*60*60*24));
         const color = dias < 0 ? 'var(--danger)' : dias <= 5 ? '#ff6b00' : 'var(--warning)';
