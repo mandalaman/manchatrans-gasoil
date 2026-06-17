@@ -1261,7 +1261,7 @@ function updateFleetBadge() {
 function populateHistMatriculas() {
   const sel = document.getElementById('hist-matricula');
   const selFilter = document.getElementById('hist-filter-mat');
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
   if (sel) { sel.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; }); }
   if (selFilter) { selFilter.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selFilter.innerHTML+=`<option value="${m}">${m}</option>`; }); }
 }
@@ -1368,7 +1368,7 @@ let mantFiltroMat = '';
 function populateMantMatriculas() {
   const sel = document.getElementById('mant-filter-mat');
   if (!sel) return;
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
   todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
 }
@@ -1379,7 +1379,7 @@ function renderMantenimiento() {
   const alertasEl=document.getElementById('mant-alertas');
   const hoy=new Date();
   let alertasHtml='';
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
 
   mantenimientoCache.forEach(m=>{
     REVISIONES.forEach(rev=>{
@@ -1498,7 +1498,7 @@ window.editMant = (mat, rev) => {
 function populateHistMantMatriculas() {
   const sel = document.getElementById('hist-mant-filter-mat');
   if (!sel) return;
-  const todasMat = ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
   sel.innerHTML = '<option value="">Todos los vehículos</option>';
   todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
 }
