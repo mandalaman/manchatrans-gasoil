@@ -214,14 +214,6 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="stats-grid" id="admin-stats"></div>
       <div class="refuel-card" style="margin-bottom:1rem;">
         <div class="section-title">Exportar a Excel</div>
-        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.75rem;">
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="hoy">Hoy</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="semana">Esta semana</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="mes">Este mes</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="año">Este año</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;" data-range="todo">Todo</button>
-          <button class="btn btn-ghost" style="flex:1;padding:0.5rem;font-size:11px;color:var(--danger);border-color:var(--danger);" id="btn-clear-dates">✕ Limpiar</button>
-        </div>
         <div class="two-col" style="margin-bottom:0.75rem;">
           <div><label class="form-label">Desde</label><input class="form-input" type="date" id="export-desde" style="font-size:14px;padding:0.6rem;"></div>
           <div><label class="form-label">Hasta</label><input class="form-input" type="date" id="export-hasta" style="font-size:14px;padding:0.6rem;"></div>
@@ -585,13 +577,6 @@ async function initApp() {
   document.getElementById('filter-mat').addEventListener('change', renderAdminRecords);
   document.getElementById('filter-date').addEventListener('input', renderAdminRecords);
 
-  const btnClearDates = document.getElementById('btn-clear-dates');
-  if(btnClearDates) btnClearDates.addEventListener('click', ()=>{ document.getElementById('export-desde').value=''; document.getElementById('export-hasta').value=''; });
-
-  // Export range buttons
-  document.querySelectorAll('[data-range]').forEach(btn => {
-    btn.addEventListener('click', ()=>window.setExportRange(btn.dataset.range));
-  });
   const btnExcel = document.getElementById('btn-export-excel');
   if(btnExcel) btnExcel.addEventListener('click', ()=>window.exportExcel());
 }
@@ -1573,17 +1558,6 @@ function renderPendientesList(tipo) {
 // ══════════════════════════════
 // EXPORTAR EXCEL
 // ══════════════════════════════
-window.setExportRange = (tipo) => {
-  const hoy=new Date(), fmt=d=>d.toISOString().slice(0,10);
-  let desde='',hasta='';
-  if (tipo==='hoy') { desde=hasta=fmt(hoy); }
-  else if (tipo==='semana') { const l=new Date(hoy); l.setDate(hoy.getDate()-hoy.getDay()+(hoy.getDay()===0?-6:1)); desde=fmt(l); hasta=fmt(hoy); }
-  else if (tipo==='mes') { desde=fmt(new Date(hoy.getFullYear(),hoy.getMonth(),1)); hasta=fmt(hoy); }
-  else if (tipo==='año') { desde=fmt(new Date(hoy.getFullYear(),0,1)); hasta=fmt(hoy); }
-  document.getElementById('export-desde').value=desde;
-  document.getElementById('export-hasta').value=hasta;
-};
-
 window.exportExcel = () => {
   if (!recordsCache.length) { alert('No hay registros para exportar.'); return; }
   if (typeof XLSX==='undefined') {
