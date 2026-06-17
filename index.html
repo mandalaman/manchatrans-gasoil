@@ -315,16 +315,19 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <button class="btn btn-primary" id="btn-guardar-hist">Guardar registro</button>
         </div>
         <div class="section-title">Historial de cambios</div>
-        <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
-          <button class="btn btn-secondary" id="btn-hist-todos" style="flex:1;padding:0.6rem;font-size:13px;">Ver todo</button>
-          <button class="btn btn-ghost" id="btn-hist-filtrar" style="flex:1;padding:0.6rem;font-size:13px;">Filtrar por vehículo</button>
+        <button class="btn btn-secondary" id="btn-toggle-hist-cambios" style="margin-bottom:1rem;">📋 Ver historial de cambios</button>
+        <div id="hist-cambios-wrapper" style="display:none;">
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.75rem;">
+            <button class="btn btn-secondary" id="btn-hist-todos" style="flex:1;padding:0.6rem;font-size:13px;">Ver todo</button>
+            <button class="btn btn-ghost" id="btn-hist-filtrar" style="flex:1;padding:0.6rem;font-size:13px;">Filtrar por vehículo</button>
+          </div>
+          <div class="form-group" id="hist-filter-wrapper" style="display:none;">
+            <select class="form-input" id="hist-filter-mat" style="font-size:14px;padding:0.6rem;">
+              <option value="">— Selecciona vehículo —</option>
+            </select>
+          </div>
+          <div id="hist-list"></div>
         </div>
-        <div class="form-group" id="hist-filter-wrapper" style="display:none;">
-          <select class="form-input" id="hist-filter-mat" style="font-size:14px;padding:0.6rem;">
-            <option value="">— Selecciona vehículo —</option>
-          </select>
-        </div>
-        <div id="hist-list"></div>
       </div>
 
       <!-- MANTENIMIENTO -->
@@ -535,6 +538,18 @@ async function initApp() {
   document.getElementById('ftab-btn-mantenimiento').addEventListener('click', ()=>switchFleetTab('mantenimiento'));
   document.getElementById('btn-guardar-hist').addEventListener('click', guardarHistorial);
   document.getElementById('hist-filter-mat').addEventListener('change', (e)=>{ histFiltroMat=e.target.value; renderHistorial(); });
+  document.getElementById('btn-toggle-hist-cambios').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('hist-cambios-wrapper');
+    const btn = document.getElementById('btn-toggle-hist-cambios');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.textContent = '📋 Ocultar historial de cambios';
+      renderHistorial();
+    } else {
+      wrapper.style.display = 'none';
+      btn.textContent = '📋 Ver historial de cambios';
+    }
+  });
   document.getElementById('btn-hist-todos').addEventListener('click', ()=>{
     histFiltroMat='';
     document.getElementById('hist-filter-wrapper').style.display='none';
