@@ -207,6 +207,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <button class="btn btn-ghost atab-btn" id="atab-btn-deposito">Depósito</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-consumo">Consumo</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-conductores">Conductores</button>
+      <button class="btn btn-ghost atab-btn" id="atab-btn-vehiculos">Vehículos</button>
     </div>
 
     <!-- REGISTROS -->
@@ -287,6 +288,21 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div id="driver-list"></div>
 
     </div>
+
+    <!-- VEHÍCULOS (Gasoil) -->
+    <div id="atab-vehiculos" class="tab-pane">
+      <div id="mat-alert" class="alert"></div>
+      <div class="refuel-card" style="margin-bottom:1rem;">
+        <div class="section-title">Añadir vehículo</div>
+        <div class="form-group">
+          <label class="form-label">Matrícula</label>
+          <input class="form-input" type="text" id="new-mat" placeholder="Ej: 1234-ABC" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+        <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
+      </div>
+      <div class="section-title">Vehículos activos (<span id="mat-count">0</span>)</div>
+      <div id="mat-list"></div>
+    </div>
     </div>
     <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
 
@@ -295,6 +311,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="ftab-btn-historial">Cambio/Reparación</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-mantenimiento">Mantenimiento</button>
+        <button class="btn btn-ghost atab-btn" id="ftab-btn-vehiculos">Vehículos</button>
       </div>
 
       <!-- HISTORIAL DE CAMBIOS -->
@@ -359,6 +376,21 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
         <div id="hist-mant-list"></div>
       </div>
+
+      <!-- VEHÍCULOS (Flota) -->
+      <div id="ftab-vehiculos" class="tab-pane">
+        <div id="fmat-alert" class="alert"></div>
+        <div class="refuel-card" style="margin-bottom:1rem;">
+          <div class="section-title">Añadir vehículo / remolque</div>
+          <div class="form-group">
+            <label class="form-label">Matrícula</label>
+            <input class="form-input" type="text" id="new-fmat" placeholder="Ej: R-1234-ABC" autocomplete="off" style="text-transform:uppercase;">
+          </div>
+          <button class="btn btn-primary" id="btn-add-fmat">Añadir a Flota</button>
+        </div>
+        <div class="section-title">Vehículos en Flota (<span id="fmat-count">0</span>)</div>
+        <div id="fmat-list"></div>
+      </div>
     </div>
     <!-- ═══════════ FIN MÓDULO FLEET ═══════════ -->
 
@@ -406,7 +438,7 @@ const ALERTA_MIN = 1000;
 const DIAS_AVISO = 30;
 const REVISIONES = ['ITV','Tacógrafo'];
 
-const MATRICULAS = [
+const DEFAULT_MATRICULAS = [
   '0044-HBJ','0328-MMR','0390-LWZ','0608-KFG','0620-MPR','0633-NGH',
   '0724-KFG','1789-LZR','1931-CWD','1979-LMH','3257-LGZ','3299-MZB',
   '3341-GZJ','3402-NMD','3570-MWX','3817-BBW','3911-KZK','4324-MDJ',
@@ -417,7 +449,7 @@ const MATRICULAS = [
 ];
 
 // Remolques: no reposta gasoil, solo aparecen en Flota (Historial / Mantenimiento)
-const REMOLQUES = [
+const DEFAULT_REMOLQUES = [
   'R-2060-BBR','R-3046-BCW','R-3148-BBF','R-3149-BBF','R-3179-BCB','R-6152-BCY','R-9839-BCD'
 ];
 
@@ -448,6 +480,8 @@ let loginMode = 'driver';
 let recordsCache = [];
 let recargasCache = [];
 let driversCache = [];
+let matriculasCache = [];
+let remolquesCache = [];
 let historialCache = [];
 let mantenimientoCache = [];
 let historialMantCache = [];
@@ -480,6 +514,24 @@ async function initApp() {
       driversCache = [...DEFAULT_DRIVERS];
     } else {
       driversCache = dSnap.docs.map(d => d.data());
+    }
+
+    // Cargar matrículas (Gasoil)
+    const matSnap = await getDocs(collection(db, 'matriculas'));
+    if (matSnap.empty) {
+      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'matriculas', m), { matricula: m }); }
+      matriculasCache = [...DEFAULT_MATRICULAS];
+    } else {
+      matriculasCache = matSnap.docs.map(d => d.id);
+    }
+
+    // Cargar remolques/vehículos de Flota
+    const remSnap = await getDocs(collection(dbFleet, 'remolques'));
+    if (remSnap.empty) {
+      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(dbFleet, 'remolques', r), { matricula: r }); }
+      remolquesCache = [...DEFAULT_REMOLQUES];
+    } else {
+      remolquesCache = remSnap.docs.map(d => d.id);
     }
 
     // Cargar repostajes
@@ -586,6 +638,14 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+
+  // Vehículos Gasoil
+  document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
+  document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
+
+  // Vehículos Flota
+  document.getElementById('ftab-btn-vehiculos').addEventListener('click', ()=>switchFleetTab('vehiculos'));
+  document.getElementById('btn-add-fmat').addEventListener('click', ()=>window.addFMat());
 
   // Conductor form
   attachDriverListeners();
@@ -769,7 +829,7 @@ function populateMatriculas() {
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
   sel.innerHTML += '<option value="TOROS CESAB" style="font-weight:600;">🏭 TOROS CESAB (Carretillas)</option>';
   sel.innerHTML += '<option disabled>──────────────</option>';
-  MATRICULAS.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
+  matriculasCache.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=m; sel.appendChild(o); });
 }
 
 window.onMatriculaChange = () => {
@@ -860,7 +920,7 @@ function populateFilters() {
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...MATRICULAS].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  ['TOROS CESAB','8182-MFM','8343-LXM','5340-CWZ',...matriculasCache].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
   mSel.value = curM;
 }
 
@@ -1215,16 +1275,99 @@ window.deleteDriver = async (code) => {
   } catch(e) { alert('Error al eliminar'); }
 };
 
+// ══════════════════════════════
+// VEHÍCULOS (GASOIL)
+// ══════════════════════════════
+function renderMatList() {
+  const list = document.getElementById('mat-list');
+  document.getElementById('mat-count').textContent = matriculasCache.length;
+  list.innerHTML = matriculasCache.map(m=>`
+    <div class="driver-list-item">
+      <div class="driver-info">🚗 ${m}</div>
+      <button class="btn-del" onclick="deleteMat('${m}')">Eliminar</button>
+    </div>`).join('');
+}
+
+window.addMat = async () => {
+  const matInput = document.getElementById('new-mat');
+  const mat = matInput.value.trim().toUpperCase();
+  const al = document.getElementById('mat-alert');
+  if (!mat) { showAlert(al,'Escribe una matrícula',true); return; }
+  if (matriculasCache.includes(mat)) { showAlert(al,'Esa matrícula ya existe',true); return; }
+  try {
+    await setDoc(doc(db,'matriculas',mat),{matricula:mat});
+    matriculasCache.push(mat);
+    matInput.value='';
+    renderMatList();
+    populateFilters();
+    showAlert(al,`✓ Vehículo "${mat}" añadido a Gasoil`,false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+};
+
+window.deleteMat = async (mat) => {
+  if (!confirm(`¿Eliminar "${mat}" de Gasoil? No podrá usarse para repostar.`)) return;
+  try {
+    await deleteDoc(doc(db,'matriculas',mat));
+    matriculasCache = matriculasCache.filter(m=>m!==mat);
+    renderMatList();
+    populateFilters();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+// ══════════════════════════════
+// VEHÍCULOS (FLOTA)
+// ══════════════════════════════
+function renderFMatList() {
+  const list = document.getElementById('fmat-list');
+  document.getElementById('fmat-count').textContent = remolquesCache.length;
+  list.innerHTML = remolquesCache.map(m=>`
+    <div class="driver-list-item">
+      <div class="driver-info">🚛 ${m}</div>
+      <button class="btn-del" onclick="deleteFMat('${m}')">Eliminar</button>
+    </div>`).join('');
+}
+
+window.addFMat = async () => {
+  const matInput = document.getElementById('new-fmat');
+  const mat = matInput.value.trim().toUpperCase();
+  const al = document.getElementById('fmat-alert');
+  if (!mat) { showAlert(al,'Escribe una matrícula',true); return; }
+  if (remolquesCache.includes(mat)) { showAlert(al,'Ese vehículo ya existe',true); return; }
+  try {
+    await setDoc(doc(dbFleet,'remolques',mat),{matricula:mat});
+    remolquesCache.push(mat);
+    matInput.value='';
+    renderFMatList();
+    populateHistMatriculas();
+    populateMantMatriculas();
+    populateHistMantMatriculas();
+    showAlert(al,`✓ Vehículo "${mat}" añadido a Flota`,false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+};
+
+window.deleteFMat = async (mat) => {
+  if (!confirm(`¿Eliminar "${mat}" de Flota?`)) return;
+  try {
+    await deleteDoc(doc(dbFleet,'remolques',mat));
+    remolquesCache = remolquesCache.filter(m=>m!==mat);
+    renderFMatList();
+    populateHistMatriculas();
+    populateMantMatriculas();
+    populateHistMantMatriculas();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
 window.switchAdminTab = (tab) => {
   document.querySelectorAll('#module-gasoil .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('atab-'+tab).classList.add('active');
-  ['registros','deposito','consumo','conductores'].forEach(t=>{
+  ['registros','deposito','consumo','conductores','vehiculos'].forEach(t=>{
     document.getElementById('atab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='deposito') renderDeposito();
   if (tab==='consumo') renderConsumo();
   if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
   if (tab==='conductores') renderDriverList();
+  if (tab==='vehiculos') renderMatList();
 };
 
 // ══════════════════════════════
@@ -1242,11 +1385,12 @@ function switchModule(mod) {
 function switchFleetTab(tab) {
   document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('ftab-'+tab).classList.add('active');
-  ['historial','mantenimiento'].forEach(t=>{
+  ['historial','mantenimiento','vehiculos'].forEach(t=>{
     document.getElementById('ftab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderHistorial();
   if (tab==='mantenimiento') renderMantenimiento();
+  if (tab==='vehiculos') renderFMatList();
 }
 
 function updateFleetBadge() {
@@ -1261,7 +1405,7 @@ function updateFleetBadge() {
 function populateHistMatriculas() {
   const sel = document.getElementById('hist-matricula');
   const selFilter = document.getElementById('hist-filter-mat');
-  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
   if (sel) { sel.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; }); }
   if (selFilter) { selFilter.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selFilter.innerHTML+=`<option value="${m}">${m}</option>`; }); }
 }
@@ -1368,7 +1512,7 @@ let mantFiltroMat = '';
 function populateMantMatriculas() {
   const sel = document.getElementById('mant-filter-mat');
   if (!sel) return;
-  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
   sel.innerHTML = '<option value="">— Selecciona vehículo —</option>';
   todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
 }
@@ -1379,7 +1523,7 @@ function renderMantenimiento() {
   const alertasEl=document.getElementById('mant-alertas');
   const hoy=new Date();
   let alertasHtml='';
-  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
 
   mantenimientoCache.forEach(m=>{
     REVISIONES.forEach(rev=>{
@@ -1498,7 +1642,7 @@ window.editMant = (mat, rev) => {
 function populateHistMantMatriculas() {
   const sel = document.getElementById('hist-mant-filter-mat');
   if (!sel) return;
-  const todasMat = ['TOROS CESAB',...MATRICULAS,...REMOLQUES];
+  const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
   sel.innerHTML = '<option value="">Todos los vehículos</option>';
   todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; });
 }
