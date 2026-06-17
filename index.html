@@ -308,8 +308,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
         <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
       </div>
-      <div class="section-title">Vehículos activos (<span id="mat-count">0</span>)</div>
-      <div id="mat-list"></div>
+      <button class="btn btn-secondary" id="btn-toggle-mat" style="margin-bottom:1rem;">📋 Ver vehículos activos (<span class="mat-count">0</span>)</button>
+      <div id="mat-list-wrapper" style="display:none;">
+        <div id="mat-list"></div>
+      </div>
     </div>
     </div>
     <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
@@ -651,6 +653,19 @@ async function initApp() {
   // Vehículos (unificado)
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
+  document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('mat-list-wrapper');
+    const btn = document.getElementById('btn-toggle-mat');
+    const count = vehiculosCache.length;
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `📋 Ocultar vehículos activos (<span class="mat-count">${count}</span>)`;
+      renderMatList();
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `📋 Ver vehículos activos (<span class="mat-count">${count}</span>)`;
+    }
+  });
 
   // Conductor form
   attachDriverListeners();
@@ -1276,7 +1291,8 @@ window.deleteDriver = async (code) => {
 // ══════════════════════════════
 function renderMatList() {
   const list = document.getElementById('mat-list');
-  document.getElementById('mat-count').textContent = vehiculosCache.length;
+  const countSpans = document.querySelectorAll('.mat-count');
+  countSpans.forEach(s=>s.textContent = vehiculosCache.length);
   list.innerHTML = vehiculosCache.map(v=>{
     const propietarioNombre = v.propietario ? (driversCache.find(d=>d.code===v.propietario)?.name.split(' ').slice(0,2).join(' ') || v.propietario) : null;
     return `<div class="driver-list-item">
@@ -1389,7 +1405,7 @@ window.switchAdminTab = (tab) => {
   if (tab==='consumo') renderConsumo();
   if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
   if (tab==='conductores') renderDriverList();
-  if (tab==='vehiculos') renderMatList();
+  if (tab==='vehiculos' && document.getElementById('mat-list-wrapper').style.display!=='none') renderMatList();
 };
 
 // ══════════════════════════════
