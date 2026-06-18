@@ -1218,16 +1218,30 @@ function renderDriverList() {
     const baja = d.activo===false;
     return `<div class="driver-list-item" style="${baja?'opacity:0.55;':''}">
       <div><div class="driver-info">${d.name} ${baja?'<span style="font-size:11px;color:var(--danger);font-weight:700;">(DE BAJA)</span>':''}</div><div class="driver-code">Código: ${d.code}</div></div>
-      <div style="display:flex;gap:0.5rem;">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         ${baja
-          ? `<button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>`
+          ? `<button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
+             <button onclick="eliminarDriverDefinitivo('${d.code}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>`
           : `<button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>`
         }
       </div>
     </div>`;
   }).join('');
 }
+
+window.eliminarDriverDefinitivo = async (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  if (!confirm(`⚠️ ATENCIÓN: esto eliminará a "${d.name}" PARA SIEMPRE de la lista de conductores.\n\nSu historial de repostajes pasados NO se borrará, pero ya no podrás verlo en el filtro de conductores ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
+  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  try {
+    await deleteDoc(doc(db,'conductores',code));
+    driversCache = driversCache.filter(x=>x.code!==code);
+    renderDriverList();
+    populateFilters();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
 
 window.bajaDriver = async (code) => {
   const d = driversCache.find(x=>x.code===code);
