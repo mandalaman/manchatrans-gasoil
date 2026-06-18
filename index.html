@@ -284,8 +284,10 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         </div>
         <button class="btn btn-primary" id="btn-add-driver">Añadir conductor</button>
       </div>
-      <div class="section-title">Conductores activos (<span id="driver-count">0</span>)</div>
-      <div id="driver-list"></div>
+      <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver conductores activos (<span id="driver-count">0</span>)</button>
+      <div id="driver-list-wrapper" style="display:none;">
+        <div id="driver-list"></div>
+      </div>
 
       <button class="btn btn-ghost" id="btn-toggle-baja-drivers" style="margin-top:1.25rem;font-size:13px;">👤 Ver conductores de baja (<span id="driver-baja-count">0</span>)</button>
       <div id="driver-baja-wrapper" style="display:none;margin-top:0.75rem;">
@@ -659,15 +661,32 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+
+  document.getElementById('btn-toggle-drivers').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('driver-list-wrapper');
+    const btn = document.getElementById('btn-toggle-drivers');
+    const count = driversCache.filter(d=>d.activo!==false).length;
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `📋 Ocultar conductores activos (<span id="driver-count">${count}</span>)`;
+      renderDriverList();
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `📋 Ver conductores activos (<span id="driver-count">${count}</span>)`;
+    }
+  });
+
   document.getElementById('btn-toggle-baja-drivers').addEventListener('click', ()=>{
     const wrapper = document.getElementById('driver-baja-wrapper');
     const btn = document.getElementById('btn-toggle-baja-drivers');
+    const count = driversCache.filter(d=>d.activo===false).length;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'block';
-      btn.innerHTML = `👤 Ocultar conductores de baja (<span id="driver-baja-count">${driversCache.filter(d=>d.activo===false).length}</span>)`;
+      btn.innerHTML = `👤 Ocultar conductores de baja (<span id="driver-baja-count">${count}</span>)`;
+      renderDriverList();
     } else {
       wrapper.style.display = 'none';
-      btn.innerHTML = `👤 Ver conductores de baja (<span id="driver-baja-count">${driversCache.filter(d=>d.activo===false).length}</span>)`;
+      btn.innerHTML = `👤 Ver conductores de baja (<span id="driver-baja-count">${count}</span>)`;
     }
   });
 
@@ -1534,7 +1553,7 @@ window.switchAdminTab = (tab) => {
   if (tab==='deposito') renderDeposito();
   if (tab==='consumo') renderConsumo();
   if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
-  if (tab==='conductores') renderDriverList();
+  if (tab==='conductores' && (document.getElementById('driver-list-wrapper').style.display!=='none' || document.getElementById('driver-baja-wrapper').style.display!=='none')) renderDriverList();
   if (tab==='vehiculos' && (document.getElementById('mat-list-wrapper').style.display!=='none' || document.getElementById('mat-baja-wrapper').style.display!=='none')) renderMatList();
 };
 
