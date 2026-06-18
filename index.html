@@ -515,25 +515,25 @@ async function initApp() {
     const vehSnap = await getDocs(collection(db, 'vehiculos'));
     if (vehSnap.empty) {
       const propios = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006'},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007'},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007'}
+        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
+        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
+        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
       ];
-      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true }); }
-      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true }); }
+      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true, activo: true }); }
+      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true, activo: true }); }
       for (const p of propios) { await setDoc(doc(db, 'vehiculos', p.matricula), p); }
       vehiculosCache = [
-        ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true})),
-        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true})),
+        ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true, activo:true})),
+        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true, activo:true})),
         ...propios
       ];
     } else {
       vehiculosCache = vehSnap.docs.map(d => d.data());
       // Comprobar si faltan los vehículos propios (de una versión anterior sin este campo)
       const propiosCheck = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006'},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007'},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007'}
+        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
+        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
+        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
       ];
       for (const p of propiosCheck) {
         if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
@@ -542,8 +542,8 @@ async function initApp() {
         }
       }
     }
-    matriculasCache = vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula);
-    remolquesCache = vehiculosCache.filter(v=>v.flota).map(v=>v.matricula);
+    matriculasCache = vehiculosCache.filter(v=>v.gasoil && v.activo!==false).map(v=>v.matricula);
+    remolquesCache = vehiculosCache.filter(v=>v.flota && v.activo!==false).map(v=>v.matricula);
 
     // Cargar repostajes
     const rSnap = await getDocs(query(collection(db, 'repostajes'), orderBy('fecha', 'desc')));
@@ -924,17 +924,21 @@ window.submitRepostaje = async () => {
 function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); }
 
 function populateFilters() {
-  // Conductores fijos
+  // Conductores (todos, incluidos los de baja, para poder filtrar su histórico)
   const dSel = document.getElementById('filter-driver');
   const curD = dSel.value;
   dSel.innerHTML = '<option value="">Todos los conductores</option>';
-  [...DEFAULT_DRIVERS].sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>{ const o=document.createElement('option'); o.value=d.code; o.textContent=d.name+' ('+d.code+')'; dSel.appendChild(o); });
+  [...driversCache].sort((a,b)=>a.name.localeCompare(b.name)).forEach(d=>{ const o=document.createElement('option'); o.value=d.code; o.textContent=d.name+' ('+d.code+')'+(d.activo===false?' (baja)':''); dSel.appendChild(o); });
   dSel.value = curD;
-  // Matrículas fijas
+  // Matrículas (todas, incluidas las dadas de baja, para poder filtrar su histórico)
   const mSel = document.getElementById('filter-mat');
   const curM = mSel.value;
   mSel.innerHTML = '<option value="">Todas las matrículas</option>';
-  ['TOROS CESAB',...matriculasCache].forEach(m=>{ const o=document.createElement('option'); o.value=m; o.textContent=m; mSel.appendChild(o); });
+  const todasMatHist = ['TOROS CESAB',...vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula)];
+  todasMatHist.forEach(m=>{
+    const v = vehiculosCache.find(x=>x.matricula===m);
+    const o=document.createElement('option'); o.value=m; o.textContent=m+(v && v.activo===false?' (baja)':''); mSel.appendChild(o);
+  });
   mSel.value = curM;
 }
 
@@ -1317,25 +1321,56 @@ window.editDriver = (code) => {
 function renderMatList() {
   const list = document.getElementById('mat-list');
   const countSpans = document.querySelectorAll('.mat-count');
-  countSpans.forEach(s=>s.textContent = vehiculosCache.length);
-  list.innerHTML = vehiculosCache.map(v=>{
+  countSpans.forEach(s=>s.textContent = vehiculosCache.filter(v=>v.activo!==false).length);
+  const ordenados = [...vehiculosCache].sort((a,b)=>{
+    if ((a.activo!==false) !== (b.activo!==false)) return (a.activo!==false) ? -1 : 1;
+    return a.matricula.localeCompare(b.matricula);
+  });
+  list.innerHTML = ordenados.map(v=>{
     const propietarioNombre = v.propietario ? (driversCache.find(d=>d.code===v.propietario)?.name.split(' ').slice(0,2).join(' ') || v.propietario) : null;
-    return `<div class="driver-list-item">
+    const baja = v.activo===false;
+    return `<div class="driver-list-item" style="${baja?'opacity:0.55;':''}">
       <div>
-        <div class="driver-info">🚗 ${v.matricula}</div>
+        <div class="driver-info">🚗 ${v.matricula} ${baja?'<span style="font-size:11px;color:var(--danger);font-weight:700;">(DE BAJA)</span>':''}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}${propietarioNombre?` · 👤 Propio de ${propietarioNombre}`:''}</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
-        <button class="btn-del" onclick="deleteMat('${v.matricula}')">Eliminar</button>
+        ${baja
+          ? `<button onclick="reactivarVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>`
+          : `<button class="btn-del" onclick="bajaVehiculo('${v.matricula}')">Dar de baja</button>`
+        }
       </div>
     </div>`;
   }).join('');
 }
 
+window.bajaVehiculo = async (mat) => {
+  const v = vehiculosCache.find(x=>x.matricula===mat);
+  if (!v) return;
+  if (!confirm(`¿Dar de baja "${mat}"? Dejará de aparecer en los desplegables de Gasoil y Flota, pero su historial se mantendrá íntegro.`)) return;
+  try {
+    v.activo = false;
+    await setDoc(doc(db,'vehiculos',mat), v);
+    renderMatList();
+    actualizarCachesVehiculos();
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarVehiculo = async (mat) => {
+  const v = vehiculosCache.find(x=>x.matricula===mat);
+  if (!v) return;
+  try {
+    v.activo = true;
+    await setDoc(doc(db,'vehiculos',mat), v);
+    renderMatList();
+    actualizarCachesVehiculos();
+  } catch(e) { alert('Error: '+e.message); }
+};
+
 function actualizarCachesVehiculos() {
-  matriculasCache = vehiculosCache.filter(v=>v.gasoil).map(v=>v.matricula);
-  remolquesCache = vehiculosCache.filter(v=>v.flota).map(v=>v.matricula);
+  matriculasCache = vehiculosCache.filter(v=>v.gasoil && v.activo!==false).map(v=>v.matricula);
+  remolquesCache = vehiculosCache.filter(v=>v.flota && v.activo!==false).map(v=>v.matricula);
   populateFilters();
   populateHistMatriculas();
   populateMantMatriculas();
@@ -1352,7 +1387,7 @@ window.addMat = async () => {
   if (vehiculosCache.find(v=>v.matricula===mat)) { showAlert(al,'Esa matrícula ya existe',true); return; }
   if (!gasoil && !flota) { showAlert(al,'Marca al menos Gasoil o Flota',true); return; }
   try {
-    const nuevo = {matricula:mat, gasoil, flota};
+    const nuevo = {matricula:mat, gasoil, flota, activo:true};
     await setDoc(doc(db,'vehiculos',mat),nuevo);
     vehiculosCache.push(nuevo);
     matInput.value='';
@@ -1408,16 +1443,6 @@ window.editVehiculo = (mat) => {
       actualizarCachesVehiculos();
     } catch(e) { alert('Error: '+e.message); }
   });
-};
-
-window.deleteMat = async (mat) => {
-  if (!confirm(`¿Eliminar "${mat}" por completo? Dejará de aparecer en Gasoil y Flota.`)) return;
-  try {
-    await deleteDoc(doc(db,'vehiculos',mat));
-    vehiculosCache = vehiculosCache.filter(v=>v.matricula!==mat);
-    renderMatList();
-    actualizarCachesVehiculos();
-  } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
 window.switchAdminTab = (tab) => {
