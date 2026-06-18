@@ -771,6 +771,9 @@ window.doLogin = () => {
   const code = (document.getElementById('login-code').value||'').trim();
   if (!code) { err.textContent = 'Introduce tu código'; return; }
   const driver = driversCache.find(d => d.code === code);
+  if (driver && driver.activo === false) {
+    err.textContent = 'Este código ya no está activo. Contacta con tu jefe.'; return;
+  }
   if (driver) {
     currentUser = { name:driver.name, code:driver.code, isAdmin:false };
     document.getElementById('driver-name-display').textContent = driver.name.split(' ').slice(0,2).join(' ');
@@ -1202,16 +1205,46 @@ window.verDetalleMatricula = (mat) => {
 
 function renderDriverList() {
   const list=document.getElementById('driver-list');
-  document.getElementById('driver-count').textContent=driversCache.length;
-  list.innerHTML=driversCache.map(d=>`
-    <div class="driver-list-item">
-      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
+  document.getElementById('driver-count').textContent=driversCache.filter(d=>d.activo!==false).length;
+  const ordenados = [...driversCache].sort((a,b)=>{
+    if ((a.activo!==false) !== (b.activo!==false)) return (a.activo!==false) ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+  list.innerHTML=ordenados.map(d=>{
+    const baja = d.activo===false;
+    return `<div class="driver-list-item" style="${baja?'opacity:0.55;':''}">
+      <div><div class="driver-info">${d.name} ${baja?'<span style="font-size:11px;color:var(--danger);font-weight:700;">(DE BAJA)</span>':''}</div><div class="driver-code">Código: ${d.code}</div></div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
-        <button class="btn-del" onclick="deleteDriver('${d.code}')">Eliminar</button>
+        ${baja
+          ? `<button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>`
+          : `<button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>`
+        }
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
+
+window.bajaDriver = async (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  if (!confirm(`¿Dar de baja a "${d.name}"? Ya no podrá acceder con su código, pero su historial de repostajes se mantendrá íntegro.`)) return;
+  try {
+    d.activo = false;
+    await setDoc(doc(db,'conductores',code), d);
+    renderDriverList();
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarDriver = async (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  try {
+    d.activo = true;
+    await setDoc(doc(db,'conductores',code), d);
+    renderDriverList();
+  } catch(e) { alert('Error: '+e.message); }
+};
 
 window.addDriver = async () => {
   const name=document.getElementById('new-driver-name').value.trim();
@@ -1220,8 +1253,9 @@ window.addDriver = async () => {
   if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
   if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
   try {
-    await setDoc(doc(db,'conductores',code),{name,code});
-    driversCache.push({name,code});
+    const nuevo = {name,code,activo:true};
+    await setDoc(doc(db,'conductores',code),nuevo);
+    driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
     renderDriverList();
@@ -1275,15 +1309,6 @@ window.editDriver = (code) => {
       renderDriverList();
     } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   });
-};
-
-window.deleteDriver = async (code) => {
-  if (!confirm('¿Eliminar este conductor?')) return;
-  try {
-    await deleteDoc(doc(db,'conductores',code));
-    driversCache=driversCache.filter(d=>d.code!==code);
-    renderDriverList();
-  } catch(e) { alert('Error al eliminar'); }
 };
 
 // ══════════════════════════════
