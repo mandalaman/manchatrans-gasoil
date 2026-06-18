@@ -287,6 +287,11 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div class="section-title">Conductores activos (<span id="driver-count">0</span>)</div>
       <div id="driver-list"></div>
 
+      <button class="btn btn-ghost" id="btn-toggle-baja-drivers" style="margin-top:1.25rem;font-size:13px;">👤 Ver conductores de baja (<span id="driver-baja-count">0</span>)</button>
+      <div id="driver-baja-wrapper" style="display:none;margin-top:0.75rem;">
+        <div id="driver-baja-list"></div>
+      </div>
+
     </div>
 
     <!-- VEHÍCULOS (unificado) -->
@@ -311,6 +316,11 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <button class="btn btn-secondary" id="btn-toggle-mat" style="margin-bottom:1rem;">📋 Ver vehículos activos (<span class="mat-count">0</span>)</button>
       <div id="mat-list-wrapper" style="display:none;">
         <div id="mat-list"></div>
+      </div>
+
+      <button class="btn btn-ghost" id="btn-toggle-baja-mat" style="margin-top:1.25rem;font-size:13px;">🚗 Ver vehículos de baja (<span id="mat-baja-count">0</span>)</button>
+      <div id="mat-baja-wrapper" style="display:none;margin-top:0.75rem;">
+        <div id="mat-baja-list"></div>
       </div>
     </div>
     </div>
@@ -649,6 +659,17 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+  document.getElementById('btn-toggle-baja-drivers').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('driver-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-drivers');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `👤 Ocultar conductores de baja (<span id="driver-baja-count">${driversCache.filter(d=>d.activo===false).length}</span>)`;
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `👤 Ver conductores de baja (<span id="driver-baja-count">${driversCache.filter(d=>d.activo===false).length}</span>)`;
+    }
+  });
 
   // Vehículos (unificado)
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
@@ -656,7 +677,7 @@ async function initApp() {
   document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
     const wrapper = document.getElementById('mat-list-wrapper');
     const btn = document.getElementById('btn-toggle-mat');
-    const count = vehiculosCache.length;
+    const count = vehiculosCache.filter(v=>v.activo!==false).length;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'block';
       btn.innerHTML = `📋 Ocultar vehículos activos (<span class="mat-count">${count}</span>)`;
@@ -664,6 +685,20 @@ async function initApp() {
     } else {
       wrapper.style.display = 'none';
       btn.innerHTML = `📋 Ver vehículos activos (<span class="mat-count">${count}</span>)`;
+    }
+  });
+
+  document.getElementById('btn-toggle-baja-mat').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('mat-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-mat');
+    const count = vehiculosCache.filter(v=>v.activo===false).length;
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `🚗 Ocultar vehículos de baja (<span id="mat-baja-count">${count}</span>)`;
+      renderMatList();
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `🚗 Ver vehículos de baja (<span id="mat-baja-count">${count}</span>)`;
     }
   });
 
@@ -1209,25 +1244,32 @@ window.verDetalleMatricula = (mat) => {
 
 function renderDriverList() {
   const list=document.getElementById('driver-list');
-  document.getElementById('driver-count').textContent=driversCache.filter(d=>d.activo!==false).length;
-  const ordenados = [...driversCache].sort((a,b)=>{
-    if ((a.activo!==false) !== (b.activo!==false)) return (a.activo!==false) ? -1 : 1;
-    return a.name.localeCompare(b.name);
-  });
-  list.innerHTML=ordenados.map(d=>{
-    const baja = d.activo===false;
-    return `<div class="driver-list-item" style="${baja?'opacity:0.55;':''}">
-      <div><div class="driver-info">${d.name} ${baja?'<span style="font-size:11px;color:var(--danger);font-weight:700;">(DE BAJA)</span>':''}</div><div class="driver-code">Código: ${d.code}</div></div>
+  const bajaList=document.getElementById('driver-baja-list');
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const bajas = driversCache.filter(d=>d.activo===false).sort((a,b)=>a.name.localeCompare(b.name));
+  document.getElementById('driver-count').textContent = activos.length;
+  document.getElementById('driver-baja-count').textContent = bajas.length;
+
+  list.innerHTML = activos.map(d=>`
+    <div class="driver-list-item">
+      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
+        <button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>
+      </div>
+    </div>`).join('');
+
+  bajaList.innerHTML = bajas.length === 0
+    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay conductores de baja</div>'
+    : bajas.map(d=>`
+    <div class="driver-list-item" style="opacity:0.7;">
+      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
-        ${baja
-          ? `<button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
-             <button onclick="eliminarDriverDefinitivo('${d.code}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>`
-          : `<button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>`
-        }
+        <button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
+        <button onclick="eliminarDriverDefinitivo('${d.code}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
 window.eliminarDriverDefinitivo = async (code) => {
@@ -1334,30 +1376,54 @@ window.editDriver = (code) => {
 // ══════════════════════════════
 function renderMatList() {
   const list = document.getElementById('mat-list');
-  const countSpans = document.querySelectorAll('.mat-count');
-  countSpans.forEach(s=>s.textContent = vehiculosCache.filter(v=>v.activo!==false).length);
-  const ordenados = [...vehiculosCache].sort((a,b)=>{
-    if ((a.activo!==false) !== (b.activo!==false)) return (a.activo!==false) ? -1 : 1;
-    return a.matricula.localeCompare(b.matricula);
-  });
-  list.innerHTML = ordenados.map(v=>{
+  const bajaList = document.getElementById('mat-baja-list');
+  const activos = vehiculosCache.filter(v=>v.activo!==false).sort((a,b)=>a.matricula.localeCompare(b.matricula));
+  const bajas = vehiculosCache.filter(v=>v.activo===false).sort((a,b)=>a.matricula.localeCompare(b.matricula));
+  document.querySelectorAll('.mat-count').forEach(s=>s.textContent = activos.length);
+  document.getElementById('mat-baja-count').textContent = bajas.length;
+
+  list.innerHTML = activos.map(v=>{
     const propietarioNombre = v.propietario ? (driversCache.find(d=>d.code===v.propietario)?.name.split(' ').slice(0,2).join(' ') || v.propietario) : null;
-    const baja = v.activo===false;
-    return `<div class="driver-list-item" style="${baja?'opacity:0.55;':''}">
+    return `<div class="driver-list-item">
       <div>
-        <div class="driver-info">🚗 ${v.matricula} ${baja?'<span style="font-size:11px;color:var(--danger);font-weight:700;">(DE BAJA)</span>':''}</div>
+        <div class="driver-info">🚗 ${v.matricula}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}${propietarioNombre?` · 👤 Propio de ${propietarioNombre}`:''}</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
-        ${baja
-          ? `<button onclick="reactivarVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>`
-          : `<button class="btn-del" onclick="bajaVehiculo('${v.matricula}')">Dar de baja</button>`
-        }
+        <button class="btn-del" onclick="bajaVehiculo('${v.matricula}')">Dar de baja</button>
       </div>
     </div>`;
   }).join('');
+
+  bajaList.innerHTML = bajas.length === 0
+    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay vehículos de baja</div>'
+    : bajas.map(v=>{
+      const propietarioNombre = v.propietario ? (driversCache.find(d=>d.code===v.propietario)?.name.split(' ').slice(0,2).join(' ') || v.propietario) : null;
+      return `<div class="driver-list-item" style="opacity:0.7;">
+        <div>
+          <div class="driver-info">🚗 ${v.matricula}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.gasoil?'⛽ Gasoil ':''}${v.flota?'🚛 Flota':''}${propietarioNombre?` · 👤 Propio de ${propietarioNombre}`:''}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+          <button onclick="editVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
+          <button onclick="reactivarVehiculo('${v.matricula}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
+          <button onclick="eliminarVehiculoDefinitivo('${v.matricula}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>
+        </div>
+      </div>`;
+    }).join('');
 }
+
+window.eliminarVehiculoDefinitivo = async (mat) => {
+  if (!confirm(`⚠️ ATENCIÓN: esto eliminará "${mat}" PARA SIEMPRE de la lista de vehículos.\n\nSu historial pasado (repostajes, cambios, ITV) NO se borrará, pero ya no podrás verlo en los filtros ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
+  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  try {
+    await deleteDoc(doc(db,'vehiculos',mat));
+    vehiculosCache = vehiculosCache.filter(v=>v.matricula!==mat);
+    renderMatList();
+    actualizarCachesVehiculos();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
 
 window.bajaVehiculo = async (mat) => {
   const v = vehiculosCache.find(x=>x.matricula===mat);
@@ -1469,7 +1535,7 @@ window.switchAdminTab = (tab) => {
   if (tab==='consumo') renderConsumo();
   if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
   if (tab==='conductores') renderDriverList();
-  if (tab==='vehiculos' && document.getElementById('mat-list-wrapper').style.display!=='none') renderMatList();
+  if (tab==='vehiculos' && (document.getElementById('mat-list-wrapper').style.display!=='none' || document.getElementById('mat-baja-wrapper').style.display!=='none')) renderMatList();
 };
 
 // ══════════════════════════════
