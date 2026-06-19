@@ -426,6 +426,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="rtab-btn-entregar">Nueva entrega</button>
         <button class="btn btn-ghost atab-btn" id="rtab-btn-historial">Historial</button>
+        <button class="btn btn-ghost atab-btn" id="rtab-btn-empleados">Empleados</button>
       </div>
 
       <!-- NUEVA ENTREGA -->
@@ -448,6 +449,38 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           </select>
         </div>
         <div id="ropa-hist-list"></div>
+      </div>
+
+      <!-- EMPLEADOS -->
+      <div id="rtab-empleados" class="tab-pane">
+        <div id="ropa-emp-alert" class="alert"></div>
+        <div class="refuel-card" style="margin-bottom:1rem;">
+          <div class="section-title">Dar de alta nuevo empleado</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">⚠️ Necesitarás subir su plantilla PDF de "Recibí de entrega de ropa" (con el mismo diseño que el resto) para poder generarle entregas.</div>
+          <div class="form-group">
+            <label class="form-label">Nombre completo</label>
+            <input class="form-input" type="text" id="new-ropa-nombre" placeholder="Nombre completo">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre de empresa (como aparece en su plantilla)</label>
+            <input class="form-input" type="text" id="new-ropa-empresa" placeholder="Ej: MANCHEGA DE TRANSPORTES S.L.">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Plantilla PDF</label>
+            <input class="form-input" type="file" id="new-ropa-pdf" accept="application/pdf">
+          </div>
+          <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir empleado</button>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-toggle-ropa-emp" style="margin-bottom:1rem;">📋 Ver empleados activos (<span class="ropa-emp-count">0</span>)</button>
+        <div id="ropa-emp-list-wrapper" style="display:none;">
+          <div id="ropa-emp-list"></div>
+        </div>
+
+        <button class="btn btn-ghost" id="btn-toggle-baja-ropa-emp" style="margin-top:1.25rem;font-size:13px;">👤 Ver empleados de baja (<span id="ropa-emp-baja-count">0</span>)</button>
+        <div id="ropa-emp-baja-wrapper" style="display:none;margin-top:0.75rem;">
+          <div id="ropa-emp-baja-list"></div>
+        </div>
       </div>
     </div>
     <!-- ═══════════ FIN MÓDULO ROPA ═══════════ -->
@@ -769,8 +802,36 @@ async function initApp() {
   document.getElementById('mod-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
   document.getElementById('rtab-btn-historial').addEventListener('click', ()=>switchRopaTab('historial'));
+  document.getElementById('rtab-btn-empleados').addEventListener('click', ()=>{ switchRopaTab('empleados'); });
   document.getElementById('ropa-sel-empleado').addEventListener('change', (e)=>seleccionarEmpleadoRopa(e.target.value));
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
+  document.getElementById('btn-add-ropa-emp').addEventListener('click', ()=>window.addRopaEmpleado());
+  document.getElementById('btn-toggle-ropa-emp').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('ropa-emp-list-wrapper');
+    const btn = document.getElementById('btn-toggle-ropa-emp');
+    const count = ropaEmpleadosCache.filter(e=>e.activo!==false).length;
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `📋 Ocultar empleados activos (<span class="ropa-emp-count">${count}</span>)`;
+      renderRopaEmpleadosList();
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `📋 Ver empleados activos (<span class="ropa-emp-count">${count}</span>)`;
+    }
+  });
+  document.getElementById('btn-toggle-baja-ropa-emp').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('ropa-emp-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-ropa-emp');
+    const count = ropaEmpleadosCache.filter(e=>e.activo===false).length;
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      btn.innerHTML = `👤 Ocultar empleados de baja (<span id="ropa-emp-baja-count">${count}</span>)`;
+      renderRopaEmpleadosList();
+    } else {
+      wrapper.style.display = 'none';
+      btn.innerHTML = `👤 Ver empleados de baja (<span id="ropa-emp-baja-count">${count}</span>)`;
+    }
+  });
   populateRopaSelects();
 
   // Admin tab buttons — Gasoil
@@ -1859,7 +1920,7 @@ function switchModule(mod) {
 function switchRopaTab(tab) {
   document.querySelectorAll('#module-ropa .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('rtab-'+tab).classList.add('active');
-  ['entregar','historial'].forEach(t=>{
+  ['entregar','historial','empleados'].forEach(t=>{
     document.getElementById('rtab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderRopaHistorial();
@@ -2344,7 +2405,7 @@ function populateRopaSelects() {
   ordenados.forEach(e=>{ sel.innerHTML += `<option value="${e.id}">${e.nombre}</option>`; });
   if (selFilter) {
     selFilter.innerHTML = '<option value="">Todos los empleados</option>';
-    [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ selFilter.innerHTML += `<option value="${e.id}">${e.nombre}</option>`; });
+    [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ selFilter.innerHTML += `<option value="${e.id}">${e.nombre}${e.activo===false?' (baja)':''}</option>`; });
   }
 }
 
@@ -2392,6 +2453,103 @@ function seleccionarEmpleadoRopa(empId) {
   document.getElementById('btn-limpiar-firma').addEventListener('click', limpiarFirma);
   document.getElementById('btn-guardar-ropa').addEventListener('click', guardarEntregaRopa);
 }
+
+// ══════════════════════════════
+// ROPA — GESTIÓN DE EMPLEADOS
+// ══════════════════════════════
+function renderRopaEmpleadosList() {
+  const list = document.getElementById('ropa-emp-list');
+  const bajaList = document.getElementById('ropa-emp-baja-list');
+  if (!list || !bajaList) return;
+  const activos = ropaEmpleadosCache.filter(e=>e.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const bajas = ropaEmpleadosCache.filter(e=>e.activo===false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  document.querySelectorAll('.ropa-emp-count').forEach(s=>s.textContent = activos.length);
+  document.getElementById('ropa-emp-baja-count').textContent = bajas.length;
+
+  list.innerHTML = activos.map(e=>`
+    <div class="driver-list-item">
+      <div><div class="driver-info">👔 ${e.nombre}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${e.empresa||''}</div></div>
+      <button class="btn-del" onclick="bajaRopaEmpleado('${e.id}')">Dar de baja</button>
+    </div>`).join('');
+
+  bajaList.innerHTML = bajas.length === 0
+    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay empleados de baja</div>'
+    : bajas.map(e=>`
+    <div class="driver-list-item" style="opacity:0.7;">
+      <div><div class="driver-info">👔 ${e.nombre}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${e.empresa||''}</div></div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
+        <button onclick="reactivarRopaEmpleado('${e.id}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
+        <button onclick="eliminarRopaEmpleadoDefinitivo('${e.id}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>
+      </div>
+    </div>`).join('');
+}
+
+window.addRopaEmpleado = async () => {
+  const nombre = document.getElementById('new-ropa-nombre').value.trim().toUpperCase();
+  const empresa = document.getElementById('new-ropa-empresa').value.trim();
+  const fileInput = document.getElementById('new-ropa-pdf');
+  const al = document.getElementById('ropa-emp-alert');
+  if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+  if (!fileInput.files[0]) { showAlert(al,'Sube la plantilla PDF de este empleado',true); return; }
+
+  const id = nombre.replace(/[^a-zA-Z0-9]/g,'_');
+  if (ropaEmpleadosCache.find(e=>e.id===id)) { showAlert(al,'Ya existe un empleado con ese nombre',true); return; }
+
+  try {
+    const file = fileInput.files[0];
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfBase64 = btoa(Array.from(new Uint8Array(arrayBuffer), b => String.fromCharCode(b)).join(''));
+
+    const nuevo = { nombre, empresa, pdfBase64, activo: true };
+    await setDoc(doc(db, 'ropaEmpleados', id), nuevo);
+    ropaEmpleadosCache.push({id, ...nuevo});
+
+    document.getElementById('new-ropa-nombre').value = '';
+    document.getElementById('new-ropa-empresa').value = '';
+    fileInput.value = '';
+    populateRopaSelects();
+    renderRopaEmpleadosList();
+    showAlert(al, `✓ Empleado "${nombre}" añadido correctamente`, false);
+  } catch(e) {
+    showAlert(al, 'Error al guardar: '+e.message, true);
+  }
+};
+
+window.bajaRopaEmpleado = async (id) => {
+  const e = ropaEmpleadosCache.find(x=>x.id===id);
+  if (!e) return;
+  if (!confirm(`¿Dar de baja a "${e.nombre}"? Ya no aparecerá para nuevas entregas, pero su historial se mantendrá íntegro.`)) return;
+  try {
+    e.activo = false;
+    await setDoc(doc(db,'ropaEmpleados',id), e);
+    populateRopaSelects();
+    renderRopaEmpleadosList();
+  } catch(err) { alert('Error: '+err.message); }
+};
+
+window.reactivarRopaEmpleado = async (id) => {
+  const e = ropaEmpleadosCache.find(x=>x.id===id);
+  if (!e) return;
+  try {
+    e.activo = true;
+    await setDoc(doc(db,'ropaEmpleados',id), e);
+    populateRopaSelects();
+    renderRopaEmpleadosList();
+  } catch(err) { alert('Error: '+err.message); }
+};
+
+window.eliminarRopaEmpleadoDefinitivo = async (id) => {
+  const e = ropaEmpleadosCache.find(x=>x.id===id);
+  if (!e) return;
+  if (!confirm(`⚠️ ATENCIÓN: esto eliminará a "${e.nombre}" PARA SIEMPRE.\n\nSu historial de entregas pasadas NO se borrará, pero ya no podrás verlo en el filtro ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
+  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  try {
+    await deleteDoc(doc(db,'ropaEmpleados',id));
+    ropaEmpleadosCache = ropaEmpleadosCache.filter(x=>x.id!==id);
+    populateRopaSelects();
+    renderRopaEmpleadosList();
+  } catch(err) { alert('Error al eliminar: '+err.message); }
+};
 
 window.seleccionarPuestoRopa = (puesto) => {
   ropaPuestoSeleccionado = ropaPuestoSeleccionado === puesto ? '' : puesto;
@@ -2511,6 +2669,13 @@ async function guardarEntregaRopa() {
       }
     }
 
+    // Tapar el texto "Espacio reservado para la firma digital del empleado"
+    const [fbx0, fbtop, fbx1, fbbottom] = ROPA_FIRMA_BOX;
+    page.drawRectangle({
+      x: fbx0 + 1, y: toPdfY(761.7) , width: (fbx1 - fbx0) - 2, height: (761.7 - 751.2) + 2,
+      color: rgb(1,1,1)
+    });
+
     // Insertar firma (imagen del canvas) en el recuadro de firma
     const canvas = document.getElementById('firma-canvas');
     const firmaDataUrl = canvas.toDataURL('image/png');
@@ -2519,17 +2684,17 @@ async function guardarEntregaRopa() {
     const [bx0, btop, bx1, bbottom] = ROPA_FIRMA_BOX;
     const boxW = bx1 - bx0, boxH = bbottom - btop;
     const imgRatio = firmaImg.width / firmaImg.height;
-    let drawW = boxW * 0.7, drawH = drawW / imgRatio;
-    if (drawH > boxH * 0.55) { drawH = boxH * 0.55; drawW = drawH * imgRatio; }
+    let drawW = boxW * 0.75, drawH = drawW / imgRatio;
+    if (drawH > boxH * 0.7) { drawH = boxH * 0.7; drawW = drawH * imgRatio; }
     const drawX = bx0 + (boxW - drawW)/2;
-    const drawYTop = btop + boxH*0.12;
+    const drawYTop = btop + (boxH - drawH)/2 - 4;
     page.drawImage(firmaImg, { x: drawX, y: toPdfY(drawYTop + drawH), width: drawW, height: drawH });
 
     // Fecha de firma debajo
     const now = new Date();
     const fechaTexto = `Firmado el ${now.toLocaleDateString('es-ES')} a las ${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}`;
     const fechaW = fontReg.widthOfTextAtSize(fechaTexto, 8);
-    page.drawText(fechaTexto, { x: (bx0+bx1)/2 - fechaW/2, y: toPdfY(bbottom - 14), size: 8, font: fontReg, color: rgb(0.4,0.4,0.4) });
+    page.drawText(fechaTexto, { x: (bx0+bx1)/2 - fechaW/2, y: toPdfY(bbottom - 12), size: 8, font: fontReg, color: rgb(0.4,0.4,0.4) });
 
     const pdfFinalBytes = await pdfDoc.save();
     const pdfFinalBase64 = btoa(Array.from(pdfFinalBytes, b => String.fromCharCode(b)).join(''));
