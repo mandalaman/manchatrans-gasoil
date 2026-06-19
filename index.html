@@ -128,6 +128,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 #firma-canvas { border: 2px dashed var(--accent); border-radius: var(--radius-sm); background: #fff; touch-action: none; width: 100%; max-width: 500px; height: 180px; display: block; margin: 0 auto; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -427,6 +428,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <button class="btn btn-secondary atab-btn" id="rtab-btn-entregar">Nueva entrega</button>
         <button class="btn btn-ghost atab-btn" id="rtab-btn-historial">Historial</button>
         <button class="btn btn-ghost atab-btn" id="rtab-btn-empleados">Empleados</button>
+        <button class="btn btn-ghost atab-btn" id="rtab-btn-pendientes">Pendientes de firma</button>
       </div>
 
       <!-- NUEVA ENTREGA -->
@@ -448,6 +450,22 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <option value="">Todos los empleados</option>
           </select>
         </div>
+
+        <div class="refuel-card" style="margin-bottom:1rem;">
+          <div class="section-title">Descargar varios PDFs (.zip)</div>
+          <div class="form-group">
+            <label class="form-label">Empleado</label>
+            <select class="form-input" id="zip-sel-empleado" style="font-size:14px;padding:0.6rem;">
+              <option value="">Todos los empleados</option>
+            </select>
+          </div>
+          <div class="two-col" style="margin-bottom:0.75rem;">
+            <div><label class="form-label">Desde</label><input class="form-input" type="date" id="zip-desde" style="font-size:14px;padding:0.6rem;"></div>
+            <div><label class="form-label">Hasta</label><input class="form-input" type="date" id="zip-hasta" style="font-size:14px;padding:0.6rem;"></div>
+          </div>
+          <button class="btn-export" id="btn-zip-ropa">⬇ Descargar ZIP</button>
+        </div>
+
         <div id="ropa-hist-list"></div>
       </div>
 
@@ -481,6 +499,12 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div id="ropa-emp-baja-wrapper" style="display:none;margin-top:0.75rem;">
           <div id="ropa-emp-baja-list"></div>
         </div>
+      </div>
+
+      <!-- PENDIENTES DE FIRMA -->
+      <div id="rtab-pendientes" class="tab-pane">
+        <div class="section-title">Entregas preparadas, pendientes de firma</div>
+        <div id="ropa-pendientes-list"></div>
       </div>
     </div>
     <!-- ═══════════ FIN MÓDULO ROPA ═══════════ -->
@@ -803,8 +827,10 @@ async function initApp() {
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
   document.getElementById('rtab-btn-historial').addEventListener('click', ()=>switchRopaTab('historial'));
   document.getElementById('rtab-btn-empleados').addEventListener('click', ()=>{ switchRopaTab('empleados'); });
+  document.getElementById('rtab-btn-pendientes').addEventListener('click', ()=>switchRopaTab('pendientes'));
   document.getElementById('ropa-sel-empleado').addEventListener('change', (e)=>seleccionarEmpleadoRopa(e.target.value));
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
+  document.getElementById('btn-zip-ropa').addEventListener('click', descargarZipRopa);
   document.getElementById('btn-add-ropa-emp').addEventListener('click', ()=>window.addRopaEmpleado());
   document.getElementById('btn-toggle-ropa-emp').addEventListener('click', ()=>{
     const wrapper = document.getElementById('ropa-emp-list-wrapper');
@@ -1920,10 +1946,12 @@ function switchModule(mod) {
 function switchRopaTab(tab) {
   document.querySelectorAll('#module-ropa .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('rtab-'+tab).classList.add('active');
-  ['entregar','historial','empleados'].forEach(t=>{
+  ['entregar','historial','empleados','pendientes'].forEach(t=>{
     document.getElementById('rtab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderRopaHistorial();
+  if (tab==='pendientes') renderRopaPendientes();
+  if (tab==='empleados') renderRopaEmpleadosList();
 }
 
 function switchFleetTab(tab) {
@@ -2407,6 +2435,11 @@ function populateRopaSelects() {
     selFilter.innerHTML = '<option value="">Todos los empleados</option>';
     [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ selFilter.innerHTML += `<option value="${e.id}">${e.nombre}${e.activo===false?' (baja)':''}</option>`; });
   }
+  const zipSel = document.getElementById('zip-sel-empleado');
+  if (zipSel) {
+    zipSel.innerHTML = '<option value="">Todos los empleados</option>';
+    [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ zipSel.innerHTML += `<option value="${e.id}">${e.nombre}${e.activo===false?' (baja)':''}</option>`; });
+  }
 }
 
 function seleccionarEmpleadoRopa(empId) {
@@ -2444,14 +2477,16 @@ function seleccionarEmpleadoRopa(empId) {
     <div class="section-title">Firma del empleado</div>
     <div id="ropa-alert" class="alert"></div>
     <canvas id="firma-canvas" width="500" height="180"></canvas>
-    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;margin-bottom:1.25rem;">
+    <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
       <button class="btn btn-ghost" style="flex:1;" id="btn-limpiar-firma">🗑 Borrar firma</button>
       <button class="btn btn-primary" style="flex:1;" id="btn-guardar-ropa">💾 Guardar entrega firmada</button>
     </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:0.5rem;margin-bottom:1.25rem;font-size:13px;" id="btn-guardar-pendiente">📋 Preparar ahora y firmar más tarde</button>
   `;
   initFirmaCanvas();
   document.getElementById('btn-limpiar-firma').addEventListener('click', limpiarFirma);
-  document.getElementById('btn-guardar-ropa').addEventListener('click', guardarEntregaRopa);
+  document.getElementById('btn-guardar-ropa').addEventListener('click', ()=>guardarEntregaRopa(false));
+  document.getElementById('btn-guardar-pendiente').addEventListener('click', ()=>guardarEntregaRopa(true));
 }
 
 // ══════════════════════════════
@@ -2615,100 +2650,42 @@ function limpiarFirma() {
 }
 
 // ── Generar PDF relleno con pdf-lib y guardar ──
-async function guardarEntregaRopa() {
+async function guardarEntregaRopa(comoPendiente) {
   const al = document.getElementById('ropa-alert');
   if (!ropaEmpleadoSeleccionado) { showAlert(al,'Selecciona un empleado',true); return; }
   if (!ropaPuestoSeleccionado) { showAlert(al,'⚠️ Selecciona el puesto/función',true); return; }
   if (Object.keys(ropaArticulosSeleccionados).length === 0) { showAlert(al,'⚠️ Marca al menos un artículo entregado',true); return; }
-  if (!firmaTieneTrazo) { showAlert(al,'⚠️ El empleado debe firmar antes de guardar',true); return; }
+  if (!comoPendiente && !firmaTieneTrazo) { showAlert(al,'⚠️ El empleado debe firmar antes de guardar',true); return; }
 
   const btn = document.getElementById('btn-guardar-ropa');
-  btn.disabled = true; btn.textContent = 'Generando PDF...';
+  const btnPendiente = document.getElementById('btn-guardar-pendiente');
+  btn.disabled = true; if(btnPendiente) btnPendiente.disabled = true;
+  btn.textContent = 'Generando...';
 
   try {
     const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const articulosData = Object.keys(ropaArticulosSeleccionados).map(id => ({
+      id, modelo: document.getElementById('ropa-modelo-'+id).value||'', talla: document.getElementById('ropa-talla-'+id).value||'', cant: document.getElementById('ropa-cant-'+id).value||''
+    }));
 
-    // Cargar plantilla base del empleado
-    const pdfBytes = Uint8Array.from(atob(ropaEmpleadoSeleccionado.pdfBase64), c => c.charCodeAt(0));
-    const pdfDoc = await PDFDocument.load(pdfBytes);
-    const page = pdfDoc.getPage(0);
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const navy = rgb(0.102, 0.227, 0.361);
-
-    const toPdfY = (top) => ROPA_PDF_H - top;
-
-    // Dibujar X en checkbox de puesto
-    const pBox = ROPA_PUESTO_CHECKS[ropaPuestoSeleccionado];
-    if (pBox) {
-      const cx = (pBox[0]+pBox[2])/2, cyTop = toPdfY(pBox[1]), cyBottom = toPdfY(pBox[3]);
-      page.drawText('X', { x: cx-4, y: (cyTop+cyBottom)/2 - 4, size: 11, font: fontBold, color: navy });
+    let firmaPngBytes = null;
+    if (!comoPendiente) {
+      const canvas = document.getElementById('firma-canvas');
+      const firmaDataUrl = canvas.toDataURL('image/png');
+      firmaPngBytes = Uint8Array.from(atob(firmaDataUrl.split(',')[1]), c => c.charCodeAt(0));
     }
 
-    // Dibujar X y datos en artículos
-    for (const artId of Object.keys(ropaArticulosSeleccionados)) {
-      const box = ROPA_ENTREGADO_CHECKS[artId];
-      if (!box) continue;
-      const cx = (box[0]+box[2])/2, cyTop = toPdfY(box[1]), cyBottom = toPdfY(box[3]);
-      page.drawText('X', { x: cx-4, y: (cyTop+cyBottom)/2 - 4, size: 11, font: fontBold, color: navy });
+    const pdfFinalBase64 = await generarPdfRopa(ropaEmpleadoSeleccionado, ropaPuestoSeleccionado, articulosData, firmaPngBytes);
 
-      const filaTop = ROPA_FILA_TOP[artId];
-      const filaCentroY = toPdfY(filaTop + ROPA_FILA_ALTURA/2) - 4;
-      const modelo = (document.getElementById('ropa-modelo-'+artId).value || '').trim();
-      const talla = (document.getElementById('ropa-talla-'+artId).value || '').trim();
-      const cant = (document.getElementById('ropa-cant-'+artId).value || '').trim();
-
-      if (modelo) page.drawText(modelo, { x: ROPA_COL_MODELO_X, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
-      if (talla) {
-        const w = fontReg.widthOfTextAtSize(talla, 9);
-        page.drawText(talla, { x: ROPA_COL_TALLA_X - w/2, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
-      }
-      if (cant) {
-        const w = fontReg.widthOfTextAtSize(cant, 9);
-        page.drawText(cant, { x: ROPA_COL_CANT_X - w/2, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
-      }
-    }
-
-    // Tapar el texto "Espacio reservado para la firma digital del empleado"
-    const [fbx0, fbtop, fbx1, fbbottom] = ROPA_FIRMA_BOX;
-    page.drawRectangle({
-      x: fbx0 + 1, y: toPdfY(761.7) , width: (fbx1 - fbx0) - 2, height: (761.7 - 751.2) + 2,
-      color: rgb(1,1,1)
-    });
-
-    // Insertar firma (imagen del canvas) en el recuadro de firma
-    const canvas = document.getElementById('firma-canvas');
-    const firmaDataUrl = canvas.toDataURL('image/png');
-    const firmaImgBytes = Uint8Array.from(atob(firmaDataUrl.split(',')[1]), c => c.charCodeAt(0));
-    const firmaImg = await pdfDoc.embedPng(firmaImgBytes);
-    const [bx0, btop, bx1, bbottom] = ROPA_FIRMA_BOX;
-    const boxW = bx1 - bx0, boxH = bbottom - btop;
-    const imgRatio = firmaImg.width / firmaImg.height;
-    let drawW = boxW * 0.75, drawH = drawW / imgRatio;
-    if (drawH > boxH * 0.7) { drawH = boxH * 0.7; drawW = drawH * imgRatio; }
-    const drawX = bx0 + (boxW - drawW)/2;
-    const drawYTop = btop + (boxH - drawH)/2 - 4;
-    page.drawImage(firmaImg, { x: drawX, y: toPdfY(drawYTop + drawH), width: drawW, height: drawH });
-
-    // Fecha de firma debajo
     const now = new Date();
-    const fechaTexto = `Firmado el ${now.toLocaleDateString('es-ES')} a las ${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}`;
-    const fechaW = fontReg.widthOfTextAtSize(fechaTexto, 8);
-    page.drawText(fechaTexto, { x: (bx0+bx1)/2 - fechaW/2, y: toPdfY(bbottom - 12), size: 8, font: fontReg, color: rgb(0.4,0.4,0.4) });
-
-    const pdfFinalBytes = await pdfDoc.save();
-    const pdfFinalBase64 = btoa(Array.from(pdfFinalBytes, b => String.fromCharCode(b)).join(''));
-
-    // Guardar registro en Firestore
     const registro = {
       empleadoId: ropaEmpleadoSeleccionado.id,
       empleadoNombre: ropaEmpleadoSeleccionado.nombre,
       empresa: ropaEmpleadoSeleccionado.empresa,
       puesto: ropaPuestoSeleccionado,
-      articulos: Object.keys(ropaArticulosSeleccionados).map(id => ({
-        id, modelo: document.getElementById('ropa-modelo-'+id).value||'', talla: document.getElementById('ropa-talla-'+id).value||'', cant: document.getElementById('ropa-cant-'+id).value||''
-      })),
+      articulos: articulosData,
       pdfBase64: pdfFinalBase64,
+      firmado: !comoPendiente,
       fecha: now.toISOString(),
       fechaStr: now.toLocaleDateString('es-ES'),
       horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
@@ -2716,7 +2693,7 @@ async function guardarEntregaRopa() {
     const ref = await addDoc(collection(db, 'ropaHistorial'), registro);
     ropaHistorialCache.unshift({id:ref.id, ...registro});
 
-    showAlert(al, '✓ Entrega registrada y firmada correctamente', false);
+    showAlert(al, comoPendiente ? '✓ Entrega preparada. Pendiente de firma.' : '✓ Entrega registrada y firmada correctamente', false);
     setTimeout(() => {
       document.getElementById('ropa-sel-empleado').value = '';
       document.getElementById('ropa-form-wrapper').style.display = 'none';
@@ -2728,6 +2705,82 @@ async function guardarEntregaRopa() {
     showAlert(al, 'Error al generar el PDF: '+e.message, true);
     console.error(e);
   } finally {
+    btn.disabled = false; btn.textContent = '💾 Guardar entrega firmada';
+    if(btnPendiente) btnPendiente.disabled = false;
+  }
+}
+
+// Genera el PDF de la plantilla con los datos rellenos. Si firmaPngBytes es null,
+// deja el recuadro de firma vacío (para completarlo más tarde).
+async function generarPdfRopa(empleado, puesto, articulosData, firmaPngBytes) {
+  const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  const toPdfY = (top) => ROPA_PDF_H - top;
+
+  const pdfBytes = Uint8Array.from(atob(empleado.pdfBase64), c => c.charCodeAt(0));
+  const pdfDoc = await PDFDocument.load(pdfBytes);
+  const page = pdfDoc.getPage(0);
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const navy = rgb(0.102, 0.227, 0.361);
+
+  const pBox = ROPA_PUESTO_CHECKS[puesto];
+  if (pBox) {
+    const cx = (pBox[0]+pBox[2])/2, cyTop = toPdfY(pBox[1]), cyBottom = toPdfY(pBox[3]);
+    page.drawText('X', { x: cx-4, y: (cyTop+cyBottom)/2 - 4, size: 11, font: fontBold, color: navy });
+  }
+
+  for (const art of articulosData) {
+    const box = ROPA_ENTREGADO_CHECKS[art.id];
+    if (!box) continue;
+    const cx = (box[0]+box[2])/2, cyTop = toPdfY(box[1]), cyBottom = toPdfY(box[3]);
+    page.drawText('X', { x: cx-4, y: (cyTop+cyBottom)/2 - 4, size: 11, font: fontBold, color: navy });
+
+    const filaTop = ROPA_FILA_TOP[art.id];
+    const filaCentroY = toPdfY(filaTop + ROPA_FILA_ALTURA/2) - 4;
+    if (art.modelo) page.drawText(art.modelo, { x: ROPA_COL_MODELO_X, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
+    if (art.talla) {
+      const w = fontReg.widthOfTextAtSize(art.talla, 9);
+      page.drawText(art.talla, { x: ROPA_COL_TALLA_X - w/2, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
+    }
+    if (art.cant) {
+      const w = fontReg.widthOfTextAtSize(art.cant, 9);
+      page.drawText(art.cant, { x: ROPA_COL_CANT_X - w/2, y: filaCentroY, size: 9, font: fontReg, color: rgb(0,0,0) });
+    }
+  }
+
+  // Tapar el texto "Espacio reservado para la firma digital del empleado"
+  const [fbx0, fbtop, fbx1, fbbottom] = ROPA_FIRMA_BOX;
+  page.drawRectangle({
+    x: fbx0 + 1, y: toPdfY(761.7), width: (fbx1 - fbx0) - 2, height: (761.7 - 751.2) + 2,
+    color: rgb(1,1,1)
+  });
+
+  if (firmaPngBytes) {
+    const firmaImg = await pdfDoc.embedPng(firmaPngBytes);
+    const [bx0, btop, bx1, bbottom] = ROPA_FIRMA_BOX;
+    const boxW = bx1 - bx0, boxH = bbottom - btop;
+    const imgRatio = firmaImg.width / firmaImg.height;
+    let drawW = boxW * 0.75, drawH = drawW / imgRatio;
+    if (drawH > boxH * 0.7) { drawH = boxH * 0.7; drawW = drawH * imgRatio; }
+    const drawX = bx0 + (boxW - drawW)/2;
+    const drawYTop = btop + (boxH - drawH)/2 - 4;
+    page.drawImage(firmaImg, { x: drawX, y: toPdfY(drawYTop + drawH), width: drawW, height: drawH });
+
+    const now = new Date();
+    const fechaTexto = `Firmado el ${now.toLocaleDateString('es-ES')} a las ${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})}`;
+    const fechaW = fontReg.widthOfTextAtSize(fechaTexto, 8);
+    page.drawText(fechaTexto, { x: (bx0+bx1)/2 - fechaW/2, y: toPdfY(bbottom - 12), size: 8, font: fontReg, color: rgb(0.4,0.4,0.4) });
+  } else {
+    // Sin firma: dejar nota discreta "Pendiente de firma"
+    const [bx0, btop, bx1, bbottom] = ROPA_FIRMA_BOX;
+    const txt = 'Pendiente de firma';
+    const w = fontReg.widthOfTextAtSize(txt, 10);
+    page.drawText(txt, { x: (bx0+bx1)/2 - w/2, y: toPdfY((btop+bbottom)/2) - 4, size: 10, font: fontReg, color: rgb(0.6,0.6,0.6) });
+  }
+
+  const pdfFinalBytes = await pdfDoc.save();
+  return btoa(Array.from(pdfFinalBytes, b => String.fromCharCode(b)).join(''));
+}
     btn.disabled = false; btn.textContent = '💾 Guardar entrega firmada';
   }
 }
@@ -2741,10 +2794,11 @@ function renderRopaHistorial() {
   list.innerHTML = f.map(h => {
     const safeId = h.id.replace(/[^a-zA-Z0-9]/g,'_');
     const numArt = h.articulos ? h.articulos.length : 0;
-    return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+    const pendiente = h.firmado === false;
+    return `<div style="background:var(--card);border:1px solid ${pendiente?'var(--warning)':'var(--card-border)'};border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleRopaHist('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
-          <div style="font-weight:600;font-size:14px;">${h.empleadoNombre}</div>
+          <div style="font-weight:600;font-size:14px;">${h.empleadoNombre} ${pendiente?'<span style="font-size:11px;color:var(--warning);font-weight:700;">⏳ PENDIENTE</span>':''}</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${h.fechaStr} ${h.horaStr} · ${numArt} artículo${numArt!==1?'s':''}</div>
         </div>
         <span id="ropa-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
@@ -2759,6 +2813,7 @@ function renderRopaHistorial() {
         <div style="display:flex;gap:0.5rem;">
           <button class="btn-sm" style="flex:1;padding:8px;" onclick="verPdfRopa('${h.id}')">👁 Ver</button>
           <button class="btn-sm" style="flex:1;padding:8px;" onclick="descargarPdfRopa('${h.id}')">⬇ Descargar</button>
+          <button class="btn-sm" style="flex:1;padding:8px;" onclick="editarEntregaRopa('${h.id}')">✏️ Editar</button>
         </div>
       </div>
     </div>`;
@@ -2770,6 +2825,166 @@ window.toggleRopaHist = (safeId) => {
   const arrow = document.getElementById('ropa-arrow-'+safeId);
   if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
   else { body.style.display = 'none'; arrow.textContent = '▼'; }
+};
+
+// ── Pendientes de firma ──
+function renderRopaPendientes() {
+  const list = document.getElementById('ropa-pendientes-list');
+  if (!list) return;
+  const pendientes = ropaHistorialCache.filter(h => h.firmado === false);
+  if (!pendientes.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>No hay entregas pendientes de firma</div>'; return; }
+  list.innerHTML = pendientes.map(h => {
+    const numArt = h.articulos ? h.articulos.length : 0;
+    return `<div class="record">
+      <div class="record-top">
+        <div style="font-weight:600;font-size:14px;">👔 ${h.empleadoNombre}</div>
+        <span style="font-size:11px;color:var(--warning);font-weight:700;">⏳ PENDIENTE</span>
+      </div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.6rem;">Preparada el ${h.fechaStr} · ${numArt} artículo${numArt!==1?'s':''}</div>
+      <button class="btn btn-primary" style="width:100%;" onclick="abrirFirmaPendiente('${h.id}')">✍️ Firmar ahora</button>
+    </div>`;
+  }).join('');
+}
+
+window.abrirFirmaPendiente = (id) => {
+  const h = ropaHistorialCache.find(x=>x.id===id);
+  if (!h) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'firma-pendiente-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:480px;margin:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div style="font-size:16px;font-weight:700;color:var(--accent);">✍️ Firma — ${h.empleadoNombre}</div>
+        <button onclick="document.getElementById('firma-pendiente-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+      </div>
+      <div id="firma-pendiente-alert" class="alert"></div>
+      <canvas id="firma-pendiente-canvas" width="500" height="180" style="border:2px dashed var(--accent);border-radius:var(--radius-sm);background:#fff;touch-action:none;width:100%;max-width:460px;height:170px;display:block;margin:0 auto;"></canvas>
+      <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+        <button class="btn btn-ghost" style="flex:1;" id="btn-limpiar-firma-pend">🗑 Borrar</button>
+        <button class="btn btn-primary" style="flex:1;" id="btn-confirmar-firma-pend">💾 Confirmar firma</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  // Inicializar canvas de firma del modal
+  const canvas = document.getElementById('firma-pendiente-canvas');
+  const ratio = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * ratio;
+  canvas.height = rect.height * ratio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(ratio, ratio);
+  ctx.strokeStyle = '#1a3a5c'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  let dibujando = false, tieneTrazo = false;
+  const getPos = (e) => { const r = canvas.getBoundingClientRect(); const cx = e.touches?e.touches[0].clientX:e.clientX; const cy = e.touches?e.touches[0].clientY:e.clientY; return {x:cx-r.left, y:cy-r.top}; };
+  const start = (e) => { e.preventDefault(); dibujando=true; tieneTrazo=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); };
+  const move = (e) => { if(!dibujando) return; e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); };
+  const end = () => { dibujando = false; };
+  canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', end); canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', move, {passive:false}); canvas.addEventListener('touchend', end);
+
+  document.getElementById('btn-limpiar-firma-pend').addEventListener('click', () => { ctx.clearRect(0,0,canvas.width,canvas.height); tieneTrazo=false; });
+
+  document.getElementById('btn-confirmar-firma-pend').addEventListener('click', async () => {
+    const al = document.getElementById('firma-pendiente-alert');
+    if (!tieneTrazo) { showAlert(al,'⚠️ El empleado debe firmar antes de confirmar',true); return; }
+    const btn = document.getElementById('btn-confirmar-firma-pend');
+    btn.disabled = true; btn.textContent = 'Generando...';
+    try {
+      const firmaDataUrl = canvas.toDataURL('image/png');
+      const firmaPngBytes = Uint8Array.from(atob(firmaDataUrl.split(',')[1]), c => c.charCodeAt(0));
+      const empleado = ropaEmpleadosCache.find(e=>e.id===h.empleadoId) || {pdfBase64: null};
+      // Si el empleado ya no está en caché (poco probable), usamos su nombre/empresa guardados en el propio registro
+      const empleadoBase = empleado.pdfBase64 ? empleado : ropaEmpleadosCache.find(e=>e.nombre===h.empleadoNombre);
+      if (!empleadoBase) { showAlert(al,'No se encuentra la plantilla de este empleado',true); btn.disabled=false; btn.textContent='💾 Confirmar firma'; return; }
+
+      const pdfFinalBase64 = await generarPdfRopa(empleadoBase, h.puesto, h.articulos, firmaPngBytes);
+      const now = new Date();
+      await updateDoc(doc(db,'ropaHistorial',h.id), {
+        pdfBase64: pdfFinalBase64, firmado: true,
+        fechaFirma: now.toISOString(), fechaFirmaStr: now.toLocaleDateString('es-ES'), horaFirmaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+      });
+      const idx = ropaHistorialCache.findIndex(x=>x.id===h.id);
+      if (idx>=0) { ropaHistorialCache[idx].pdfBase64 = pdfFinalBase64; ropaHistorialCache[idx].firmado = true; }
+
+      document.getElementById('firma-pendiente-modal').remove();
+      renderRopaPendientes();
+    } catch(e) {
+      showAlert(al, 'Error: '+e.message, true);
+      btn.disabled = false; btn.textContent = '💾 Confirmar firma';
+    }
+  });
+};
+
+// ── Editar entrega existente (cambios de talla, modelo, etc.) ──
+window.editarEntregaRopa = (id) => {
+  const h = ropaHistorialCache.find(x=>x.id===id);
+  if (!h) return;
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-ropa-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:480px;margin:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div style="font-size:16px;font-weight:700;color:var(--accent);">✏️ Editar entrega — ${h.empleadoNombre}</div>
+        <button onclick="document.getElementById('edit-ropa-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+      </div>
+      <div id="edit-ropa-alert" class="alert"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:0.75rem;">⚠️ Si cambias algo, se regenerará el PDF. ${h.firmado!==false ? 'La firma actual se mantendrá.' : 'Sigue pendiente de firma.'}</div>
+      ${(h.articulos||[]).map(a=>{
+        const art = ROPA_ARTICULOS.find(x=>x.id===a.id);
+        return `<div class="ropa-row">
+          <div class="ropa-row-label">${art?art.label:a.id}</div>
+          <div class="ropa-row-inputs">
+            <input type="text" class="modelo" id="edit-modelo-${a.id}" value="${a.modelo||''}" placeholder="Modelo">
+            <input type="text" id="edit-talla-${a.id}" value="${a.talla||''}" placeholder="Talla">
+            <input type="number" id="edit-cant-${a.id}" value="${a.cant||''}" placeholder="Cant." min="1">
+          </div>
+        </div>`;
+      }).join('')}
+      <button class="btn btn-primary" style="width:100%;margin-top:1.25rem;" id="btn-guardar-edicion-ropa">💾 Guardar cambios</button>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('btn-guardar-edicion-ropa').addEventListener('click', async () => {
+    const al = document.getElementById('edit-ropa-alert');
+    const btn = document.getElementById('btn-guardar-edicion-ropa');
+    btn.disabled = true; btn.textContent = 'Guardando...';
+    try {
+      const nuevosArticulos = (h.articulos||[]).map(a => ({
+        id: a.id,
+        modelo: document.getElementById('edit-modelo-'+a.id).value || '',
+        talla: document.getElementById('edit-talla-'+a.id).value || '',
+        cant: document.getElementById('edit-cant-'+a.id).value || ''
+      }));
+
+      const empleadoBase = ropaEmpleadosCache.find(e=>e.id===h.empleadoId) || ropaEmpleadosCache.find(e=>e.nombre===h.empleadoNombre);
+      if (!empleadoBase) { showAlert(al,'No se encuentra la plantilla de este empleado',true); btn.disabled=false; btn.textContent='💾 Guardar cambios'; return; }
+
+      let firmaPngBytes = null;
+      if (h.firmado !== false) {
+        // Extraer la firma actual desde el PDF no es trivial; en su lugar, regeneramos manteniendo
+        // que ya estaba firmado pero sin imagen de firma nueva si no se ha hecho. Para mantener
+        // la firma visual ya existente, reutilizamos el PDF actual y solo avisamos.
+        showAlert(al, 'Para cambios en una entrega ya firmada, mejor pide que el empleado vuelva a firmar para reflejar el cambio.', true);
+      }
+
+      const pdfFinalBase64 = await generarPdfRopa(empleadoBase, h.puesto, nuevosArticulos, firmaPngBytes);
+      await updateDoc(doc(db,'ropaHistorial',h.id), { articulos: nuevosArticulos, pdfBase64: pdfFinalBase64, firmado: false });
+      const idx = ropaHistorialCache.findIndex(x=>x.id===h.id);
+      if (idx>=0) { ropaHistorialCache[idx].articulos = nuevosArticulos; ropaHistorialCache[idx].pdfBase64 = pdfFinalBase64; ropaHistorialCache[idx].firmado = false; }
+
+      document.getElementById('edit-ropa-modal').remove();
+      renderRopaHistorial();
+      alert('✓ Cambios guardados. La entrega ha quedado pendiente de firma (revísala en "Pendientes de firma").');
+    } catch(e) {
+      showAlert(al, 'Error: '+e.message, true);
+      btn.disabled = false; btn.textContent = '💾 Guardar cambios';
+    }
+  });
 };
 
 window.verPdfRopa = (id) => {
@@ -2801,6 +3016,44 @@ window.descargarPdfRopa = (id) => {
     URL.revokeObjectURL(url);
   } catch(e) { alert('Error al descargar: '+e.message); }
 };
+
+async function descargarZipRopa() {
+  const empId = document.getElementById('zip-sel-empleado').value;
+  const desde = document.getElementById('zip-desde').value;
+  const hasta = document.getElementById('zip-hasta').value;
+  const btn = document.getElementById('btn-zip-ropa');
+
+  let f = [...ropaHistorialCache];
+  if (empId) f = f.filter(h => h.empleadoId === empId);
+  if (desde) f = f.filter(h => h.fecha.slice(0,10) >= desde);
+  if (hasta) f = f.filter(h => h.fecha.slice(0,10) <= hasta);
+
+  if (!f.length) { alert('No hay entregas que coincidan con ese filtro'); return; }
+
+  btn.disabled = true; btn.textContent = 'Generando ZIP...';
+  try {
+    const zip = new JSZip();
+    f.forEach(h => {
+      const bytes = Uint8Array.from(atob(h.pdfBase64), c => c.charCodeAt(0));
+      const nombreArchivo = `${h.empleadoNombre.replace(/\s+/g,'_')}_${h.fechaStr.replace(/\//g,'-')}_${h.id.slice(0,5)}.pdf`;
+      zip.file(nombreArchivo, bytes);
+    });
+    const zipBlob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    const fechaHoy = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `Manchatrans_Ropa_${fechaHoy}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el ZIP: '+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '⬇ Descargar ZIP';
+  }
+}
 
 function showAlert(el,msg,isError) {
   el.textContent=msg; el.className='alert show'+(isError?' error':'');
