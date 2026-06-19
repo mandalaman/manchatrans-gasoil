@@ -116,6 +116,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 .module-selector { display: flex; gap: 0.5rem; margin-bottom: 1.25rem; }
 .module-btn { flex: 1; padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--card-border); background: var(--card); color: var(--text-muted); font-size: 14px; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.15s; }
 .module-btn.active { background: var(--accent); color: #111; border-color: var(--accent); }
+.modulo-home-btn { display: flex; align-items: center; gap: 1rem; padding: 1.25rem 1.5rem; border-radius: var(--radius); border: 1px solid var(--card-border); background: var(--card); color: var(--text); cursor: pointer; transition: all 0.15s; width: 100%; }
+.modulo-home-btn:active { transform: scale(0.98); background: var(--navy-light); }
 .ropa-check { width: 22px; height: 22px; border: 2px solid var(--card-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; background: var(--input-bg); }
 .ropa-check.checked { background: var(--accent); border-color: var(--accent); }
 .ropa-check.checked::after { content: '✕'; color: #111; font-weight: 700; font-size: 13px; }
@@ -201,20 +203,38 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <!-- ADMIN -->
 <div id="screen-admin" class="screen">
   <div class="topbar">
-    <span class="topbar-title">⛽ Panel Admin</span>
-    <button class="topbar-logout" id="btn-logout-admin">Salir</button>
+    <span class="topbar-title" id="admin-topbar-title">Panel Admin</span>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <button class="topbar-logout" id="btn-cambiar-modulo" style="display:none;">← Cambiar módulo</button>
+      <button class="topbar-logout" id="btn-logout-admin">Salir</button>
+    </div>
   </div>
   <div class="admin-body">
 
-    <!-- SELECTOR DE MÓDULO -->
-    <div class="module-selector">
-      <button class="module-btn active" id="mod-btn-gasoil">⛽ Gasoil</button>
-      <button class="module-btn" id="mod-btn-fleet">🚛 Flota</button>
-      <button class="module-btn" id="mod-btn-ropa">👔 Ropa</button>
+    <!-- PANTALLA PRINCIPAL: SELECTOR DE MÓDULO -->
+    <div id="modulo-home-screen">
+      <div style="text-align:center;margin:1.5rem 0 2rem;">
+        <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:0.4rem;">¿Qué quieres gestionar?</div>
+        <div style="font-size:13px;color:var(--text-muted);">Selecciona un módulo para continuar</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.85rem;max-width:400px;margin:0 auto;">
+        <button class="modulo-home-btn" id="home-btn-gasoil">
+          <span style="font-size:28px;">⛽</span>
+          <span style="font-size:16px;font-weight:700;">Gasoil</span>
+        </button>
+        <button class="modulo-home-btn" id="home-btn-fleet">
+          <span style="font-size:28px;">🚛</span>
+          <span style="font-size:16px;font-weight:700;">Flota</span>
+        </button>
+        <button class="modulo-home-btn" id="home-btn-ropa">
+          <span style="font-size:28px;">👔</span>
+          <span style="font-size:16px;font-weight:700;">Ropa</span>
+        </button>
+      </div>
     </div>
 
     <!-- ═══════════ MÓDULO GASOIL ═══════════ -->
-    <div id="module-gasoil">
+    <div id="module-gasoil" style="display:none;">
     <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
       <button class="btn btn-secondary atab-btn" id="atab-btn-registros">Registros</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-deposito">Depósito</button>
@@ -708,7 +728,6 @@ let ropaFiltroHist = '';
 let histFiltroMat = '';
 let histMantFiltroMat = '';
 let currentModule = 'gasoil';
-let esAdminGeneral = false;
 let modulosDesbloqueados = {};
 
 // ══════════════════════════════
@@ -830,9 +849,10 @@ async function initApp() {
   document.getElementById('btn-logout-admin').addEventListener('click', doLogout);
 
   // Selector de módulo (Gasoil / Fleet)
-  document.getElementById('mod-btn-gasoil').addEventListener('click', ()=>switchModule('gasoil'));
-  document.getElementById('mod-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
-  document.getElementById('mod-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
+  document.getElementById('home-btn-gasoil').addEventListener('click', ()=>switchModule('gasoil'));
+  document.getElementById('home-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
+  document.getElementById('home-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
+  document.getElementById('btn-cambiar-modulo').addEventListener('click', volverASeleccionModulo);
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
   document.getElementById('rtab-btn-historial').addEventListener('click', ()=>switchRopaTab('historial'));
   document.getElementById('rtab-btn-empleados').addEventListener('click', ()=>{ switchRopaTab('empleados'); });
@@ -1066,28 +1086,7 @@ function buildLoginForm() {
         <label class="form-label">Contraseña</label>
         <input class="form-input" type="password" id="admin-pass" placeholder="••••••" autocomplete="off">
       </div>
-      <button class="btn btn-primary" id="btn-login-admin">Entrar como admin</button>
-
-      <div style="display:flex;align-items:center;gap:0.6rem;margin:1.25rem 0;">
-        <div style="flex:1;height:1px;background:var(--card-border);"></div>
-        <span style="font-size:12px;color:var(--text-muted);">o acceso parcial</span>
-        <div style="flex:1;height:1px;background:var(--card-border);"></div>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Módulo</label>
-        <select class="form-input" id="modulo-acceso-sel" style="font-size:14px;padding:0.6rem;">
-          <option value="gasoil">⛽ Gasoil</option>
-          <option value="fleet">🚛 Flota</option>
-          <option value="ropa">👔 Ropa</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Código del módulo</label>
-        <input class="form-input" type="text" id="modulo-codigo" placeholder="••••" autocomplete="off" inputmode="numeric" style="-webkit-text-security:disc;">
-      </div>
-      <button class="btn btn-secondary" id="btn-login-modulo">Entrar a este módulo</button>
-
+      <button class="btn btn-primary" id="btn-login-admin">Entrar</button>
       <div style="text-align:center;margin-top:1rem;">
         <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Acceso conductores</span>
       </div>
@@ -1095,16 +1094,12 @@ function buildLoginForm() {
     setTimeout(()=>{
       const btn=document.getElementById('btn-login-admin');
       if(btn) btn.addEventListener('click', doLogin);
-      const btnMod=document.getElementById('btn-login-modulo');
-      if(btnMod) btnMod.addEventListener('click', doLoginModulo);
       const lnk=document.getElementById('link-driver');
       if(lnk) lnk.addEventListener('click', toggleLoginMode);
       const adminUser=document.getElementById('admin-user');
       const adminPass=document.getElementById('admin-pass');
       if(adminUser) adminUser.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
       if(adminPass) adminPass.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
-      const modCodigo=document.getElementById('modulo-codigo');
-      if(modCodigo) modCodigo.addEventListener('keydown',e=>{ if(e.key==='Enter') doLoginModulo(); });
     },50);
   }
 }
@@ -1123,7 +1118,6 @@ window.doLogin = () => {
     const p = (document.getElementById('admin-pass').value||'').trim();
     if (u===ADMIN_USER && p===ADMIN_PASS) {
       currentUser = { name:'Administrador', isAdmin:true };
-      esAdminGeneral = true;
       showScreen('admin'); renderAdminPage();
       comprobarRecordatorioBackup();
       return;
@@ -1148,23 +1142,6 @@ window.doLogin = () => {
   } else {
     err.textContent = 'Código incorrecto. Contacta con tu jefe.';
   }
-};
-
-window.doLoginModulo = () => {
-  const err = document.getElementById('login-error');
-  const mod = document.getElementById('modulo-acceso-sel').value;
-  const codigo = (document.getElementById('modulo-codigo').value||'').trim();
-  if (!codigo) { err.textContent = 'Introduce el código del módulo'; return; }
-  if (codigo !== MODULO_CODIGOS[mod]) { err.textContent = 'Código incorrecto'; return; }
-
-  currentUser = { name:'Administrador parcial', isAdmin:true };
-  esAdminGeneral = false;
-  modulosDesbloqueados = {}; modulosDesbloqueados[mod] = true;
-  showScreen('admin'); renderAdminPage();
-  document.getElementById('module-gasoil').style.display = 'none';
-  document.getElementById('module-fleet').style.display = 'none';
-  document.getElementById('module-ropa').style.display = 'none';
-  switchModule(mod);
 };
 
 window.doLogout = () => {
@@ -1984,20 +1961,30 @@ window.switchAdminTab = (tab) => {
 // SELECTOR DE MÓDULO GASOIL / FLEET
 // ══════════════════════════════
 function switchModule(mod) {
-  // Si no es admin general y no tiene este módulo desbloqueado, pedir código
-  if (!esAdminGeneral && !modulosDesbloqueados[mod]) {
+  // Siempre se pide el código del módulo, incluso para el admin general
+  if (!modulosDesbloqueados[mod]) {
     pedirCodigoModulo(mod);
     return;
   }
   currentModule = mod;
-  document.getElementById('mod-btn-gasoil').className = 'module-btn'+(mod==='gasoil'?' active':'');
-  document.getElementById('mod-btn-fleet').className = 'module-btn'+(mod==='fleet'?' active':'');
-  document.getElementById('mod-btn-ropa').className = 'module-btn'+(mod==='ropa'?' active':'');
+  document.getElementById('modulo-home-screen').style.display = 'none';
   document.getElementById('module-gasoil').style.display = mod==='gasoil' ? 'block' : 'none';
   document.getElementById('module-fleet').style.display = mod==='fleet' ? 'block' : 'none';
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
+  document.getElementById('btn-cambiar-modulo').style.display = 'inline-block';
+  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
+  document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); }
+}
+
+function volverASeleccionModulo() {
+  document.getElementById('module-gasoil').style.display = 'none';
+  document.getElementById('module-fleet').style.display = 'none';
+  document.getElementById('module-ropa').style.display = 'none';
+  document.getElementById('modulo-home-screen').style.display = 'block';
+  document.getElementById('btn-cambiar-modulo').style.display = 'none';
+  document.getElementById('admin-topbar-title').textContent = 'Panel Admin';
 }
 
 function pedirCodigoModulo(mod) {
