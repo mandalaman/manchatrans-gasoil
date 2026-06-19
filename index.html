@@ -548,6 +548,13 @@ const dbFleet = getFirestore(appFleet);
 // ══════════════════════════════
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin2026';
+
+// Códigos de acceso parcial por módulo (admin general no los necesita)
+const MODULO_CODIGOS = {
+  gasoil: '1111',
+  fleet: '2222',
+  ropa: '3333'
+};
 const DEPOSITO_CAP = 10000;
 const ALERTA_MIN = 1000;
 const DIAS_AVISO = 30;
@@ -701,6 +708,8 @@ let ropaFiltroHist = '';
 let histFiltroMat = '';
 let histMantFiltroMat = '';
 let currentModule = 'gasoil';
+let esAdminGeneral = false;
+let modulosDesbloqueados = {};
 
 // ══════════════════════════════
 // FIREBASE — CARGA INICIAL
@@ -1058,6 +1067,27 @@ function buildLoginForm() {
         <input class="form-input" type="password" id="admin-pass" placeholder="••••••" autocomplete="off">
       </div>
       <button class="btn btn-primary" id="btn-login-admin">Entrar como admin</button>
+
+      <div style="display:flex;align-items:center;gap:0.6rem;margin:1.25rem 0;">
+        <div style="flex:1;height:1px;background:var(--card-border);"></div>
+        <span style="font-size:12px;color:var(--text-muted);">o acceso parcial</span>
+        <div style="flex:1;height:1px;background:var(--card-border);"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Módulo</label>
+        <select class="form-input" id="modulo-acceso-sel" style="font-size:14px;padding:0.6rem;">
+          <option value="gasoil">⛽ Gasoil</option>
+          <option value="fleet">🚛 Flota</option>
+          <option value="ropa">👔 Ropa</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Código del módulo</label>
+        <input class="form-input" type="text" id="modulo-codigo" placeholder="••••" autocomplete="off" inputmode="numeric" style="-webkit-text-security:disc;">
+      </div>
+      <button class="btn btn-secondary" id="btn-login-modulo">Entrar a este módulo</button>
+
       <div style="text-align:center;margin-top:1rem;">
         <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Acceso conductores</span>
       </div>
@@ -1065,12 +1095,16 @@ function buildLoginForm() {
     setTimeout(()=>{
       const btn=document.getElementById('btn-login-admin');
       if(btn) btn.addEventListener('click', doLogin);
+      const btnMod=document.getElementById('btn-login-modulo');
+      if(btnMod) btnMod.addEventListener('click', doLoginModulo);
       const lnk=document.getElementById('link-driver');
       if(lnk) lnk.addEventListener('click', toggleLoginMode);
       const adminUser=document.getElementById('admin-user');
       const adminPass=document.getElementById('admin-pass');
       if(adminUser) adminUser.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
       if(adminPass) adminPass.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      const modCodigo=document.getElementById('modulo-codigo');
+      if(modCodigo) modCodigo.addEventListener('keydown',e=>{ if(e.key==='Enter') doLoginModulo(); });
     },50);
   }
 }
@@ -1089,6 +1123,7 @@ window.doLogin = () => {
     const p = (document.getElementById('admin-pass').value||'').trim();
     if (u===ADMIN_USER && p===ADMIN_PASS) {
       currentUser = { name:'Administrador', isAdmin:true };
+      esAdminGeneral = true;
       showScreen('admin'); renderAdminPage();
       comprobarRecordatorioBackup();
       return;
@@ -1113,6 +1148,23 @@ window.doLogin = () => {
   } else {
     err.textContent = 'Código incorrecto. Contacta con tu jefe.';
   }
+};
+
+window.doLoginModulo = () => {
+  const err = document.getElementById('login-error');
+  const mod = document.getElementById('modulo-acceso-sel').value;
+  const codigo = (document.getElementById('modulo-codigo').value||'').trim();
+  if (!codigo) { err.textContent = 'Introduce el código del módulo'; return; }
+  if (codigo !== MODULO_CODIGOS[mod]) { err.textContent = 'Código incorrecto'; return; }
+
+  currentUser = { name:'Administrador parcial', isAdmin:true };
+  esAdminGeneral = false;
+  modulosDesbloqueados = {}; modulosDesbloqueados[mod] = true;
+  showScreen('admin'); renderAdminPage();
+  document.getElementById('module-gasoil').style.display = 'none';
+  document.getElementById('module-fleet').style.display = 'none';
+  document.getElementById('module-ropa').style.display = 'none';
+  switchModule(mod);
 };
 
 window.doLogout = () => {
@@ -1932,6 +1984,11 @@ window.switchAdminTab = (tab) => {
 // SELECTOR DE MÓDULO GASOIL / FLEET
 // ══════════════════════════════
 function switchModule(mod) {
+  // Si no es admin general y no tiene este módulo desbloqueado, pedir código
+  if (!esAdminGeneral && !modulosDesbloqueados[mod]) {
+    pedirCodigoModulo(mod);
+    return;
+  }
   currentModule = mod;
   document.getElementById('mod-btn-gasoil').className = 'module-btn'+(mod==='gasoil'?' active':'');
   document.getElementById('mod-btn-fleet').className = 'module-btn'+(mod==='fleet'?' active':'');
@@ -1941,6 +1998,37 @@ function switchModule(mod) {
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); }
+}
+
+function pedirCodigoModulo(mod) {
+  const nombres = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
+  const modal = document.createElement('div');
+  modal.id = 'codigo-modulo-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:340px;text-align:center;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1rem;color:var(--accent);">🔒 ${nombres[mod]}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Este módulo necesita su propio código de acceso</div>
+      <input class="form-input" type="text" id="codigo-modulo-input" placeholder="••••" inputmode="numeric" style="-webkit-text-security:disc;text-align:center;font-size:18px;margin-bottom:0.75rem;">
+      <div class="error-msg" id="codigo-modulo-error" style="margin-bottom:0.75rem;"></div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="document.getElementById('codigo-modulo-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+        <button id="btn-confirmar-codigo-mod" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Entrar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const input = document.getElementById('codigo-modulo-input');
+  input.focus();
+  const intentar = () => {
+    const val = input.value.trim();
+    const errEl = document.getElementById('codigo-modulo-error');
+    if (val !== MODULO_CODIGOS[mod]) { errEl.textContent = 'Código incorrecto'; return; }
+    modulosDesbloqueados[mod] = true;
+    document.getElementById('codigo-modulo-modal').remove();
+    switchModule(mod);
+  };
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter') intentar(); });
+  document.getElementById('btn-confirmar-codigo-mod').addEventListener('click', intentar);
 }
 
 function switchRopaTab(tab) {
@@ -2807,10 +2895,11 @@ function renderRopaHistorial() {
             return `<div style="padding:4px 0;">✓ ${art?art.label:a.id}${a.talla?' — Talla '+a.talla:''}${a.cant?' x'+a.cant:''}${a.modelo?' ('+a.modelo+')':''}</div>`;
           }).join('')}
         </div>
-        <div style="display:flex;gap:0.5rem;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
           <button class="btn-sm" style="flex:1;padding:8px;" onclick="verPdfRopa('${h.id}')">👁 Ver</button>
           <button class="btn-sm" style="flex:1;padding:8px;" onclick="descargarPdfRopa('${h.id}')">⬇ Descargar</button>
           <button class="btn-sm" style="flex:1;padding:8px;" onclick="editarEntregaRopa('${h.id}')">✏️ Editar</button>
+          <button class="btn-sm btn-sm-danger" style="flex:1;padding:8px;" onclick="eliminarEntregaRopa('${h.id}')">🗑 Eliminar</button>
         </div>
       </div>
     </div>`;
@@ -2916,6 +3005,18 @@ window.abrirFirmaPendiente = (id) => {
 };
 
 // ── Editar entrega existente (cambios de talla, modelo, etc.) ──
+window.eliminarEntregaRopa = async (id) => {
+  const h = ropaHistorialCache.find(x=>x.id===id);
+  if (!h) return;
+  if (!confirm(`¿Eliminar esta entrega de "${h.empleadoNombre}" (${h.fechaStr})? Esta acción no se puede deshacer.`)) return;
+  try {
+    await deleteDoc(doc(db,'ropaHistorial',id));
+    ropaHistorialCache = ropaHistorialCache.filter(x=>x.id!==id);
+    renderRopaHistorial();
+    renderRopaPendientes();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
 window.editarEntregaRopa = (id) => {
   const h = ropaHistorialCache.find(x=>x.id===id);
   if (!h) return;
