@@ -2756,7 +2756,10 @@ function renderRopaHistorial() {
             return `<div style="padding:4px 0;">✓ ${art?art.label:a.id}${a.talla?' — Talla '+a.talla:''}${a.cant?' x'+a.cant:''}${a.modelo?' ('+a.modelo+')':''}</div>`;
           }).join('')}
         </div>
-        <button class="btn-sm" style="width:100%;padding:8px;" onclick="descargarPdfRopa('${h.id}')">⬇ Descargar PDF firmado</button>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn-sm" style="flex:1;padding:8px;" onclick="verPdfRopa('${h.id}')">👁 Ver</button>
+          <button class="btn-sm" style="flex:1;padding:8px;" onclick="descargarPdfRopa('${h.id}')">⬇ Descargar</button>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -2767,6 +2770,19 @@ window.toggleRopaHist = (safeId) => {
   const arrow = document.getElementById('ropa-arrow-'+safeId);
   if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
   else { body.style.display = 'none'; arrow.textContent = '▼'; }
+};
+
+window.verPdfRopa = (id) => {
+  const h = ropaHistorialCache.find(x=>x.id===id);
+  if (!h) return;
+  try {
+    const bytes = Uint8Array.from(atob(h.pdfBase64), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // Liberar memoria tras un tiempo (dar margen a que la pestaña cargue el PDF)
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch(e) { alert('Error al abrir el PDF: '+e.message); }
 };
 
 window.descargarPdfRopa = (id) => {
