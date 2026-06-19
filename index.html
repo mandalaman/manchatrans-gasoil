@@ -2781,9 +2781,6 @@ async function generarPdfRopa(empleado, puesto, articulosData, firmaPngBytes) {
   const pdfFinalBytes = await pdfDoc.save();
   return btoa(Array.from(pdfFinalBytes, b => String.fromCharCode(b)).join(''));
 }
-    btn.disabled = false; btn.textContent = '💾 Guardar entrega firmada';
-  }
-}
 
 // ── Historial de entregas ──
 function renderRopaHistorial() {
