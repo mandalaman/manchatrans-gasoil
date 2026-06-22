@@ -602,7 +602,10 @@ input[type="number"] { -moz-appearance: textfield; }
 
         <div id="inv-alertas-bajo"></div>
 
-        <div class="section-title">Stock actual</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="section-title" style="margin-bottom:0;">Stock actual</div>
+          <button class="btn-sm" id="btn-toggle-inv-todos" onclick="toggleMostrarTodoInventario()">Ver todos</button>
+        </div>
         <div id="inv-list"></div>
       </div>
     </div>
@@ -2951,6 +2954,7 @@ function inventarioKey(articuloId, talla) {
 }
 
 let inventarioArticuloSeleccionado = null;
+let mostrarTodoInventario = false;
 
 const ROPA_ARTICULOS_ICONOS = {
   botas: '🥾', chaleco: '🦺', chaqueta: '🧥', guantes: '🧤',
@@ -2973,7 +2977,14 @@ function populateInventarioSelect() {
 
 window.seleccionarArticuloInventario = (id) => {
   inventarioArticuloSeleccionado = id;
+  mostrarTodoInventario = false;
   marcarArticuloSeleccionadoInventario();
+  renderInventarioRopa();
+};
+
+window.toggleMostrarTodoInventario = () => {
+  mostrarTodoInventario = !mostrarTodoInventario;
+  renderInventarioRopa();
 };
 
 function marcarArticuloSeleccionadoInventario() {
@@ -3029,12 +3040,27 @@ function renderInventarioRopa() {
 
   if (!ropaInventarioCache.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>No hay artículos en el inventario. Añade stock arriba.</div>'; return; }
 
+  const btnToggle = document.getElementById('btn-toggle-inv-todos');
+  if (btnToggle) btnToggle.textContent = mostrarTodoInventario ? 'Ver solo seleccionado' : 'Ver todos';
+
+  // Por defecto solo se muestra el stock del artículo seleccionado en el grid de arriba.
+  // El botón "Ver todos" permite ver el inventario completo cuando se necesite.
+  const cacheFiltrada = mostrarTodoInventario
+    ? ropaInventarioCache
+    : ropaInventarioCache.filter(x => x.articuloId === inventarioArticuloSeleccionado);
+
   // Agrupar por artículo
   const porArticulo = {};
-  ropaInventarioCache.forEach(item => {
+  cacheFiltrada.forEach(item => {
     if (!porArticulo[item.articuloId]) porArticulo[item.articuloId] = [];
     porArticulo[item.articuloId].push(item);
   });
+
+  if (!Object.keys(porArticulo).length) {
+    const art = ROPA_ARTICULOS.find(a=>a.id===inventarioArticuloSeleccionado);
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div>Aún no hay stock registrado para ${art?art.label:'este artículo'}. Añádelo arriba.</div>`;
+    return;
+  }
 
   list.innerHTML = ROPA_ARTICULOS.filter(a => porArticulo[a.id]).map(art => {
     const items = porArticulo[art.id].sort((a,b)=>a.talla.localeCompare(b.talla));
