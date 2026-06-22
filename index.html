@@ -505,6 +505,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
             <input class="form-input" type="text" id="new-ropa-empresa" placeholder="Ej: MANCHEGA DE TRANSPORTES S.L.">
           </div>
           <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir empleado</button>
+          <button class="btn btn-ghost" id="btn-ver-plantilla-generica" style="width:100%;margin-top:0.6rem;font-size:13px;">👁 Ver plantilla en blanco</button>
         </div>
 
         <button class="btn btn-secondary" id="btn-toggle-ropa-emp" style="margin-bottom:1rem;">📋 Ver empleados activos (<span class="ropa-emp-count">0</span>)</button>
@@ -896,6 +897,7 @@ async function initApp() {
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
   document.getElementById('btn-zip-ropa').addEventListener('click', descargarZipRopa);
   document.getElementById('btn-add-ropa-emp').addEventListener('click', ()=>window.addRopaEmpleado());
+  document.getElementById('btn-ver-plantilla-generica').addEventListener('click', verPlantillaGenerica);
   document.getElementById('btn-toggle-ropa-emp').addEventListener('click', ()=>{
     const wrapper = document.getElementById('ropa-emp-list-wrapper');
     const btn = document.getElementById('btn-toggle-ropa-emp');
@@ -3360,6 +3362,16 @@ window.editarEntregaRopa = (id) => {
     }
   });
 };
+
+function verPlantillaGenerica() {
+  try {
+    const bytes = Uint8Array.from(atob(ROPA_PLANTILLA_GENERICA), c => c.charCodeAt(0));
+    const blob = new Blob([bytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch(e) { alert('Error al abrir la plantilla: '+e.message); }
+}
 
 window.verPdfRopa = (id) => {
   const h = ropaHistorialCache.find(x=>x.id===id);
