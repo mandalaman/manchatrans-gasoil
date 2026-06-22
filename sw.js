@@ -9,4 +9,12 @@ self.addEventListener('message', e => {
 });
 
 self.addEventListener('activate', e => e.waitUntil(clients.claim()));
-self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+
+self.addEventListener('fetch', e => {
+  // No interceptar peticiones a otros dominios (Firestore, Google APIs, CDNs, etc.)
+  // Interceptarlas rompe las conexiones en tiempo real (streaming) de Firestore.
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  e.respondWith(fetch(e.request));
+});
