@@ -7,14 +7,14 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Gasoil">
+<meta name="apple-mobile-web-app-title" content="Manchatrans">
 <link rel="manifest" href="manifest.json">
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/manchatrans-gasoil/sw.js');
   }
 </script>
-<title>Control de Gasoil - Manchatrans</title>
+<title>Panel Manchatrans</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -203,7 +203,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 <!-- ADMIN -->
 <div id="screen-admin" class="screen">
   <div class="topbar">
-    <span class="topbar-title" id="admin-topbar-title">Panel Admin</span>
+    <span class="topbar-title" id="admin-topbar-title">Panel Manchatrans</span>
     <div style="display:flex;gap:0.5rem;align-items:center;">
       <button class="topbar-logout" id="btn-cambiar-modulo" style="display:none;">← Cambiar módulo</button>
       <button class="topbar-logout" id="btn-logout-admin">Salir</button>
@@ -1107,7 +1107,7 @@ function buildLoginForm() {
 window.toggleLoginMode = () => {
   loginMode = loginMode==='driver'?'admin':'driver';
   buildLoginForm();
-  document.getElementById('login-title').textContent = loginMode==='admin' ? 'Control Gasoil y Mantenimiento' : 'Control de Gasoil';
+  document.getElementById('login-title').textContent = loginMode==='admin' ? 'Panel Manchatrans' : 'Control de Gasoil';
   document.getElementById('login-sub').textContent = loginMode==='admin' ? 'Acceso administrador' : 'Introduce tu código de acceso';
 };
 
@@ -1984,7 +1984,7 @@ function volverASeleccionModulo() {
   document.getElementById('module-ropa').style.display = 'none';
   document.getElementById('modulo-home-screen').style.display = 'block';
   document.getElementById('btn-cambiar-modulo').style.display = 'none';
-  document.getElementById('admin-topbar-title').textContent = 'Panel Admin';
+  document.getElementById('admin-topbar-title').textContent = 'Panel Manchatrans';
 }
 
 function pedirCodigoModulo(mod) {
@@ -2187,7 +2187,7 @@ function renderMantenimiento() {
   alertasEl.innerHTML=alertasHtml?`<div style="margin-bottom:1.25rem;">${alertasHtml}</div>`:'';
 
   if (!mantFiltroMat) {
-    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🚗</div>Selecciona un vehículo arriba para ver su ITV y Tacógrafo</div>';
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">🚛</div>Selecciona un vehículo arriba para ver su ITV y Tacógrafo</div>';
     return;
   }
 
