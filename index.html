@@ -2354,13 +2354,13 @@ function renderHistorialMant() {
     <div class="record">
       <div class="record-top">
         <div style="font-weight:600;font-size:14px;">🚗 ${h.matricula} — ${h.revision}</div>
+        <div style="display:flex;gap:0.4rem;">
+          <button class="btn-sm" onclick="editarHistorialMant('${h.id}')">✏️</button>
+          <button class="btn-sm btn-sm-danger" onclick="eliminarHistorialMant('${h.id}')">🗑</button>
+        </div>
       </div>
       <div style="font-size:14px;margin-bottom:0.4rem;">✓ ${h.descripcion}</div>
-      <div class="record-meta" style="margin-bottom:0.6rem;"><span>📅 Registrado el ${h.fechaStr} ${h.horaStr}</span></div>
-      <div style="display:flex;gap:0.5rem;">
-        <button class="btn-sm" style="flex:1;" onclick="editarHistorialMant('${h.id}')">✏️ Editar</button>
-        <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarHistorialMant('${h.id}')">🗑 Eliminar</button>
-      </div>
+      <div class="record-meta"><span>📅 Registrado el ${h.fechaStr} ${h.horaStr}</span></div>
     </div>`).join('');
 }
 
