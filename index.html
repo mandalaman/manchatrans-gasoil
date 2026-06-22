@@ -3187,7 +3187,6 @@ async function guardarEntregaRopa(comoPendiente) {
       horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
     };
     const ref = await addDoc(collection(db, 'ropaHistorial'), registro);
-    ropaHistorialCache.unshift({id:ref.id, ...registro});
     updatePendientesBadge();
 
     let avisos = [];
@@ -3424,14 +3423,13 @@ window.abrirFirmaPendiente = (id) => {
         pdfBase64: pdfFinalBase64, firmado: true,
         fechaFirma: now.toISOString(), fechaFirmaStr: now.toLocaleDateString('es-ES'), horaFirmaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
       });
-      const idx = ropaHistorialCache.findIndex(x=>x.id===h.id);
-      if (idx>=0) { ropaHistorialCache[idx].pdfBase64 = pdfFinalBase64; ropaHistorialCache[idx].firmado = true; }
 
       const avisos = await descontarInventarioRopa(h.articulos||[]);
 
       document.getElementById('firma-pendiente-modal').remove();
       renderRopaPendientes();
-      if (avisos.length) alert('Firma confirmada. ⚠️ ' + avisos.join('\n'));
+      if (avisos.length) mostrarAvisoInventarioBajo(avisos);
+      else mostrarMensajeFlotante('✓ Firma confirmada correctamente');
     } catch(e) {
       showAlert(al, 'Error: '+e.message, true);
       btn.disabled = false; btn.textContent = '💾 Confirmar firma';
@@ -3446,9 +3444,6 @@ window.eliminarEntregaRopa = async (id) => {
   if (!confirm(`¿Eliminar esta entrega de "${h.empleadoNombre}" (${h.fechaStr})? Esta acción no se puede deshacer.`)) return;
   try {
     await deleteDoc(doc(db,'ropaHistorial',id));
-    ropaHistorialCache = ropaHistorialCache.filter(x=>x.id!==id);
-    renderRopaHistorial();
-    renderRopaPendientes();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
@@ -3507,13 +3502,10 @@ window.editarEntregaRopa = (id) => {
 
       const pdfFinalBase64 = await generarPdfRopa(empleadoBase, h.puesto, nuevosArticulos, firmaPngBytes);
       await updateDoc(doc(db,'ropaHistorial',h.id), { articulos: nuevosArticulos, pdfBase64: pdfFinalBase64, firmado: false });
-      const idx = ropaHistorialCache.findIndex(x=>x.id===h.id);
-      if (idx>=0) { ropaHistorialCache[idx].articulos = nuevosArticulos; ropaHistorialCache[idx].pdfBase64 = pdfFinalBase64; ropaHistorialCache[idx].firmado = false; }
 
       document.getElementById('edit-ropa-modal').remove();
-      renderRopaHistorial();
       updatePendientesBadge();
-      alert('✓ Cambios guardados. La entrega ha quedado pendiente de firma (revísala en "Pendientes de firma").');
+      mostrarMensajeFlotante('✓ Cambios guardados. Pendiente de firma de nuevo.');
     } catch(e) {
       showAlert(al, 'Error: '+e.message, true);
       btn.disabled = false; btn.textContent = '💾 Guardar cambios';
@@ -3602,6 +3594,30 @@ async function descargarZipRopa() {
 function showAlert(el,msg,isError) {
   el.textContent=msg; el.className='alert show'+(isError?' error':'');
   setTimeout(()=>el.className='alert',4500);
+}
+
+function mostrarMensajeFlotante(msg, esError) {
+  const existente = document.getElementById('mensaje-flotante');
+  if (existente) existente.remove();
+  const div = document.createElement('div');
+  div.id = 'mensaje-flotante';
+  div.style.cssText = `position:fixed;bottom:90px;left:50%;transform:translateX(-50%);z-index:99999;background:${esError?'#3a1e1e':'#1e3a1e'};border:1px solid ${esError?'var(--danger)':'var(--success)'};color:${esError?'#df6d6d':'#6dbf6d'};padding:0.85rem 1.25rem;border-radius:var(--radius-sm);font-size:14px;font-weight:600;max-width:90%;text-align:center;box-shadow:0 4px 14px rgba(0,0,0,0.3);`;
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 3500);
+}
+
+function mostrarAvisoInventarioBajo(avisos) {
+  const modal = document.createElement('div');
+  modal.id = 'aviso-inventario-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:99999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--warning);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1rem;color:var(--warning);">⚠️ Firma confirmada</div>
+      <div style="font-size:14px;color:var(--text);margin-bottom:1.25rem;">${avisos.map(a=>`<div style="margin-bottom:6px;">${a}</div>`).join('')}</div>
+      <button onclick="document.getElementById('aviso-inventario-modal').remove()" style="width:100%;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Entendido</button>
+    </div>`;
+  document.body.appendChild(modal);
 }
 
 function comprobarRecordatorioBackup() {
