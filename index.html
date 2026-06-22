@@ -3028,8 +3028,17 @@ function renderInventarioRopa() {
   const alertasEl = document.getElementById('inv-alertas-bajo');
   if (!list) return;
 
-  const bajos = ropaInventarioCache.filter(x=>x.cantidad <= ROPA_STOCK_BAJO_UMBRAL && x.cantidad > 0);
-  const agotados = ropaInventarioCache.filter(x=>x.cantidad <= 0);
+  const btnToggle = document.getElementById('btn-toggle-inv-todos');
+  if (btnToggle) btnToggle.textContent = mostrarTodoInventario ? 'Ver solo seleccionado' : 'Ver todos';
+
+  // Por defecto solo se muestra el stock (y sus alertas) del artículo seleccionado
+  // en el grid de arriba. El botón "Ver todos" permite ver el inventario completo.
+  const cacheFiltrada = mostrarTodoInventario
+    ? ropaInventarioCache
+    : ropaInventarioCache.filter(x => x.articuloId === inventarioArticuloSeleccionado);
+
+  const bajos = cacheFiltrada.filter(x=>x.cantidad <= ROPA_STOCK_BAJO_UMBRAL && x.cantidad > 0);
+  const agotados = cacheFiltrada.filter(x=>x.cantidad <= 0);
   let alertasHtml = '';
   [...agotados, ...bajos].forEach(item => {
     const art = ROPA_ARTICULOS.find(a=>a.id===item.articuloId);
@@ -3039,15 +3048,6 @@ function renderInventarioRopa() {
   if (alertasEl) alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
 
   if (!ropaInventarioCache.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>No hay artículos en el inventario. Añade stock arriba.</div>'; return; }
-
-  const btnToggle = document.getElementById('btn-toggle-inv-todos');
-  if (btnToggle) btnToggle.textContent = mostrarTodoInventario ? 'Ver solo seleccionado' : 'Ver todos';
-
-  // Por defecto solo se muestra el stock del artículo seleccionado en el grid de arriba.
-  // El botón "Ver todos" permite ver el inventario completo cuando se necesite.
-  const cacheFiltrada = mostrarTodoInventario
-    ? ropaInventarioCache
-    : ropaInventarioCache.filter(x => x.articuloId === inventarioArticuloSeleccionado);
 
   // Agrupar por artículo
   const porArticulo = {};
