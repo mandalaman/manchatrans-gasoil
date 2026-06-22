@@ -1,3 +1,4 @@
+// VERSION: 1
 self.addEventListener('install', e => {
   // No activar automáticamente: esperar a que el usuario confirme la actualización
 });
