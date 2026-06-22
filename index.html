@@ -1522,7 +1522,10 @@ window.verCierreMensual = () => {
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:480px;margin:auto;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
         <div style="font-size:17px;font-weight:700;color:var(--accent);">📊 Resumen mensual</div>
-        <button onclick="document.getElementById('cierre-mensual-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+        <div style="display:flex;gap:0.5rem;">
+          <button id="btn-descargar-cierre-pdf" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 10px;font-size:13px;cursor:pointer;">⬇ PDF</button>
+          <button onclick="document.getElementById('cierre-mensual-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+        </div>
       </div>
       <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;">
         <select class="form-input" id="cierre-sel-mes" style="font-size:14px;padding:0.6rem;flex:1.3;">${opcionesMes}</select>
@@ -1534,6 +1537,7 @@ window.verCierreMensual = () => {
 
   document.getElementById('cierre-sel-mes').addEventListener('change', (e)=>{ window._cierreMes=+e.target.value; renderCierreMensual(); });
   document.getElementById('cierre-sel-anio').addEventListener('change', (e)=>{ window._cierreAnio=+e.target.value; renderCierreMensual(); });
+  document.getElementById('btn-descargar-cierre-pdf').addEventListener('click', descargarCierreMensualPDF);
 
   renderCierreMensual();
 };
@@ -1592,6 +1596,116 @@ function renderCierreMensual() {
         <span>${byDriver[c].name.split(' ').slice(0,2).join(' ')}</span><span style="color:var(--text-muted)">${byDriver[c].n} rep. · <strong style="color:var(--accent)">${byDriver[c].litros.toFixed(0)} L</strong></span>
       </div>`).join('')}
     </div>`;
+}
+
+async function descargarCierreMensualPDF() {
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const mes = window._cierreMes, anio = window._cierreAnio;
+  const btn = document.getElementById('btn-descargar-cierre-pdf');
+  const textoOriginal = btn.textContent;
+  btn.textContent = '...'; btn.disabled = true;
+
+  try {
+    const delMes = recordsCache.filter(r=>{ const f=new Date(r.fecha); return f.getMonth()===mes && f.getFullYear()===anio; });
+    if (!delMes.length) { alert('No hay repostajes registrados ese mes para exportar.'); btn.textContent = textoOriginal; btn.disabled = false; return; }
+
+    const mesAnt = mes===0?11:mes-1, anioAnt = mes===0?anio-1:anio;
+    const delMesAnt = recordsCache.filter(r=>{ const f=new Date(r.fecha); return f.getMonth()===mesAnt && f.getFullYear()===anioAnt; });
+
+    const totalLitros = delMes.reduce((s,r)=>s+r.litros,0);
+    const totalLitrosAnt = delMesAnt.reduce((s,r)=>s+r.litros,0);
+    const diff = totalLitrosAnt>0 ? ((totalLitros-totalLitrosAnt)/totalLitrosAnt*100) : null;
+    const numRepostajes = delMes.length;
+    const matsUnicas = new Set(delMes.map(r=>r.matricula)).size;
+
+    const byMat = {};
+    delMes.forEach(r=>{ if(!byMat[r.matricula]) byMat[r.matricula]={litros:0,n:0}; byMat[r.matricula].litros+=r.litros; byMat[r.matricula].n++; });
+    const matsOrdenadas = Object.keys(byMat).sort((a,b)=>byMat[b].litros-byMat[a].litros);
+
+    const byDriver = {};
+    delMes.forEach(r=>{ if(!byDriver[r.driverCode]) byDriver[r.driverCode]={name:r.driverName,litros:0,n:0}; byDriver[r.driverCode].litros+=r.litros; byDriver[r.driverCode].n++; });
+    const driversOrdenados = Object.keys(byDriver).sort((a,b)=>byDriver[b].litros-byDriver[a].litros);
+
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const gray = rgb(0.4, 0.45, 0.5);
+    const accent = rgb(0.96, 0.65, 0.14);
+
+    const W = 595.28, H = 841.89, M = 45;
+    let y = H - 60;
+
+    page.drawText('MANCHATRANS S.L.', { x: M, y, size: 11, font: fontBold, color: gray });
+    y -= 28;
+    page.drawText(`Resumen mensual de Gasoil — ${meses[mes]} ${anio}`, { x: M, y, size: 19, font: fontBold, color: navy });
+    y -= 8;
+    page.drawLine({ start: {x:M, y}, end: {x:W-M, y}, thickness: 1.5, color: accent });
+    y -= 35;
+
+    // Tarjetas resumen (2x2)
+    const cardW = (W - 2*M - 15) / 2;
+    const cardH = 58;
+    const drawCard = (x, yTop, label, value, color) => {
+      page.drawRectangle({ x, y: yTop-cardH, width: cardW, height: cardH, color: rgb(0.95,0.96,0.97), borderColor: rgb(0.85,0.87,0.9), borderWidth: 1 });
+      page.drawText(value, { x: x+14, y: yTop-26, size: 20, font: fontBold, color: color||navy });
+      page.drawText(label, { x: x+14, y: yTop-44, size: 9, font: fontReg, color: gray });
+    };
+    const diffTexto = diff===null ? 'Sin datos' : (diff>0?'+':'')+diff.toFixed(1)+'%';
+    const diffColor = diff===null ? gray : diff>0 ? rgb(0.83,0.18,0.18) : rgb(0.16,0.65,0.27);
+
+    drawCard(M, y, 'Total litros', totalLitros.toFixed(0)+' L', navy);
+    drawCard(M+cardW+15, y, 'Repostajes', String(numRepostajes), navy);
+    y -= cardH + 12;
+    drawCard(M, y, 'Vehículos distintos', String(matsUnicas), navy);
+    drawCard(M+cardW+15, y, 'vs mes anterior', diffTexto, diffColor);
+    y -= cardH + 35;
+
+    // Por vehículo
+    page.drawText('POR VEHÍCULO', { x: M, y, size: 11, font: fontBold, color: accent });
+    y -= 18;
+    for (const m of matsOrdenadas) {
+      if (y < 80) { page = pdfDoc.addPage([595.28, 841.89]); y = H - 60; }
+      page.drawText(`${m}`, { x: M, y, size: 10, font: fontReg, color: navy });
+      const txt = `${byMat[m].n} rep. · ${byMat[m].litros.toFixed(0)} L`;
+      const w = fontReg.widthOfTextAtSize(txt, 10);
+      page.drawText(txt, { x: W-M-w, y, size: 10, font: fontReg, color: gray });
+      page.drawLine({ start:{x:M,y:y-6}, end:{x:W-M,y:y-6}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      y -= 20;
+    }
+
+    y -= 15;
+    if (y < 120) { page = pdfDoc.addPage([595.28, 841.89]); y = H - 60; }
+    page.drawText('POR CONDUCTOR', { x: M, y, size: 11, font: fontBold, color: accent });
+    y -= 18;
+    for (const c of driversOrdenados) {
+      if (y < 80) { page = pdfDoc.addPage([595.28, 841.89]); y = H - 60; }
+      const nombre = byDriver[c].name.split(' ').slice(0,2).join(' ');
+      page.drawText(nombre, { x: M, y, size: 10, font: fontReg, color: navy });
+      const txt = `${byDriver[c].n} rep. · ${byDriver[c].litros.toFixed(0)} L`;
+      const w = fontReg.widthOfTextAtSize(txt, 10);
+      page.drawText(txt, { x: W-M-w, y, size: 10, font: fontReg, color: gray });
+      page.drawLine({ start:{x:M,y:y-6}, end:{x:W-M,y:y-6}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      y -= 20;
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manchatrans_Resumen_Gasoil_${meses[mes]}_${anio}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  } finally {
+    btn.textContent = textoOriginal; btn.disabled = false;
+  }
 }
 
 function renderAdminRecords() {
