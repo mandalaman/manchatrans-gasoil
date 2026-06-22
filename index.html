@@ -3119,6 +3119,28 @@ async function descontarInventarioRopa(articulosData) {
   return avisos;
 }
 
+// Inversa de descontarInventarioRopa: repone al stock las cantidades indicadas.
+// Se usa cuando se edita o elimina una entrega que YA estaba firmada (y por tanto
+// ya había descontado del inventario), para no perder ni duplicar stock.
+async function devolverInventarioRopa(articulosData) {
+  for (const art of (articulosData||[])) {
+    const talla = (art.talla||'').trim();
+    const cant = parseInt(art.cant) || 0;
+    if (!talla || cant <= 0) continue;
+    const key = inventarioKey(art.id, talla);
+    const item = ropaInventarioCache.find(x=>x.id===key);
+    const cantidadActual = item ? item.cantidad : 0;
+    const nuevaCantidad = cantidadActual + cant;
+    await setDoc(doc(db,'ropaInventario',key), {
+      articuloId: art.id,
+      talla,
+      cantidad: nuevaCantidad
+    });
+  }
+}
+
+
+
 function populateRopaSelects() {
   const sel = document.getElementById('ropa-sel-empleado');
   const selFilter = document.getElementById('ropa-hist-filter');
@@ -3635,6 +3657,11 @@ window.eliminarEntregaRopa = async (id) => {
   if (!h) return;
   if (!(await confirmarAccion(`¿Eliminar esta entrega de "${h.empleadoNombre}" (${h.fechaStr})? Esta acción no se puede deshacer.`))) return;
   try {
+    // Si la entrega ya estaba firmada, había descontado del inventario.
+    // Al eliminarla, devolvemos esas cantidades al stock para no perderlas.
+    if (h.firmado !== false) {
+      await devolverInventarioRopa(h.articulos||[]);
+    }
     await deleteDoc(doc(db,'ropaHistorial',id));
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
@@ -3685,7 +3712,13 @@ window.editarEntregaRopa = (id) => {
       if (!empleadoBase) { showAlert(al,'No se encuentra la plantilla de este empleado',true); btn.disabled=false; btn.textContent='💾 Guardar cambios'; return; }
 
       let firmaPngBytes = null;
-      if (h.firmado !== false) {
+      const estabaFirmada = h.firmado !== false;
+      if (estabaFirmada) {
+        // Esta entrega ya había descontado del inventario con los artículos ANTIGUOS
+        // (h.articulos). Antes de guardar los nuevos, devolvemos esas cantidades
+        // originales al stock. Cuando el empleado vuelva a firmar, se descontarán
+        // de nuevo con los datos corregidos — así no se duplica ni se pierde stock.
+        await devolverInventarioRopa(h.articulos||[]);
         // Extraer la firma actual desde el PDF no es trivial; en su lugar, regeneramos manteniendo
         // que ya estaba firmado pero sin imagen de firma nueva si no se ha hecho. Para mantener
         // la firma visual ya existente, reutilizamos el PDF actual y solo avisamos.
@@ -3697,7 +3730,9 @@ window.editarEntregaRopa = (id) => {
 
       document.getElementById('edit-ropa-modal').remove();
       updatePendientesBadge();
-      mostrarMensajeFlotante('✓ Cambios guardados. Pendiente de firma de nuevo.');
+      mostrarMensajeFlotante(estabaFirmada
+        ? '✓ Cambios guardados. Se ha repuesto el stock anterior. Pendiente de firma de nuevo.'
+        : '✓ Cambios guardados. Pendiente de firma de nuevo.');
     } catch(e) {
       showAlert(al, 'Error: '+e.message, true);
       btn.disabled = false; btn.textContent = '💾 Guardar cambios';
