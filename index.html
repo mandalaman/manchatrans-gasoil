@@ -496,18 +496,13 @@ textarea.form-input { resize: vertical; min-height: 70px; }
         <div id="ropa-emp-alert" class="alert"></div>
         <div class="refuel-card" style="margin-bottom:1rem;">
           <div class="section-title">Dar de alta nuevo empleado</div>
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">⚠️ Necesitarás subir su plantilla PDF de "Recibí de entrega de ropa" (con el mismo diseño que el resto) para poder generarle entregas.</div>
           <div class="form-group">
             <label class="form-label">Nombre completo</label>
             <input class="form-input" type="text" id="new-ropa-nombre" placeholder="Nombre completo">
           </div>
           <div class="form-group">
-            <label class="form-label">Nombre de empresa (como aparece en su plantilla)</label>
+            <label class="form-label">Nombre de empresa</label>
             <input class="form-input" type="text" id="new-ropa-empresa" placeholder="Ej: MANCHEGA DE TRANSPORTES S.L.">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Plantilla PDF</label>
-            <input class="form-input" type="file" id="new-ropa-pdf" accept="application/pdf">
           </div>
           <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir empleado</button>
         </div>
@@ -668,6 +663,13 @@ const ROPA_COL_MODELO_X = 320.0;
 const ROPA_COL_TALLA_X = 432.0;
 const ROPA_COL_CANT_X = 510.0;
 const ROPA_FIRMA_BOX = [34.0, 723.5, 561.3, 787.5];
+
+// Coordenadas para escribir nombre/empresa en la plantilla genérica
+const ROPA_NOMBRE_POS = { x: 142.0, top: 121.2 };
+const ROPA_EMPRESA_POS = { x: 144.2, top: 151.2 };
+
+// Plantilla genérica en blanco (sin nombre ni empresa) para nuevos empleados
+const ROPA_PLANTILLA_GENERICA = 'JVBERi0xLjcKJYGBgYEKCjUgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdCi9MZW5ndGggMzIwOQo+PgpzdHJlYW0KR2IiLyk4VFdZLyZcZGo8YmdDbSlKaFwyW2hlOEopOytiJWllMDArWyE8UVtJL3MrRV44TE81ODpYQElxNVYnaDdRPyQsOzJbO00laGAiblAwRyNOWnIxaiskXWREZ2hQJ20lcSckQTtkLyJuLiFBOWdmMGJER3BLX1IscUhjQ2BJYmFCMjFNXzc0IyU4WzorSkFPX0Q5RlU+SicscFJdV1BHMEg1WjxXVDtNdHVgI2RnYDQ8SSVIUHRxL1M0aTEwI0Q0KFJQIW1FXFtNTHJTLDs8Wk1bSWBeSEZPJWlsZCEkTjtSSXMrXkMsQVRPcz9FT1ZwbSdHQkRwMlxRbUQwNkNQXzEsI1VeXUw0JnEvLyNRVnMsKlZBZGIoVTEsLFRKPjQkMkhcaD88ZmRdJkVXOUxGP11YQ2VxcGAwSDheTSFWMzlkOjM1LyEoa10iVjdwWmwmKXFeN2ZnMmRQJTxxWCRmRDhHSXRaJj8oP2FAVz9XQj1IV2AyTjtGNmI/YHBTdS1nLCNgNGhrL3FhZDs+VGFhQ0BcczVTNjwuOTctZShuJF0yKSE+Jj1UZzdkPVNAbnJhWEYsaUVXWmZYYElWPzE/T2A2LDA4WExaT2oocyQqcWw9IztZXHFkai9oXCFgcSVeRzQ6NlMkZzEhcEA+OFBZSTNqNTBIMDg/cjVZYkMtX1FwI0g1TklEO2M5KWtRVEVhIWFmZD8pTC5sQyhtNkUnJyNmO0hUX3NsZVAtL1g9InMoVFxKZCdKNyZJTiRYOlhdU1oiPDQnMkUiTyc7XSdAXThTNXVDUklHOTdvMEJwV0UxJ1A0YUVeYWUoZUs0Y1piVmpDa0trKmlrKGJaRnFtYjQnbm5mIkklVVdyIj9YLCdZN3RGKV0mYmZHQz1tYk5cNUNCRDlKbTVAMSNdRDI8I1dTKG43XCEnZzZCN3FcZ2NAUl1rY2UxIkotX3NCZCxUIVdvIlwyP0Epb3IlNXJgXkBtJ1opbzJeWURaSlFzWERtO0t0OUFuIkhMQnRNKXRScFJoQ2NRTGFESTQhRFNJME83UGtWRTJeNVRgXlVeMytcbWQ6KSFTIT4vIWdUaCF1ZWpPJVRvPEozUXJBSXFUVSVYaTI/b1NuXixATlxgRT5sLmFRQixNX2JKKEUrLj5nUTJMcEZjbykpaDokUzRKTyYnNENeKUxkKUE8WWQlbkJxbjxhOSFAJ2RZIVkqNWRqSz5xQz0kVFxlPVszIVIxTD06bHE1MD07Rk8jQztAVHFoVCNmRFxlWEdnN0AsZC9PMTZlXWs+YGVlUU9UbC9tLFpUNFZOcDgnPysqb1UmcltvPEBpOCw0PkBbTyNvUVZpbSxrQmh0Y2R1RygtZkhrPTpUdWtTUW1AY0dScWczTEoqUXEtYV1VNS1GUmdjND9CXUxcbydCW1ZlJVMuczskKSdwVjVYXlkiRmRQNTouR0s8PT9iM0JdTnJsY25ZSEY/Kl11OU1dWG0qYzRRNmRgdFopLjUuK2M/LDBdLz9XO1NVXDphXz5OKFhPIiVBIkxbIzdrXF07RzVDYXEsZkNcUVxWISduXkdIVDRdZmsxOlM1LktaZEIxbyhKdCZESzd0ZCwqM0EoZTR1JCk8Ky0pbWRjXjMjaCYtKkNXbEhVKWNTMFUrNi0ibkRaTkZaQTZPImVrUXAzbmFLRE1XKCRETVg+VCg8YyhZTSJ0QVpxLVxfLjdqQyFRNmRRJm1LRUMiazshKiFqUjc4RjoqL3RmY0xYZWVmU2NkNSdgW3BCYiVzNDI6Xi41YydnL2VzMF87cjIuJ3JlYlFtOzt1ZE5LUVVVbkBoNTM7b3IwLyk6LVpdYHJOOChLc0A+aFFoR2A4X3ElPCJQNSZecFtrWjsmSHRfJWcrMS9YT1NnTDJpTCUpZ1gkbVNzIWM8IWYjTlZSWzBnTUQ5cFg8dCk3bD8iPiJBJGhdPCxaXyQyXDUyPzdlPDlqXW4jRU0kXk1LQ09yUXFeSSd0SlRLWDFEWmdXWCY4UylNWmkxVT4tOlhZLFVmYGFqJ11hOGRKTE4tcUBuTWNMSmJkOENKZ2w8cy4xOEMtXEVNMlssMDxDLkxYRGlHKTNGL21Ka05lZSwoaWImJnN1KydRL21jamorWnFAKCtVZDk6XVc+UmQmMlhwMywkOCZLKiRxTiJlaC5KR3NNXi9cSDtwTF8xRlgycD9GZ1lUQjA9ciltNlJhRzZyY0xGI3AhYnIvWm1kLEkma0wxc2dcQlpVMF5gRnQpXDo/ISRfP0tqcidiODpoJD9xZnRlQ2FsI2NET2ZjJlpxPGYkP3U7ZkJbYCpcPnI/WCNhKUVNS0RBSlEib1pxcmxXdCRHO1ZeIyc1aXJvTFhdN2NvI0ciPGJQJG1pLV1wN2A3OWRpQiYsSGgoIXRPUzs7MSFxKW1rUGcyU3NkMS1JTlQ6bEI0PXQ+UyNsMS4rQTBqPl8vWCw2LixNRWxDakUyKjk5WTtYIV4yc0k5ZSpfTCs3TllJPjEoQzNhWT1IUjlQS1ZIZGgiQyg9W09cZy5xODZYI2pBOT1uRGZGLm4/NmpqO2k0IVlNZ0wqRFJpLz1bNFdgSSpiRGJnbzslQz8jKU4rcXRzMTtyZjdvPWBwMCM7WVMpMzVFSkkuUSpFMDpqKjt0M0NzdF5iM11nYHRxKHQjbTAqPnAvXDEzXmkvPW9EJF1NKGlEakRaQDxkV0NkZGRiK1liY0RTM20mV01NOT1YSUU8UTpbRkZPK3UzJ29jTSdzMDt0NExhQ0o/XUc2XXFnTl8+SSpHQDl1KFBHM2ppbDBPTCdvR01PNykvLDI2Szh1JGI9W1xfPj1aWHRWY1kvdENCLUVIVklAczBwMVljQStBKVZnVixqJ19RQF5cSD08WU8pNydVK1thUmRAWVhYSzBUT1YnVUVOaDMrXDI3akAsQEpPbDZNUCFoQVcmcSxLUT4oaSY8RGRHYVNAOTRMQVAqS05LbmhjUlY6TGN1ZW9WIVBYQjtpWSZlZ2ItI0BRbT0uQidaNCMyMCZSYiZdckhkUCtHNEBhP3RmK08wWGcyZ0hKMVMvK1E1bmM0NVlQNSJ1SjpNRW06NEg8Wz09PHAjTWc9XXBiIlJBUVolZGtrKjlSUWFbcnFEOiZeVTonUF9PWTM3OW06KWtePSV1cyIwZ3I8Jm9ucEU5X2MnJl0qLSk4KCI8SXNNPTNvZmwuL15cOlkwUHM7VnBpVixHJmtKPDU6OnEuWlx1MDVgUHBOUGVTPl1SLT0iNUFfPlciUzhwKDoiKiQlIT1GJVZrcFJEbCsyXzokITtTMTNzY2RrNFxIPlI5WCw4WDw5NiFdIlg6MTM1TF88W2clJSs0ZlJDJlwmT2YyT09LYksjOmNZN3FYQkIsZlhkbEtONSdxSyZmYTEuLDZFaFJfQUtCPClMTTFJcic+XiYibic+PzU+Syg7dVIvPTNxX3BOQ1dtWWMlPU9sbmhsPkZD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';
 
 const ROPA_EMPLEADOS_DEFAULT = [
   {nombre:'AGUSTIN CUESTA GUTIERREZ', empresa:'MANCHEGA DE TRANSPORTES S.L.', pdfBase64:'JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PAovUHJvZHVjZXIgKHB5cGRmKQo+PgplbmRvYmoKMiAwIG9iago8PAovVHlwZSAvUGFnZXMKL0NvdW50IDEKL0tpZHMgWyA0IDAgUiBdCj4+CmVuZG9iagozIDAgb2JqCjw8Ci9UeXBlIC9DYXRhbG9nCi9QYWdlcyAyIDAgUgo+PgplbmRvYmoKNCAwIG9iago8PAovQ29udGVudHMgNSAwIFIKL01lZGlhQm94IFsgMCAwIDU5NS4yNzU2IDg0MS44ODk4IF0KL1Jlc291cmNlcyA8PAovRm9udCA2IDAgUgovUHJvY1NldCBbIC9QREYgL1RleHQgL0ltYWdlQiAvSW1hZ2VDIC9JbWFnZUkgXQo+PgovUm90YXRlIDAKL1RyYW5zIDw8Cj4+Ci9UeXBlIC9QYWdlCi9QYXJlbnQgMiAwIFIKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL0ZpbHRlciBbIC9BU0NJSTg1RGVjb2RlIC9GbGF0ZURlY29kZSBdCi9MZW5ndGggMzIwOQo+PgpzdHJlYW0KR2IiLyk4VFdZLyZcZGo8YmdDbSlKaFwyW2hlOEopOytiJWllMDArWyE8UVtJL3MrRV44TE81ODpYQElxNVYnaDdRPyQsOzJbO00laGAiblAwRyNOWnIxaiskXWREZ2hQJ20lcSckQTtkLyJuLiFBOWdmMGJER3BLX1IscUhjQ2BJYmFCMjFNXzc0IyU4WzorSkFPX0Q5RlU+SicscFJdV1BHMEg1WjxXVDtNdHVgI2RnYDQ8SSVIUHRxL1M0aTEwI0Q0KFJQIW1FXFtNTHJTLDs8Wk1bSWBeSEZPJWlsZCEkTjtSSXMrXkMsQVRPcz9FT1ZwbSdHQkRwMlxRbUQwNkNQXzEsI1VeXUw0JnEvLyNRVnMsKlZBZGIoVTEsLFRKPjQkMkhcaD88ZmRdJkVXOUxGP11YQ2VxcGAwSDheTSFWMzlkOjM1LyEoa10iVjdwWmwmKXFeN2ZnMmRQJTxxWCRmRDhHSXRaJj8oP2FAVz9XQj1IV2AyTjtGNmI/YHBTdS1nLCNgNGhrL3FhZDs+VGFhQ0BcczVTNjwuOTctZShuJF0yKSE+Jj1UZzdkPVNAbnJhWEYsaUVXWmZYYElWPzE/T2A2LDA4WExaT2oocyQqcWw9IztZXHFkai9oXCFgcSVeRzQ6NlMkZzEhcEA+OFBZSTNqNTBIMDg/cjVZYkMtX1FwI0g1TklEO2M5KWtRVEVhIWFmZD8pTC5sQyhtNkUnJyNmO0hUX3NsZVAtL1g9InMoVFxKZCdKNyZJTiRYOlhdU1oiPDQnMkUiTyc7XSdAXThTNXVDUklHOTdvMEJwV0UxJ1A0YUVeYWUoZUs0Y1piVmpDa0trKmlrKGJaRnFtYjQnbm5mIkklVVdyIj9YLCdZN3RGKV0mYmZHQz1tYk5cNUNCRDlKbTVAMSNdRDI8I1dTKG43XCEnZzZCN3FcZ2NAUl1rY2UxIkotX3NCZCxUIVdvIlwyP0Epb3IlNXJgXkBtJ1opbzJeWURaSlFzWERtO0t0OUFuIkhMQnRNKXRScFJoQ2NRTGFESTQhRFNJME83UGtWRTJeNVRgXlVeMytcbWQ6KSFTIT4vIWdUaCF1ZWpPJVRvPEozUXJBSXFUVSVYaTI/b1NuXixATlxgRT5sLmFRQixNX2JKKEUrLj5nUTJMcEZjbykpaDokUzRKTyYnNENeKUxkKUE8WWQlbkJxbjxhOSFAJ2RZIVkqNWRqSz5xQz0kVFxlPVszIVIxTD06bHE1MD07Rk8jQztAVHFoVCNmRFxlWEdnN0AsZC9PMTZlXWs+YGVlUU9UbC9tLFpUNFZOcDgnPysqb1UmcltvPEBpOCw0PkBbTyNvUVZpbSxrQmh0Y2R1RygtZkhrPTpUdWtTUW1AY0dScWczTEoqUXEtYV1VNS1GUmdjND9CXUxcbydCW1ZlJVMuczskKSdwVjVYXlkiRmRQNTouR0s8PT9iM0JdTnJsY25ZSEY/Kl11OU1dWG0qYzRRNmRgdFopLjUuK2M/LDBdLz9XO1NVXDphXz5OKFhPIiVBIkxbIzdrXF07RzVDYXEsZkNcUVxWISduXkdIVDRdZmsxOlM1LktaZEIxbyhKdCZESzd0ZCwqM0EoZTR1JCk8Ky0pbWRjXjMjaCYtKkNXbEhVKWNTMFUrNi0ibkRaTkZaQTZPImVrUXAzbmFLRE1XKCRETVg+VCg8YyhZTSJ0QVpxLVxfLjdqQyFRNmRRJm1LRUMiazshKiFqUjc4RjoqL3RmY0xYZWVmU2NkNSdgW3BCYiVzNDI6Xi41YydnL2VzMF87cjIuJ3JlYlFtOzt1ZE5LUVVVbkBoNTM7b3IwLyk6LVpdYHJOOChLc0A+aFFoR2A4X3ElPCJQNSZecFtrWjsmSHRfJWcrMS9YT1NnTDJpTCUpZ1gkbVNzIWM8IWYjTlZSWzBnTUQ5cFg8dCk3bD8iPiJBJGhdPCxaXyQyXDUyPzdlPDlqXW4jRU0kXk1LQ09yUXFeSSd0SlRLWDFEWmdXWCY4UylNWmkxVT4tOlhZLFVmYGFqJ11hOGRKTE4tcUBuTWNMSmJkOENKZ2w8cy4xOEMtXEVNMlssMDxDLkxYRGlHKTNGL21Ka05lZSwoaWImJnN1KydRL21jamorWnFAKCtVZDk6XVc+UmQmMlhwMywkOCZLKiRxTiJlaC5KR3NNXi9cSDtwTF8xRlgycD9GZ1lUQjA9ciltNlJhRzZyY0xGI3AhYnIvWm1kLEkma0wxc2dcQlpVMF5gRnQpXDo/ISRfP0tqcidiODpoJD9xZnRlQ2FsI2NET2ZjJlpxPGYkP3U7ZkJbYCpcPnI/WCNhKUVNS0RBSlEib1pxcmxXdCRHO1ZeIyc1aXJvTFhdN2NvI0ciPGJQJG1pLV1wN2A3OWRpQiYsSGgoIXRPUzs7MSFxKW1rUGcyU3NkMS1JTlQ6bEI0PXQ+UyNsMS4rQTBqPl8vWCw2LixNRWxDakUyKjk5WTtYIV4yc0k5ZSpfTCs3TllJPjEoQzNhWT1IUjlQS1ZIZGgiQyg9W09cZy5xODZYI2pBOT1uRGZGLm4/NmpqO2k0IVlNZ0wqRFJpLz1bNFdgSSpiRGJnbzslQz8jKU4rcXRzMTtyZjdvPWBwMCM7WVMpMzVFSkkuUSpFMDpqKjt0M0NzdF5iM11nYHRxKHQjbTAqPnAvXDEzXmkvPW9EJF1NKGlEakRaQDxkV0NkZGRiK1liY0RTM20mV01NOT1YSUU8UTpbRkZPK3UzJ29jTSdzMDt0NExhQ0o/XUc2XXFnTl8+SSpHQDl1KFBHM2ppbDBPTCdvR01PNykvLDI2Szh1JGI9W1xfPj1aWHRWY1kvdENCLUVIVklAczBwMVljQStBKVZnVixqJ19RQF5cSD08WU8pNydVK1thUmRAWVhYSzBUT1YnVUVOaDMrXDI3akAsQEpPbDZNUCFoQVcmcSxLUT4oaSY8RGRHYVNAOTRMQVAqS05LbmhjUlY6TGN1ZW9WIVBYQjtpWSZlZ2ItI0BRbT0uQidaNCMyMCZSYiZdckhkUCtHNEBhP3RmK08wWGcyZ0hKMVMvK1E1bmM0NVlQNSJ1SjpNRW06NEg8Wz09PHAjTWc9XXBiIlJBUVolZGtrKjlSUWFbcnFEOiZeVTonUF9PWTM3OW06KWtePSV1cyIwZ3I8Jm9ucEU5X2MnJl0qLSk4KCI8SXNNPTNvZmwuL15cOlkwUHM7VnBpVixHJmtKPDU6OnEuWlx1MDVgUHBOUGVTPl1SLT0iNUFfPlciUzhwKDoiKiQlIT1GJVZrcFJEbCsyXzokITtTMTNzY2RrNFxIPlI5WCw4WDw5NiFdIlg6MTM1TF88W2clJSs0ZlJDJlwmT2YyT09LYksjOmNZN3FYQkIsZlhkbEtONSdxSyZmYTEuLDZFaFJfQUtCPClMTTFJcic+XiYibic+PzU+Syg7dVIvPTNxX3BOQ1dtWWMlPU9sbmhsPkZDSi8ociEiImgkcElMRiZeMi1lTW9YbkMmdWxaO2RVOnUsMTBIaC1icTpaZC9wZ08mUGJBW3E9WS1fIi01VUwhOGZtWVIscmE9dG07VTpHUC5eSEImUCV0Uy0jY3A6aGhxMV5gXD5zaFlAXiI2QzRBMC5QW0Q7W1ViTEFoK19KTy5pLExUZUs4SkxvKXNRR0xycTliKi4qTWBBVEhZM2pxTWVZKT5rITk6NFs9Wj5CPk8mP2s8Pl8ydEldU3A+TnFEODNhRWJPbUAnbiNrJWg8aF09JWw0WXRtMEU6dTcoLkk1XWNULkk2cyY0PDZlKjJeUiI/WHEnWz5KOzljLjxJRGNacV86TmJSSjI0SjI7KF91X2otcUFRXkFcPjBoYy1UTF49dFs6MlpZJUZdInJdRFNCKSM2XlJWXidTcDknLCZoWlFJczRXRjtuSjpuTUhySGM0bUNWVz9jS1JfJ18wSWRXM1ZQRE02IzFcOFc2LVB1SyEyZ29iZFpbQygyZDpdWFdPMUdzSDNbLGNUTzZoVE1YbmxcWFBeIkRIMDBGWUVzK1lacTxaTE9WUmk9P0FtckhuU2tRLD5IU1ZGI2dsajA9X09nKmZoMzREa0hhN15sQW8hJWBPITxmMC9lP2QlPyc2JkInYk9KYEhoK0xtcG5JYi5sT1ZXQHIiQ0pecj8hblRnPT42cCIsTDo5cjMvRDRKMzBqUlY6bDBDSkdMa09wKVh1ZzpYaE46Nms1QnA9KkhBMWUoOGJGX2pxLkElZWdUPG1KYHNwLzlFWkMlbGVRaC5mfj4KZW5kc3RyZWFtCmVuZG9iago2IDAgb2JqCjw8Ci9GMSA3IDAgUgovRjIgOCAwIFIKL0YzIDkgMCBSCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9OYW1lIC9GMQovU3VidHlwZSAvVHlwZTEKL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCjggMCBvYmoKPDwKL0Jhc2VGb250IC9IZWx2ZXRpY2EtQm9sZAovRW5jb2RpbmcgL1dpbkFuc2lFbmNvZGluZwovTmFtZSAvRjIKL1N1YnR5cGUgL1R5cGUxCi9UeXBlIC9Gb250Cj4+CmVuZG9iago5IDAgb2JqCjw8Ci9CYXNlRm9udCAvSGVsdmV0aWNhLUJvbGRPYmxpcXVlCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCi9OYW1lIC9GMwovU3VidHlwZSAvVHlwZTEKL1R5cGUgL0ZvbnQKPj4KZW5kb2JqCnhyZWYKMCAxMAowMDAwMDAwMDAwIDY1NTM1IGYgCjAwMDAwMDAwMTUgMDAwMDAgbiAKMDAwMDAwMDA1NCAwMDAwMCBuIAowMDAwMDAwMTEzIDAwMDAwIG4gCjAwMDAwMDAxNjIgMDAwMDAgbiAKMDAwMDAwMDM2MSAwMDAwMCBuIAowMDAwMDAzNjYyIDAwMDAwIG4gCjAwMDAwMDM3MTMgMDAwMDAgbiAKMDAwMDAwMzgyMCAwMDAwMCBuIAowMDAwMDAzOTMyIDAwMDAwIG4gCnRyYWlsZXIKPDwKL1NpemUgMTAKL1Jvb3QgMyAwIFIKL0luZm8gMSAwIFIKPj4Kc3RhcnR4cmVmCjQwNTEKJSVFT0YK'},
@@ -2618,7 +2620,7 @@ function populateInventarioSelect() {
   grid.innerHTML = ROPA_ARTICULOS.map(a => `
     <button type="button" class="inv-articulo-btn" data-id="${a.id}" onclick="seleccionarArticuloInventario('${a.id}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0.85rem 0.5rem;border-radius:var(--radius-sm);border:2px solid var(--card-border);background:var(--input-bg);color:var(--text);cursor:pointer;">
       <span style="font-size:24px;">${ROPA_ARTICULOS_ICONOS[a.id]||'👔'}</span>
-      <span style="font-size:11px;text-align:center;line-height:1.2;">${a.label.split(' (')[0]}</span>
+      <span style="font-size:13px;font-weight:600;text-align:center;line-height:1.25;">${a.label.split(' (')[0]}</span>
     </button>`).join('');
   // Seleccionar el primero por defecto
   if (!inventarioArticuloSeleccionado) inventarioArticuloSeleccionado = ROPA_ARTICULOS[0].id;
@@ -2696,7 +2698,7 @@ function renderInventarioRopa() {
   list.innerHTML = ROPA_ARTICULOS.filter(a => porArticulo[a.id]).map(art => {
     const items = porArticulo[art.id].sort((a,b)=>a.talla.localeCompare(b.talla));
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:0.5rem;">
-      <div style="font-weight:600;font-size:14px;margin-bottom:0.5rem;">${art.label}</div>
+      <div style="font-weight:700;font-size:16px;margin-bottom:0.5rem;">${art.label}</div>
       ${items.map(item => {
         const bajo = item.cantidad <= ROPA_STOCK_BAJO_UMBRAL;
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-top:1px solid var(--card-border);">
@@ -2872,26 +2874,19 @@ function renderRopaEmpleadosList() {
 window.addRopaEmpleado = async () => {
   const nombre = document.getElementById('new-ropa-nombre').value.trim().toUpperCase();
   const empresa = document.getElementById('new-ropa-empresa').value.trim();
-  const fileInput = document.getElementById('new-ropa-pdf');
   const al = document.getElementById('ropa-emp-alert');
   if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
-  if (!fileInput.files[0]) { showAlert(al,'Sube la plantilla PDF de este empleado',true); return; }
 
   const id = nombre.replace(/[^a-zA-Z0-9]/g,'_');
   if (ropaEmpleadosCache.find(e=>e.id===id)) { showAlert(al,'Ya existe un empleado con ese nombre',true); return; }
 
   try {
-    const file = fileInput.files[0];
-    const arrayBuffer = await file.arrayBuffer();
-    const pdfBase64 = btoa(Array.from(new Uint8Array(arrayBuffer), b => String.fromCharCode(b)).join(''));
-
-    const nuevo = { nombre, empresa, pdfBase64, activo: true };
+    const nuevo = { nombre, empresa, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
     await setDoc(doc(db, 'ropaEmpleados', id), nuevo);
     ropaEmpleadosCache.push({id, ...nuevo});
 
     document.getElementById('new-ropa-nombre').value = '';
     document.getElementById('new-ropa-empresa').value = '';
-    fileInput.value = '';
     populateRopaSelects();
     renderRopaEmpleadosList();
     showAlert(al, `✓ Empleado "${nombre}" añadido correctamente`, false);
@@ -3084,6 +3079,15 @@ async function generarPdfRopa(empleado, puesto, articulosData, firmaPngBytes) {
   if (pBox) {
     const cx = (pBox[0]+pBox[2])/2, cyTop = toPdfY(pBox[1]), cyBottom = toPdfY(pBox[3]);
     page.drawText('X', { x: cx-4, y: (cyTop+cyBottom)/2 - 4, size: 11, font: fontBold, color: navy });
+  }
+
+  // Si la plantilla es la genérica (sin nombre/empresa impresos), escribirlos ahora
+  if (empleado.usaPlantillaGenerica) {
+    const fontNombre = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    page.drawText(empleado.nombre, { x: ROPA_NOMBRE_POS.x, y: toPdfY(ROPA_NOMBRE_POS.top), size: 12, font: fontNombre, color: rgb(0,0,0) });
+    if (empleado.empresa) {
+      page.drawText(empleado.empresa, { x: ROPA_EMPRESA_POS.x, y: toPdfY(ROPA_EMPRESA_POS.top), size: 12, font: fontNombre, color: rgb(0,0,0) });
+    }
   }
 
   for (const art of articulosData) {
