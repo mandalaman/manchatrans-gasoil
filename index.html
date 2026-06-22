@@ -164,6 +164,8 @@ textarea.form-input { resize: vertical; min-height: 70px; }
 .spinner { width: 40px; height: 40px; border: 3px solid var(--card-border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .btn-sm { padding: 4px 10px; border-radius: var(--radius-sm); font-size: 12px; cursor: pointer; border: 1px solid var(--card-border); background: var(--navy-light); color: var(--text); }
+.campo-confirm-btn { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--card-border); background: var(--navy-light); color: var(--text-muted); font-size: 18px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0; }
+.campo-confirm-btn.campo-confirmado { background: var(--success); border-color: var(--success); color: #0a1a0a; font-size: 15px; }
 .btn-sm-danger { border-color: var(--danger); color: var(--danger); background: none; }
 .mant-row { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--card-border); font-size: 13px; }
 .mant-row:last-child { border-bottom: none; }
@@ -234,32 +236,32 @@ input[type="number"] { -moz-appearance: textfield; }
         </div>
         <div class="form-group" id="km-field">
           <label class="form-label">Kilómetros actuales del vehículo <span style="color:var(--danger)">*</span></label>
-          <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0" inputmode="numeric" style="flex:1;">
-            <button type="button" class="btn-sm" id="btn-confirm-km-act" onclick="confirmarCampoRepostaje('km-act')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
+          <div style="position:relative;">
+            <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0" inputmode="numeric" style="padding-right:54px;">
+            <button type="button" class="campo-confirm-btn" id="btn-confirm-km-act" onclick="confirmarCampoRepostaje('km-act')" title="Aceptar" aria-label="Aceptar">✓</button>
           </div>
         </div>
         <div class="two-col">
           <div class="form-group">
             <label class="form-label">Lectura inicial (L) <span style="color:var(--danger)">*</span></label>
-            <div style="display:flex;gap:0.4rem;align-items:center;">
-              <input class="form-input" type="number" id="lectura-ini" placeholder="" min="0" inputmode="decimal" style="flex:1;">
-              <button type="button" class="btn-sm" id="btn-confirm-lectura-ini" onclick="confirmarCampoRepostaje('lectura-ini')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
+            <div style="position:relative;">
+              <input class="form-input" type="number" id="lectura-ini" placeholder="" min="0" inputmode="decimal" style="padding-right:54px;">
+              <button type="button" class="campo-confirm-btn" id="btn-confirm-lectura-ini" onclick="confirmarCampoRepostaje('lectura-ini')" title="Aceptar" aria-label="Aceptar">✓</button>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Lectura final (L) <span style="color:var(--danger)">*</span></label>
-            <div style="display:flex;gap:0.4rem;align-items:center;">
-              <input class="form-input" type="number" id="lectura-fin" placeholder="" min="0" inputmode="decimal" style="flex:1;">
-              <button type="button" class="btn-sm" id="btn-confirm-lectura-fin" onclick="confirmarCampoRepostaje('lectura-fin')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
+            <div style="position:relative;">
+              <input class="form-input" type="number" id="lectura-fin" placeholder="" min="0" inputmode="decimal" style="padding-right:54px;">
+              <button type="button" class="campo-confirm-btn" id="btn-confirm-lectura-fin" onclick="confirmarCampoRepostaje('lectura-fin')" title="Aceptar" aria-label="Aceptar">✓</button>
             </div>
           </div>
         </div>
         <div class="form-group">
           <label class="form-label">Litros echados <span style="color:var(--danger)">*</span></label>
-          <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input class="form-input" type="number" id="litros-manual" placeholder="" min="0" inputmode="decimal" style="flex:1;">
-            <button type="button" class="btn-sm" id="btn-confirm-litros-manual" onclick="confirmarCampoRepostaje('litros-manual')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
+          <div style="position:relative;">
+            <input class="form-input" type="number" id="litros-manual" placeholder="" min="0" inputmode="decimal" style="padding-right:54px;">
+            <button type="button" class="campo-confirm-btn" id="btn-confirm-litros-manual" onclick="confirmarCampoRepostaje('litros-manual')" title="Aceptar" aria-label="Aceptar">✓</button>
           </div>
         </div>
         <div class="form-group">
@@ -1233,8 +1235,8 @@ const CAMPOS_REPOSTAJE_LABELS = {
   'litros-manual': 'los litros echados'
 };
 
-// Al pulsar "Aceptar" en un campo del repostaje: valida que tenga un número y lo
-// bloquea visualmente (solo lectura) mostrando "✏️ Editar" para poder corregirlo.
+// Al pulsar "✓" en un campo del repostaje: valida que tenga un número y lo
+// bloquea visualmente (solo lectura) mostrando "✏️" para poder corregirlo.
 // No se guarda nada en Firebase todavía — eso ocurre al pulsar "Registrar repostaje".
 window.confirmarCampoRepostaje = (fieldId) => {
   const input = document.getElementById(fieldId);
@@ -1250,7 +1252,10 @@ window.confirmarCampoRepostaje = (fieldId) => {
   input.readOnly = true;
   input.style.opacity = '0.7';
   input.style.background = 'var(--navy)';
-  btn.textContent = '✏️ Editar';
+  btn.textContent = '✏️';
+  btn.title = 'Editar';
+  btn.setAttribute('aria-label','Editar');
+  btn.classList.add('campo-confirmado');
   btn.onclick = () => editarCampoRepostaje(fieldId);
 };
 
@@ -1262,17 +1267,20 @@ window.editarCampoRepostaje = (fieldId) => {
   input.style.opacity = '';
   input.style.background = '';
   input.focus();
-  btn.textContent = 'Aceptar';
+  btn.textContent = '✓';
+  btn.title = 'Aceptar';
+  btn.setAttribute('aria-label','Aceptar');
+  btn.classList.remove('campo-confirmado');
   btn.onclick = () => confirmarCampoRepostaje(fieldId);
 };
 
-// Devuelve los 4 campos del repostaje a su estado inicial (desbloqueados, botón "Aceptar")
+// Devuelve los 4 campos del repostaje a su estado inicial (desbloqueados, icono "✓")
 function resetCamposConfirmadosRepostaje() {
   ['km-act','lectura-ini','lectura-fin','litros-manual'].forEach(fieldId => {
     const input = document.getElementById(fieldId);
     const btn = document.getElementById('btn-confirm-'+fieldId);
     if (input) { input.readOnly = false; input.style.opacity = ''; input.style.background = ''; }
-    if (btn) { btn.textContent = 'Aceptar'; btn.onclick = () => confirmarCampoRepostaje(fieldId); }
+    if (btn) { btn.textContent = '✓'; btn.title = 'Aceptar'; btn.setAttribute('aria-label','Aceptar'); btn.classList.remove('campo-confirmado'); btn.onclick = () => confirmarCampoRepostaje(fieldId); }
   });
 }
 
