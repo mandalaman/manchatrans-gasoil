@@ -426,13 +426,6 @@ input[type="number"] { -moz-appearance: textfield; }
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, historial de Flota y mantenimiento) por si quieres guardar una copia.</div>
         <button class="btn btn-secondary" id="btn-backup">💾 Descargar copia de seguridad</button>
       </div>
-
-      <div class="refuel-card" style="margin-top:1rem;border-color:var(--danger);">
-        <div class="section-title" style="color:var(--danger);">Empezar de cero</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Borra registros para volver a empezar. No afecta a conductores ni vehículos. Te recomendamos descargar antes la copia de seguridad de arriba.</div>
-        <button class="btn-del" style="width:100%;margin-bottom:0.5rem;" id="btn-borrar-gasoil">🗑 Borrar repostajes y recargas (Gasoil)</button>
-        <button class="btn-del" style="width:100%;" id="btn-borrar-flota">🗑 Borrar historial y mantenimiento (Flota)</button>
-      </div>
     </div>
     </div>
     <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
@@ -655,8 +648,12 @@ const dbFleet = getFirestore(appFleet);
 const ADMIN_USER = 'admin';
 const ADMIN_PASS = 'admin2026';
 
-// Códigos de acceso parcial por módulo (admin general no los necesita)
-const MODULO_CODIGOS = {
+// Admin Superior: único que puede cambiar los códigos de acceso a los módulos
+const SUPERADMIN_USER = 'superadmin';
+const SUPERADMIN_PASS = 'superadmin2026';
+
+// Códigos de acceso parcial por módulo (valores por defecto, se cargan/editan desde Firestore)
+let MODULO_CODIGOS = {
   gasoil: '1111',
   fleet: '2222',
   ropa: '3333'
@@ -926,6 +923,15 @@ async function initApp() {
     const ropaInvSnap = await getDocs(collection(db, 'ropaInventario'));
     ropaInventarioCache = ropaInvSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // Cargar códigos de acceso a módulos (con migración inicial)
+    const codigosSnap = await getDocs(collection(db, 'configuracion'));
+    const codigosDoc = codigosSnap.docs.find(d => d.id === 'moduloCodigos');
+    if (codigosDoc) {
+      MODULO_CODIGOS = codigosDoc.data();
+    } else {
+      await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
+    }
+
     clearTimeout(timeoutId);
     clearTimeout(timeoutId2);
 
@@ -1098,8 +1104,6 @@ async function initApp() {
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
-  document.getElementById('btn-borrar-gasoil').addEventListener('click', ()=>window.borrarTodo());
-  document.getElementById('btn-borrar-flota').addEventListener('click', ()=>window.borrarTodoFlota());
   document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
     const wrapper = document.getElementById('mat-list-wrapper');
     const btn = document.getElementById('btn-toggle-mat');
@@ -1239,6 +1243,11 @@ function activarListenersTiempoReal() {
     ropaInventarioCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (currentUser && currentUser.isAdmin && currentModule==='ropa') renderInventarioRopa();
   });
+
+  // Códigos de acceso a módulos (puede cambiarlos el Admin Superior desde cualquier dispositivo)
+  onSnapshot(doc(db, 'configuracion', 'moduloCodigos'), (snap) => {
+    if (snap.exists()) MODULO_CODIGOS = snap.data();
+  });
 }
 
 function calcLitrosLocal() {
@@ -1299,6 +1308,54 @@ function buildLoginForm() {
   }
 }
 
+function mostrarPantallaSuperAdmin() {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const overlay = document.createElement('div');
+  overlay.id = 'superadmin-screen';
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:9999;overflow-y:auto;';
+  overlay.innerHTML = `
+    <div class="topbar">
+      <span class="topbar-title">🔑 Admin Superior</span>
+      <button class="topbar-logout" onclick="location.reload()">Salir</button>
+    </div>
+    <div style="padding:1.25rem;max-width:480px;margin:0 auto;">
+      <div class="section-title">Códigos de acceso por módulo</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Estos códigos permiten el acceso parcial a cada módulo desde la pantalla principal del admin. Cámbialos cuando lo necesites; el cambio se aplica al instante en todos los dispositivos.</div>
+      <div id="superadmin-alert" class="alert"></div>
+
+      <div class="refuel-card" style="margin-bottom:1rem;">
+        <div class="form-group">
+          <label class="form-label">⛽ Código de Gasoil</label>
+          <input class="form-input" type="text" id="codigo-gasoil-input" value="${MODULO_CODIGOS.gasoil}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🚛 Código de Flota</label>
+          <input class="form-input" type="text" id="codigo-fleet-input" value="${MODULO_CODIGOS.fleet}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">👔 Código de Ropa</label>
+          <input class="form-input" type="text" id="codigo-ropa-input" value="${MODULO_CODIGOS.ropa}">
+        </div>
+        <button class="btn btn-primary" id="btn-guardar-codigos">💾 Guardar cambios</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  document.getElementById('btn-guardar-codigos').addEventListener('click', async () => {
+    const al = document.getElementById('superadmin-alert');
+    const g = document.getElementById('codigo-gasoil-input').value.trim();
+    const f = document.getElementById('codigo-fleet-input').value.trim();
+    const r = document.getElementById('codigo-ropa-input').value.trim();
+    if (!g || !f || !r) { showAlert(al,'Los tres campos son obligatorios',true); return; }
+    try {
+      const nuevos = { gasoil: g, fleet: f, ropa: r };
+      await setDoc(doc(db, 'configuracion', 'moduloCodigos'), nuevos);
+      MODULO_CODIGOS = nuevos;
+      showAlert(al, '✓ Códigos actualizados correctamente', false);
+    } catch(e) { showAlert(al, 'Error al guardar: '+e.message, true); }
+  });
+}
+
 window.toggleLoginMode = () => {
   loginMode = loginMode==='driver'?'admin':'driver';
   buildLoginForm();
@@ -1311,6 +1368,10 @@ window.doLogin = () => {
   if (loginMode === 'admin') {
     const u = (document.getElementById('admin-user').value||'').trim().toLowerCase();
     const p = (document.getElementById('admin-pass').value||'').trim();
+    if (u===SUPERADMIN_USER && p===SUPERADMIN_PASS) {
+      mostrarPantallaSuperAdmin();
+      return;
+    }
     if (u===ADMIN_USER && p===ADMIN_PASS) {
       currentUser = { name:'Administrador', isAdmin:true };
       showScreen('admin'); renderAdminPage();
