@@ -2015,7 +2015,7 @@ function switchModule(mod) {
   const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
   document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
-  if (mod==='ropa') { populateRopaSelects(); }
+  if (mod==='ropa') { populateRopaSelects(); updatePendientesBadge(); }
 }
 
 function volverASeleccionModulo() {
@@ -3042,6 +3042,7 @@ async function guardarEntregaRopa(comoPendiente) {
     };
     const ref = await addDoc(collection(db, 'ropaHistorial'), registro);
     ropaHistorialCache.unshift({id:ref.id, ...registro});
+    updatePendientesBadge();
 
     let avisos = [];
     if (!comoPendiente) {
@@ -3195,6 +3196,7 @@ function renderRopaPendientes() {
   const list = document.getElementById('ropa-pendientes-list');
   if (!list) return;
   const pendientes = ropaHistorialCache.filter(h => h.firmado === false);
+  updatePendientesBadge();
   if (!pendientes.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>No hay entregas pendientes de firma</div>'; return; }
   list.innerHTML = pendientes.map(h => {
     const numArt = h.articulos ? h.articulos.length : 0;
@@ -3207,6 +3209,13 @@ function renderRopaPendientes() {
       <button class="btn btn-primary" style="width:100%;" onclick="abrirFirmaPendiente('${h.id}')">✍️ Firmar ahora</button>
     </div>`;
   }).join('');
+}
+
+function updatePendientesBadge() {
+  const btn = document.getElementById('rtab-btn-pendientes');
+  if (!btn) return;
+  const n = ropaHistorialCache.filter(h => h.firmado === false).length;
+  btn.textContent = n > 0 ? `Pendientes de firma 🔴${n}` : 'Pendientes de firma';
 }
 
 window.abrirFirmaPendiente = (id) => {
@@ -3357,6 +3366,7 @@ window.editarEntregaRopa = (id) => {
 
       document.getElementById('edit-ropa-modal').remove();
       renderRopaHistorial();
+      updatePendientesBadge();
       alert('✓ Cambios guardados. La entrega ha quedado pendiente de firma (revísala en "Pendientes de firma").');
     } catch(e) {
       showAlert(al, 'Error: '+e.message, true);
