@@ -235,7 +235,7 @@ input[type="number"] { -moz-appearance: textfield; }
         <div class="form-group" id="km-field">
           <label class="form-label">Kilómetros actuales del vehículo <span style="color:var(--danger)">*</span></label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0" style="flex:1;">
+            <input class="form-input" type="number" id="km-act" placeholder="Ej: 125430" min="0" inputmode="numeric" style="flex:1;">
             <button type="button" class="btn-sm" id="btn-confirm-km-act" onclick="confirmarCampoRepostaje('km-act')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
           </div>
         </div>
@@ -243,14 +243,14 @@ input[type="number"] { -moz-appearance: textfield; }
           <div class="form-group">
             <label class="form-label">Lectura inicial (L) <span style="color:var(--danger)">*</span></label>
             <div style="display:flex;gap:0.4rem;align-items:center;">
-              <input class="form-input" type="number" id="lectura-ini" placeholder="" min="0" style="flex:1;">
+              <input class="form-input" type="number" id="lectura-ini" placeholder="" min="0" inputmode="decimal" style="flex:1;">
               <button type="button" class="btn-sm" id="btn-confirm-lectura-ini" onclick="confirmarCampoRepostaje('lectura-ini')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Lectura final (L) <span style="color:var(--danger)">*</span></label>
             <div style="display:flex;gap:0.4rem;align-items:center;">
-              <input class="form-input" type="number" id="lectura-fin" placeholder="" min="0" style="flex:1;">
+              <input class="form-input" type="number" id="lectura-fin" placeholder="" min="0" inputmode="decimal" style="flex:1;">
               <button type="button" class="btn-sm" id="btn-confirm-lectura-fin" onclick="confirmarCampoRepostaje('lectura-fin')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
             </div>
           </div>
@@ -258,7 +258,7 @@ input[type="number"] { -moz-appearance: textfield; }
         <div class="form-group">
           <label class="form-label">Litros echados <span style="color:var(--danger)">*</span></label>
           <div style="display:flex;gap:0.5rem;align-items:center;">
-            <input class="form-input" type="number" id="litros-manual" placeholder="" min="0" style="flex:1;">
+            <input class="form-input" type="number" id="litros-manual" placeholder="" min="0" inputmode="decimal" style="flex:1;">
             <button type="button" class="btn-sm" id="btn-confirm-litros-manual" onclick="confirmarCampoRepostaje('litros-manual')" style="white-space:nowrap;flex-shrink:0;">Aceptar</button>
           </div>
         </div>
