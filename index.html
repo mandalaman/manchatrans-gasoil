@@ -1844,6 +1844,10 @@ function renderDeposito() {
     <div class="recarga-hist-item">
       <div><div class="recarga-litros">+${r.litros.toLocaleString('es-ES')} L</div>
       <div class="recarga-meta">${r.fechaStr} · ${r.horaStr}${r.obs?' · '+r.obs:''}</div></div>
+      <div style="display:flex;gap:0.4rem;">
+        <button class="btn-sm" onclick="editarRecarga('${r.id}')">✏️</button>
+        <button class="btn-sm btn-sm-danger" onclick="eliminarRecarga('${r.id}')">🗑</button>
+      </div>
     </div>`).join('');
 }
 
@@ -1857,13 +1861,48 @@ window.registrarRecarga = async () => {
   const now = new Date();
   const recarga = { litros, obs, fecha:now.toISOString(), fechaStr:now.toLocaleDateString('es-ES'), horaStr:now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) };
   try {
-    const docRef = await addDoc(collection(db,'recargas'), recarga);
-    recargasCache.unshift({ id:docRef.id, ...recarga });
+    await addDoc(collection(db,'recargas'), recarga);
     document.getElementById('recarga-litros').value='';
     document.getElementById('recarga-obs').value='';
     showAlert(al,`✓ Recarga de ${litros.toLocaleString('es-ES')} L registrada`,false);
-    renderDeposito(); renderAdminStats();
   } catch(e) { showAlert(al,'Error al guardar',true); }
+};
+
+window.editarRecarga = (id) => {
+  const r = recargasCache.find(x=>x.id===id);
+  if (!r) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-recarga-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:360px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar recarga</div>
+      <div class="form-group"><label class="form-label">Litros</label>
+      <input class="form-input" type="number" id="edit-recarga-litros" value="${r.litros}"></div>
+      <div class="form-group"><label class="form-label">Observaciones</label>
+      <input class="form-input" type="text" id="edit-recarga-obs" value="${r.obs||''}"></div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-recarga" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-recarga-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-save-recarga').addEventListener('click', async () => {
+    const litros = parseFloat(document.getElementById('edit-recarga-litros').value);
+    const obs = document.getElementById('edit-recarga-obs').value.trim();
+    if (isNaN(litros) || litros<=0) { alert('Introduce un número de litros válido'); return; }
+    try {
+      await updateDoc(doc(db,'recargas',id), { litros, obs });
+      document.getElementById('edit-recarga-modal').remove();
+    } catch(e) { alert('Error: '+e.message); }
+  });
+};
+
+window.eliminarRecarga = async (id) => {
+  if (!confirm('¿Eliminar esta recarga? Esto afectará al nivel calculado del depósito.')) return;
+  try {
+    await deleteDoc(doc(db,'recargas',id));
+  } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
 function renderConsumo() {
