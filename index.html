@@ -866,6 +866,9 @@ async function initApp() {
     clearTimeout(timeoutId);
     clearTimeout(timeoutId2);
 
+    // Activar sincronización en tiempo real entre dispositivos
+    activarListenersTiempoReal();
+
   } catch(e) {
     clearTimeout(timeoutId);
     clearTimeout(timeoutId2);
@@ -1084,6 +1087,93 @@ async function initApp() {
 
   const btnExcel = document.getElementById('btn-export-excel');
   if(btnExcel) btnExcel.addEventListener('click', ()=>window.exportExcel());
+}
+
+// ══════════════════════════════
+// SINCRONIZACIÓN EN TIEMPO REAL ENTRE DISPOSITIVOS
+// ══════════════════════════════
+function activarListenersTiempoReal() {
+  // Conductores (Gasoil)
+  onSnapshot(collection(db, 'conductores'), (snap) => {
+    driversCache = snap.docs.map(d => d.data());
+    if (currentUser && currentUser.isAdmin) {
+      renderDriverList();
+      populateFilters();
+    }
+  });
+
+  // Vehículos (Gasoil + Flota)
+  onSnapshot(collection(db, 'vehiculos'), (snap) => {
+    vehiculosCache = snap.docs.map(d => d.data());
+    matriculasCache = vehiculosCache.filter(v=>v.gasoil && v.activo!==false).map(v=>v.matricula);
+    remolquesCache = vehiculosCache.filter(v=>v.flota && v.activo!==false).map(v=>v.matricula);
+    if (currentUser && currentUser.isAdmin) {
+      renderMatList();
+      populateFilters();
+      populateHistMatriculas();
+      populateMantMatriculas();
+      populateHistMantMatriculas();
+    } else if (currentUser && !currentUser.isAdmin) {
+      populateMatriculas();
+    }
+  });
+
+  // Repostajes
+  onSnapshot(query(collection(db, 'repostajes'), orderBy('fecha', 'desc')), (snap) => {
+    recordsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='gasoil') {
+      renderAdminStats();
+      if (document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords();
+    }
+  });
+
+  // Recargas
+  onSnapshot(query(collection(db, 'recargas'), orderBy('fecha', 'desc')), (snap) => {
+    recargasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='gasoil') renderDeposito();
+  });
+
+  // Historial de cambios (Flota)
+  onSnapshot(query(collection(dbFleet, 'historial'), orderBy('fecha', 'desc')), (snap) => {
+    historialCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistorial();
+  });
+
+  // Mantenimiento (Flota)
+  onSnapshot(collection(dbFleet, 'mantenimiento'), (snap) => {
+    mantenimientoCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderMantenimiento(); updateFleetBadge(); }
+  });
+
+  // Historial de mantenimiento (Flota)
+  onSnapshot(query(collection(dbFleet, 'historialMantenimiento'), orderBy('fecha', 'desc')), (snap) => {
+    historialMantCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistorialMant();
+  });
+
+  // Empleados de Ropa
+  onSnapshot(collection(db, 'ropaEmpleados'), (snap) => {
+    ropaEmpleadosCache = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    if (currentUser && currentUser.isAdmin && currentModule==='ropa') {
+      populateRopaSelects();
+      renderRopaEmpleadosList();
+    }
+  });
+
+  // Historial de entregas de Ropa
+  onSnapshot(query(collection(db, 'ropaHistorial'), orderBy('fecha', 'desc')), (snap) => {
+    ropaHistorialCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='ropa') {
+      renderRopaHistorial();
+      renderRopaPendientes();
+    }
+  });
+
+  // Inventario de Ropa
+  onSnapshot(collection(db, 'ropaInventario'), (snap) => {
+    ropaInventarioCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='ropa') renderInventarioRopa();
+  });
 }
 
 function calcLitrosLocal() {
