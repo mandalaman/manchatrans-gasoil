@@ -528,6 +528,10 @@ input[type="number"] { -moz-appearance: textfield; }
           <div id="lim-veh-alert" class="alert"></div>
           <div class="refuel-card">
             <div class="form-group">
+              <label class="form-label">Fecha <span style="color:var(--danger)">*</span></label>
+              <input class="form-input" type="date" id="lim-veh-fecha">
+            </div>
+            <div class="form-group">
               <label class="form-label">Vehículo <span style="color:var(--danger)">*</span></label>
               <select class="form-input" id="lim-veh-matricula">
                 <option value="">— Selecciona vehículo —</option>
@@ -535,7 +539,9 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group">
               <label class="form-label">Operario <span style="color:var(--danger)">*</span></label>
-              <input class="form-input" type="text" id="lim-veh-operario" placeholder="Nombre del operario">
+              <select class="form-input" id="lim-veh-operario">
+                <option value="">— Selecciona operario —</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Limpieza realizada</label>
@@ -564,6 +570,11 @@ input[type="number"] { -moz-appearance: textfield; }
                 <option value="">Todos los vehículos</option>
               </select>
             </div>
+            <div class="two-col" style="margin-bottom:0.75rem;">
+              <div><label class="form-label">Desde</label><input class="form-input" type="date" id="hist-limpieza-veh-fecha-desde"></div>
+              <div><label class="form-label">Hasta</label><input class="form-input" type="date" id="hist-limpieza-veh-fecha-hasta"></div>
+            </div>
+            <button class="btn btn-secondary" id="btn-exportar-pdf-limpieza-veh" style="margin-bottom:1rem;width:100%;">📄 Exportar PDF del filtro actual</button>
             <div id="hist-limpieza-veh-list"></div>
           </div>
         </div>
@@ -887,8 +898,11 @@ let historialMantCache = [];
 let limpiezaVehCache = [];
 let limpiezaInstCache = [];
 let limpiezaVehFiltroMat = '';
+let limpiezaVehFiltroFechaDesde = '';
+let limpiezaVehFiltroFechaHasta = '';
 let limpiezaInstFiltroArea = '';
 const AREAS_LIMPIEZA = ['Nave','Oficina','Vestuarios','Baños','Comedor / Sala de descanso','Taller','Exteriores / Patio'];
+const OPERARIOS_LIMPIEZA_VEHICULOS = ['JOSE ALBERTO FERNANDEZ MONTERO','JAVIER DELGADO RODRIGO','ROBERTO DE LA FUENTE LOPEZ','LUIS JESUS DIAZ OLIVER'];
 let ropaEmpleadosCache = [];
 let ropaHistorialCache = [];
 let ropaEmpleadoSeleccionado = null;
@@ -1142,6 +1156,9 @@ async function initApp() {
   document.getElementById('btn-limpiar-firma-limpieza-veh').addEventListener('click', ()=>{ if(firmaLimpiezaVeh) firmaLimpiezaVeh.clear(); });
   document.getElementById('btn-limpiar-firma-limpieza-inst').addEventListener('click', ()=>{ if(firmaLimpiezaInst) firmaLimpiezaInst.clear(); });
   document.getElementById('hist-limpieza-veh-filter-mat').addEventListener('change', (e)=>{ limpiezaVehFiltroMat=e.target.value; renderHistorialLimpiezaVeh(); });
+  document.getElementById('hist-limpieza-veh-fecha-desde').addEventListener('change', (e)=>{ limpiezaVehFiltroFechaDesde=e.target.value; renderHistorialLimpiezaVeh(); });
+  document.getElementById('hist-limpieza-veh-fecha-hasta').addEventListener('change', (e)=>{ limpiezaVehFiltroFechaHasta=e.target.value; renderHistorialLimpiezaVeh(); });
+  document.getElementById('btn-exportar-pdf-limpieza-veh').addEventListener('click', exportarPdfLimpiezaVehiculos);
   document.getElementById('hist-limpieza-inst-filter-area').addEventListener('change', (e)=>{ limpiezaInstFiltroArea=e.target.value; renderHistorialLimpiezaInst(); });
   document.getElementById('btn-toggle-hist-limpieza-veh').addEventListener('click', ()=>{
     const wrapper = document.getElementById('hist-limpieza-veh-wrapper');
@@ -2983,11 +3000,18 @@ window.eliminarHistorialMant = async (id) => {
 function populateLimpiezaSelects() {
   const selMat = document.getElementById('lim-veh-matricula');
   const selFiltroMat = document.getElementById('hist-limpieza-veh-filter-mat');
+  const selOperario = document.getElementById('lim-veh-operario');
   const selArea = document.getElementById('lim-inst-area');
   const selFiltroArea = document.getElementById('hist-limpieza-inst-filter-area');
-  const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
-  if (selMat) { selMat.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
-  if (selFiltroMat) { selFiltroMat.innerHTML = '<option value="">Todos los vehículos</option>'; todasMat.forEach(m=>{ selFiltroMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
+  // Para limpieza de vehículos: solo flota general (gasoil), sin remolques (matrículas "R-...")
+  // y sin los vehículos propios de los conductores (campo "propietario"), que no entran en este registro.
+  const matLimpieza = vehiculosCache
+    .filter(v => v.gasoil && v.activo!==false && !v.propietario && !/^R-/i.test(v.matricula))
+    .map(v => v.matricula);
+  const todasMatLimpieza = ['TOROS CESAB', ...matLimpieza];
+  if (selMat) { selMat.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMatLimpieza.forEach(m=>{ selMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
+  if (selFiltroMat) { selFiltroMat.innerHTML = '<option value="">Todos los vehículos</option>'; todasMatLimpieza.forEach(m=>{ selFiltroMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
+  if (selOperario) { selOperario.innerHTML = '<option value="">— Selecciona operario —</option>'; OPERARIOS_LIMPIEZA_VEHICULOS.forEach(o=>{ selOperario.innerHTML += `<option value="${o}">${o}</option>`; }); }
   if (selArea) { selArea.innerHTML = '<option value="">— Selecciona área —</option>'; AREAS_LIMPIEZA.forEach(a=>{ selArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
   if (selFiltroArea) { selFiltroArea.innerHTML = '<option value="">Todas las áreas</option>'; AREAS_LIMPIEZA.forEach(a=>{ selFiltroArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
 }
@@ -3044,28 +3068,32 @@ function initFirmaLimpiezaInstSiNecesario() {
 
 async function guardarLimpiezaVehiculo() {
   const al = document.getElementById('lim-veh-alert');
+  const fecha = document.getElementById('lim-veh-fecha').value;
   const matricula = document.getElementById('lim-veh-matricula').value;
-  const operario = document.getElementById('lim-veh-operario').value.trim();
+  const operario = document.getElementById('lim-veh-operario').value;
   const interior = document.getElementById('lim-veh-interior').checked;
   const exterior = document.getElementById('lim-veh-exterior').checked;
   const desinfeccion = document.getElementById('lim-veh-desinfeccion').checked;
   const obs = document.getElementById('lim-veh-obs').value.trim();
+  if (!fecha) { showAlert(al,'⚠️ Selecciona la fecha del registro',true); return; }
   if (!matricula) { showAlert(al,'⚠️ Selecciona el vehículo',true); return; }
-  if (!operario) { showAlert(al,'⚠️ Escribe el nombre del operario',true); return; }
+  if (!operario) { showAlert(al,'⚠️ Selecciona el operario',true); return; }
   if (!interior && !exterior && !desinfeccion) { showAlert(al,'⚠️ Marca al menos un tipo de limpieza realizada',true); return; }
   if (!firmaLimpiezaVeh || !firmaLimpiezaVeh.tieneTrazo) { showAlert(al,'⚠️ El operario debe firmar antes de guardar',true); return; }
 
   const btn = document.getElementById('btn-guardar-limpieza-veh');
   btn.disabled = true; btn.textContent = 'Guardando...';
-  const now = new Date();
+  // La fecha la introduce el admin manualmente (no se usa la fecha/hora del dispositivo).
+  const fechaStr = new Date(fecha+'T00:00:00').toLocaleDateString('es-ES');
   const registro = {
     matricula, operario, interior, exterior, desinfeccion, obs,
     firmaBase64: firmaLimpiezaVeh.getDataUrl(),
-    fecha: now.toISOString(), fechaStr: now.toLocaleDateString('es-ES'), horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+    fecha, fechaStr
   };
   try {
     const ref = await addDoc(collection(dbFleet,'limpiezaVehiculos'), registro);
     limpiezaVehCache.unshift({id:ref.id,...registro});
+    limpiezaVehCache.sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||''));
     document.getElementById('lim-veh-matricula').value='';
     document.getElementById('lim-veh-operario').value='';
     document.getElementById('lim-veh-interior').checked=false;
@@ -3111,11 +3139,20 @@ async function guardarLimpiezaInstalacion() {
   btn.disabled = false; btn.textContent = 'Guardar registro';
 }
 
+function getFilteredLimpiezaVeh() {
+  return limpiezaVehCache.filter(h => {
+    if (limpiezaVehFiltroMat && h.matricula !== limpiezaVehFiltroMat) return false;
+    if (limpiezaVehFiltroFechaDesde && (h.fecha||'') < limpiezaVehFiltroFechaDesde) return false;
+    if (limpiezaVehFiltroFechaHasta && (h.fecha||'') > limpiezaVehFiltroFechaHasta) return false;
+    return true;
+  });
+}
+
 function renderHistorialLimpiezaVeh() {
   const list = document.getElementById('hist-limpieza-veh-list');
   if (!list) return;
-  const f = limpiezaVehFiltroMat ? limpiezaVehCache.filter(h=>h.matricula===limpiezaVehFiltroMat) : limpiezaVehCache;
-  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🧹</div>No hay registros'+(limpiezaVehFiltroMat?' para este vehículo':'')+'</div>'; return; }
+  const f = getFilteredLimpiezaVeh();
+  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🧹</div>No hay registros para este filtro</div>'; return; }
   list.innerHTML = f.map(h=>{
     const safeId = h.id.replace(/[^a-zA-Z0-9]/g,'_');
     const tipos = [h.interior?'Interior':null, h.exterior?'Exterior':null, h.desinfeccion?'Desinfección':null].filter(Boolean).join(' · ') || '—';
@@ -3123,7 +3160,7 @@ function renderHistorialLimpiezaVeh() {
       <div onclick="toggleHistLimpiezaVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
           <div style="font-weight:600;font-size:14px;">🚗 ${h.matricula} — ${h.operario}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${h.fechaStr} ${h.horaStr} · ${tipos}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${h.fechaStr} · ${tipos}</div>
         </div>
         <span id="hist-lim-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
       </div>
@@ -3155,7 +3192,12 @@ window.editarLimpiezaVeh = (id) => {
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar limpieza — ${h.matricula}</div>
-      <div class="form-group"><label class="form-label">Operario</label><input class="form-input" id="edit-lim-veh-operario" value="${h.operario}"></div>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="edit-lim-veh-fecha" value="${h.fecha||''}"></div>
+      <div class="form-group"><label class="form-label">Operario</label>
+        <select class="form-input" id="edit-lim-veh-operario">
+          ${OPERARIOS_LIMPIEZA_VEHICULOS.map(o=>`<option value="${o}" ${o===h.operario?'selected':''}>${o}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-group">
         <label class="form-label">Limpieza realizada</label>
         <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.4rem;">
@@ -3172,9 +3214,13 @@ window.editarLimpiezaVeh = (id) => {
     </div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-save-lim-veh-edit').addEventListener('click', async () => {
-    const operario = document.getElementById('edit-lim-veh-operario').value.trim();
-    if (!operario) { alert('Escribe el nombre del operario'); return; }
+    const fecha = document.getElementById('edit-lim-veh-fecha').value;
+    const operario = document.getElementById('edit-lim-veh-operario').value;
+    if (!fecha) { alert('Selecciona la fecha'); return; }
+    if (!operario) { alert('Selecciona el operario'); return; }
     const cambios = {
+      fecha,
+      fechaStr: new Date(fecha+'T00:00:00').toLocaleDateString('es-ES'),
       operario,
       interior: document.getElementById('edit-lim-veh-interior').checked,
       exterior: document.getElementById('edit-lim-veh-exterior').checked,
@@ -3184,7 +3230,7 @@ window.editarLimpiezaVeh = (id) => {
     try {
       await updateDoc(doc(dbFleet,'limpiezaVehiculos',id), cambios);
       const idx = limpiezaVehCache.findIndex(x=>x.id===id);
-      if (idx>=0) Object.assign(limpiezaVehCache[idx], cambios);
+      if (idx>=0) { Object.assign(limpiezaVehCache[idx], cambios); limpiezaVehCache.sort((a,b)=> (b.fecha||'').localeCompare(a.fecha||'')); }
       document.getElementById('edit-lim-veh-modal').remove();
       renderHistorialLimpiezaVeh();
     } catch(e) { alert('Error: '+e.message); }
@@ -3199,6 +3245,89 @@ window.eliminarLimpiezaVeh = async (id) => {
     renderHistorialLimpiezaVeh();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
+
+async function exportarPdfLimpiezaVehiculos() {
+  const btn = document.getElementById('btn-exportar-pdf-limpieza-veh');
+  const registros = [...getFilteredLimpiezaVeh()].sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+  if (!registros.length) { alert('No hay registros para ese filtro.'); return; }
+
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando PDF...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    let page = pdfDoc.addPage([595.28, 841.89]); // A4
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const gray = rgb(0.4, 0.45, 0.5);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const W = 595.28, H = 841.89, M = 40;
+    let y = H - 55;
+
+    const rangoTexto = (limpiezaVehFiltroFechaDesde || limpiezaVehFiltroFechaHasta)
+      ? `Del ${limpiezaVehFiltroFechaDesde ? new Date(limpiezaVehFiltroFechaDesde+'T00:00:00').toLocaleDateString('es-ES') : '—'} al ${limpiezaVehFiltroFechaHasta ? new Date(limpiezaVehFiltroFechaHasta+'T00:00:00').toLocaleDateString('es-ES') : '—'}`
+      : 'Todos los registros';
+
+    const drawHeader = () => {
+      page.drawText('MANCHATRANS S.L.', { x: M, y, size: 11, font: fontBold, color: gray });
+      y -= 26;
+      page.drawText('Registro de limpieza de vehículos', { x: M, y, size: 17, font: fontBold, color: navy });
+      y -= 16;
+      page.drawText(rangoTexto + (limpiezaVehFiltroMat ? ` · Vehículo: ${limpiezaVehFiltroMat}` : ''), { x: M, y, size: 10, font: fontReg, color: gray });
+      y -= 8;
+      page.drawLine({ start:{x:M,y}, end:{x:W-M,y}, thickness:1.5, color: accent });
+      y -= 22;
+      // Cabecera de columnas
+      page.drawText('FECHA', { x: M, y, size: 9, font: fontBold, color: accent });
+      page.drawText('VEHÍCULO', { x: M+70, y, size: 9, font: fontBold, color: accent });
+      page.drawText('OPERARIO', { x: M+160, y, size: 9, font: fontBold, color: accent });
+      page.drawText('TIPO', { x: M+330, y, size: 9, font: fontBold, color: accent });
+      y -= 14;
+      page.drawLine({ start:{x:M,y}, end:{x:W-M,y}, thickness:0.75, color: rgb(0.8,0.82,0.86) });
+      y -= 14;
+    };
+
+    drawHeader();
+
+    for (const h of registros) {
+      if (y < 90) { page = pdfDoc.addPage([595.28, 841.89]); y = H - 55; drawHeader(); }
+      const tipos = [h.interior?'Interior':null, h.exterior?'Exterior':null, h.desinfeccion?'Desinfección':null].filter(Boolean).join(', ') || '—';
+      page.drawText(h.fechaStr||'', { x: M, y, size: 9.5, font: fontReg, color: navy });
+      page.drawText(h.matricula||'', { x: M+70, y, size: 9.5, font: fontReg, color: navy });
+      const operarioCorto = (h.operario||'').length > 28 ? h.operario.slice(0,26)+'…' : (h.operario||'');
+      page.drawText(operarioCorto, { x: M+160, y, size: 9.5, font: fontReg, color: navy });
+      page.drawText(tipos, { x: M+330, y, size: 9.5, font: fontReg, color: gray });
+      y -= 16;
+      if (h.obs) {
+        const obsCorta = h.obs.length > 95 ? h.obs.slice(0,93)+'…' : h.obs;
+        page.drawText('Obs: '+obsCorta, { x: M+10, y, size: 8.5, font: fontReg, color: gray });
+        y -= 14;
+      }
+      page.drawLine({ start:{x:M,y:y+6}, end:{x:W-M,y:y+6}, thickness:0.4, color: rgb(0.9,0.91,0.93) });
+      y -= 6;
+    }
+
+    y -= 10;
+    if (y < 60) { page = pdfDoc.addPage([595.28, 841.89]); y = H - 55; }
+    page.drawText(`Total de registros: ${registros.length}`, { x: M, y, size: 9.5, font: fontBold, color: navy });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manchatrans_Limpieza_Vehiculos_${limpiezaVehFiltroFechaDesde||'inicio'}_${limpiezaVehFiltroFechaHasta||'fin'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
 
 function renderHistorialLimpiezaInst() {
   const list = document.getElementById('hist-limpieza-inst-list');
