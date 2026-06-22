@@ -426,6 +426,13 @@ input[type="number"] { -moz-appearance: textfield; }
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, historial de Flota y mantenimiento) por si quieres guardar una copia.</div>
         <button class="btn btn-secondary" id="btn-backup">💾 Descargar copia de seguridad</button>
       </div>
+
+      <div class="refuel-card" style="margin-top:1rem;border-color:var(--danger);">
+        <div class="section-title" style="color:var(--danger);">Empezar de cero</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Borra registros para volver a empezar. No afecta a conductores ni vehículos. Te recomendamos descargar antes la copia de seguridad de arriba.</div>
+        <button class="btn-del" style="width:100%;margin-bottom:0.5rem;" id="btn-borrar-gasoil">🗑 Borrar repostajes y recargas (Gasoil)</button>
+        <button class="btn-del" style="width:100%;" id="btn-borrar-flota">🗑 Borrar historial y mantenimiento (Flota)</button>
+      </div>
     </div>
     </div>
     <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
@@ -1091,6 +1098,8 @@ async function initApp() {
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
+  document.getElementById('btn-borrar-gasoil').addEventListener('click', ()=>window.borrarTodo());
+  document.getElementById('btn-borrar-flota').addEventListener('click', ()=>window.borrarTodoFlota());
   document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
     const wrapper = document.getElementById('mat-list-wrapper');
     const btn = document.getElementById('btn-toggle-mat');
@@ -2852,11 +2861,26 @@ window.cargarSimulacion = async () => {
 };
 
 window.borrarTodo = async () => {
-  if (!confirm('¿Borrar TODOS los datos? Esta acción no se puede deshacer.')) return;
+  if (!confirm('⚠️ Esto borrará TODOS los repostajes y recargas de Gasoil. Los conductores y vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?')) return;
+  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar repostajes y recargas?')) return;
   try {
     const rSnap=await getDocs(collection(db,'repostajes')); for(const d of rSnap.docs) await deleteDoc(d.ref);
     const rcSnap=await getDocs(collection(db,'recargas')); for(const d of rcSnap.docs) await deleteDoc(d.ref);
     recordsCache=[]; recargasCache=[]; renderAdminPage();
+    mostrarMensajeFlotante('✓ Repostajes y recargas borrados');
+  } catch(e) { alert('Error al borrar: '+e.message); }
+};
+
+window.borrarTodoFlota = async () => {
+  if (!confirm('⚠️ Esto borrará TODO el historial de cambios, el mantenimiento (ITV/Tacógrafo) y su historial de Flota. Los vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?')) return;
+  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar todo lo de Flota?')) return;
+  try {
+    const hSnap=await getDocs(collection(dbFleet,'historial')); for(const d of hSnap.docs) await deleteDoc(d.ref);
+    const mSnap=await getDocs(collection(dbFleet,'mantenimiento')); for(const d of mSnap.docs) await deleteDoc(d.ref);
+    const hmSnap=await getDocs(collection(dbFleet,'historialMantenimiento')); for(const d of hmSnap.docs) await deleteDoc(d.ref);
+    historialCache=[]; mantenimientoCache=[]; historialMantCache=[];
+    if (currentModule==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
+    mostrarMensajeFlotante('✓ Historial y mantenimiento de Flota borrados');
   } catch(e) { alert('Error al borrar: '+e.message); }
 };
 
