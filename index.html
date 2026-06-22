@@ -24,7 +24,7 @@
         });
       });
 
-      setInterval(() => reg.update(), 5 * 60 * 1000);
+      setInterval(() => reg.update(), 60 * 1000);
     }).catch(err => console.error('Error registrando Service Worker:', err));
 
     let recargando = false;
@@ -43,15 +43,30 @@
     aviso.innerHTML = '<span>🔄 Hay una nueva versión disponible</span><button id="btn-aplicar-actualizacion" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px;cursor:pointer;">Actualizar ahora</button>';
     document.body.appendChild(aviso);
     document.getElementById('btn-aplicar-actualizacion').addEventListener('click', () => {
-      const btn = document.getElementById('btn-aplicar-actualizacion');
-      btn.textContent = 'Actualizando...';
-      btn.disabled = true;
+      mostrarPantallaActualizando();
       if (reg.waiting) {
         reg.waiting.postMessage({type:'SKIP_WAITING'});
       }
-      // Red de seguridad: si en 2.5s no se ha recargado solo (algunos navegadores no
-      // disparan controllerchange de forma fiable), forzamos la recarga manualmente.
-      setTimeout(() => { window.location.reload(); }, 2500);
+      // Red de seguridad: si el navegador no dispara controllerchange a tiempo,
+      // forzamos la recarga manualmente.
+      setTimeout(() => { window.location.reload(); }, 600);
+    });
+  }
+
+  function mostrarPantallaActualizando() {
+    const overlay = document.createElement('div');
+    overlay.id = 'overlay-actualizando';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:999999;background:#111820;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;';
+    overlay.innerHTML = `
+      <div style="font-size:42px;">🔄</div>
+      <div style="color:#f0f4f8;font-size:15px;font-weight:600;">Actualizando Panel Manchatrans...</div>
+      <div style="width:200px;height:6px;background:#2a3d55;border-radius:6px;overflow:hidden;">
+        <div id="barra-actualizando" style="width:0%;height:100%;background:#f5a623;border-radius:6px;transition:width 0.4s linear;"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+      const barra = document.getElementById('barra-actualizando');
+      if (barra) barra.style.width = '100%';
     });
   }
 </script>
