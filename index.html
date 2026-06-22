@@ -22,6 +22,7 @@
   --accent: #f5a623; --text: #f0f4f8; --text-muted: #8fa3bc;
   --bg: #111820; --card: #1e2b3c; --card-border: #2a3d55;
   --success: #2ecc71; --danger: #e74c3c; --input-bg: #162030;
+  --warning: #ffb347;
   --radius: 12px; --radius-sm: 8px;
 }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 16px; }
@@ -535,7 +536,7 @@ textarea.form-input { resize: vertical; min-height: 70px; }
           <div class="section-title">Añadir stock</div>
           <div class="form-group">
             <label class="form-label">Artículo</label>
-            <select class="form-input" id="inv-sel-articulo" style="font-size:14px;padding:0.6rem;"></select>
+            <div id="inv-articulo-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;"></div>
           </div>
           <div class="two-col" style="margin-bottom:0.75rem;">
             <div><label class="form-label">Talla</label><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div>
@@ -2273,6 +2274,7 @@ window.editMant = (mat, rev) => {
   const m=mantenimientoCache.find(x=>x.matricula===mat)||{matricula:mat};
   const key=revKey(rev);
   const keyUltima=key+'_ultima';
+  const tieneFecha = !!m[key];
   const modal=document.createElement('div');
   modal.id='mant-modal';
   modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
@@ -2287,6 +2289,7 @@ window.editMant = (mat, rev) => {
         <button id="btn-save-mant" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
         <button onclick="document.getElementById('mant-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
       </div>
+      ${tieneFecha ? `<button id="btn-delete-mant" style="width:100%;margin-top:0.75rem;padding:0.7rem;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;">🗑 Eliminar esta ${rev}</button>` : ''}
       <div id="mant-modal-alert" class="alert" style="margin-top:0.75rem;"></div>
     </div>`;
   document.body.appendChild(modal);
@@ -2316,6 +2319,23 @@ window.editMant = (mat, rev) => {
       renderMantenimiento(); updateFleetBadge();
     } catch(e) { showAlert(al,'Error: '+e.message,true); }
   });
+  const btnDelete = document.getElementById('btn-delete-mant');
+  if (btnDelete) {
+    btnDelete.addEventListener('click', async () => {
+      if (!confirm(`¿Eliminar la fecha de ${rev} de ${mat}? Esto no borra el historial de renovaciones pasadas, solo quita la fecha actual.`)) return;
+      const al=document.getElementById('mant-modal-alert');
+      try {
+        const idx=mantenimientoCache.findIndex(x=>x.matricula===mat);
+        if (idx>=0) {
+          mantenimientoCache[idx][key] = null;
+          mantenimientoCache[idx][keyUltima] = null;
+          await setDoc(doc(dbFleet,'mantenimiento',mat), mantenimientoCache[idx]);
+        }
+        document.getElementById('mant-modal').remove();
+        renderMantenimiento(); updateFleetBadge();
+      } catch(e) { showAlert(al,'Error: '+e.message,true); }
+    });
+  }
 };
 
 function populateHistMantMatriculas() {
@@ -2539,17 +2559,50 @@ function inventarioKey(articuloId, talla) {
   return articuloId + '__' + (talla||'').trim().toUpperCase().replace(/\s+/g,'_');
 }
 
+let inventarioArticuloSeleccionado = null;
+
+const ROPA_ARTICULOS_ICONOS = {
+  botas: '🥾', chaleco: '🦺', chaqueta: '🧥', guantes: '🧤',
+  pantalon_corto: '🩳', pantalon_largo: '👖', polo_corta: '👕',
+  polo_larga: '👕', sudadera: '🧶'
+};
+
 function populateInventarioSelect() {
-  const sel = document.getElementById('inv-sel-articulo');
-  if (!sel) return;
-  sel.innerHTML = ROPA_ARTICULOS.map(a=>`<option value="${a.id}">${a.label}</option>`).join('');
+  const grid = document.getElementById('inv-articulo-grid');
+  if (!grid) return;
+  grid.innerHTML = ROPA_ARTICULOS.map(a => `
+    <button type="button" class="inv-articulo-btn" data-id="${a.id}" onclick="seleccionarArticuloInventario('${a.id}')" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0.85rem 0.5rem;border-radius:var(--radius-sm);border:2px solid var(--card-border);background:var(--input-bg);color:var(--text);cursor:pointer;">
+      <span style="font-size:24px;">${ROPA_ARTICULOS_ICONOS[a.id]||'👔'}</span>
+      <span style="font-size:11px;text-align:center;line-height:1.2;">${a.label.split(' (')[0]}</span>
+    </button>`).join('');
+  // Seleccionar el primero por defecto
+  if (!inventarioArticuloSeleccionado) inventarioArticuloSeleccionado = ROPA_ARTICULOS[0].id;
+  marcarArticuloSeleccionadoInventario();
+}
+
+window.seleccionarArticuloInventario = (id) => {
+  inventarioArticuloSeleccionado = id;
+  marcarArticuloSeleccionadoInventario();
+};
+
+function marcarArticuloSeleccionadoInventario() {
+  document.querySelectorAll('.inv-articulo-btn').forEach(btn => {
+    if (btn.dataset.id === inventarioArticuloSeleccionado) {
+      btn.style.borderColor = 'var(--accent)';
+      btn.style.background = 'rgba(245,166,35,0.15)';
+    } else {
+      btn.style.borderColor = 'var(--card-border)';
+      btn.style.background = 'var(--input-bg)';
+    }
+  });
 }
 
 window.addStockRopa = async () => {
-  const articuloId = document.getElementById('inv-sel-articulo').value;
+  const articuloId = inventarioArticuloSeleccionado;
   const talla = document.getElementById('inv-talla').value.trim();
   const cantidad = parseInt(document.getElementById('inv-cantidad').value);
   const al = document.getElementById('inv-alert');
+  if (!articuloId) { showAlert(al,'Selecciona un artículo',true); return; }
   if (!talla) { showAlert(al,'Escribe la talla',true); return; }
   if (!cantidad || cantidad <= 0) { showAlert(al,'Indica una cantidad válida',true); return; }
 
