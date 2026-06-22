@@ -2999,15 +2999,12 @@ window.addStockRopa = async () => {
 
   const key = inventarioKey(articuloId, talla);
   try {
-    let item = ropaInventarioCache.find(x=>x.id===key);
-    if (item) {
-      item.cantidad += cantidad;
-      await setDoc(doc(db,'ropaInventario',key), {articuloId, talla, cantidad:item.cantidad});
-    } else {
-      item = {id:key, articuloId, talla, cantidad};
-      await setDoc(doc(db,'ropaInventario',key), {articuloId, talla, cantidad});
-      ropaInventarioCache.push(item);
-    }
+    const existente = ropaInventarioCache.find(x=>x.id===key);
+    const nuevaCantidad = existente ? existente.cantidad + cantidad : cantidad;
+    // No tocamos ropaInventarioCache a mano: el listener onSnapshot (ver arriba)
+    // ya se encarga de mantenerlo sincronizado en tiempo real con Firestore.
+    // Si lo modificamos aquí también, se duplica el artículo en la lista.
+    await setDoc(doc(db,'ropaInventario',key), {articuloId, talla, cantidad:nuevaCantidad});
     document.getElementById('inv-talla').value = '';
     document.getElementById('inv-cantidad').value = '';
     renderInventarioRopa();
@@ -3111,11 +3108,13 @@ async function descontarInventarioRopa(articulosData) {
     if (!item) {
       avisos.push(`${artLabel} (talla ${talla}): no había stock registrado, se ha creado en negativo`);
       item = {id:key, articuloId:art.id, talla, cantidad:0};
-      ropaInventarioCache.push(item);
+      // No hacemos push manual aquí: el listener onSnapshot ya añadirá este
+      // documento a ropaInventarioCache en cuanto se confirme el setDoc de abajo.
+      // Si lo añadimos a mano también, el artículo queda duplicado en la lista.
     }
-    item.cantidad -= cant;
-    if (item.cantidad < 0) avisos.push(`${artLabel} (talla ${talla}): stock insuficiente, queda en ${item.cantidad}`);
-    await setDoc(doc(db,'ropaInventario',key), {articuloId:item.articuloId, talla:item.talla, cantidad:item.cantidad});
+    const nuevaCantidadDescuento = item.cantidad - cant;
+    if (nuevaCantidadDescuento < 0) avisos.push(`${artLabel} (talla ${talla}): stock insuficiente, queda en ${nuevaCantidadDescuento}`);
+    await setDoc(doc(db,'ropaInventario',key), {articuloId:item.articuloId, talla:item.talla, cantidad:nuevaCantidadDescuento});
   }
   return avisos;
 }
