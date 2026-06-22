@@ -12,13 +12,9 @@
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/manchatrans-gasoil/sw.js').then(reg => {
-      // Comprobar si hay una actualización en cuanto carga la página
       reg.update();
-
-      // Si ya hay una versión nueva esperando (detectada antes de cargar el listener)
       if (reg.waiting) mostrarAvisoActualizacion(reg);
 
-      // Si se detecta una nueva versión mientras la app está abierta
       reg.addEventListener('updatefound', () => {
         const nuevoWorker = reg.installing;
         nuevoWorker.addEventListener('statechange', () => {
@@ -28,11 +24,9 @@
         });
       });
 
-      // Volver a comprobar cada 5 minutos mientras la app está abierta
       setInterval(() => reg.update(), 5 * 60 * 1000);
-    });
+    }).catch(err => console.error('Error registrando Service Worker:', err));
 
-    // Cuando el nuevo Service Worker toma el control, recargar la página
     let recargando = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       if (recargando) return;
@@ -49,7 +43,15 @@
     aviso.innerHTML = '<span>🔄 Hay una nueva versión disponible</span><button id="btn-aplicar-actualizacion" style="background:#1a2332;color:#fff;border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:14px;cursor:pointer;">Actualizar ahora</button>';
     document.body.appendChild(aviso);
     document.getElementById('btn-aplicar-actualizacion').addEventListener('click', () => {
-      if (reg.waiting) reg.waiting.postMessage({type:'SKIP_WAITING'});
+      const btn = document.getElementById('btn-aplicar-actualizacion');
+      btn.textContent = 'Actualizando...';
+      btn.disabled = true;
+      if (reg.waiting) {
+        reg.waiting.postMessage({type:'SKIP_WAITING'});
+      }
+      // Red de seguridad: si en 2.5s no se ha recargado solo (algunos navegadores no
+      // disparan controllerchange de forma fiable), forzamos la recarga manualmente.
+      setTimeout(() => { window.location.reload(); }, 2500);
     });
   }
 </script>
