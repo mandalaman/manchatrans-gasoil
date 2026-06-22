@@ -608,7 +608,7 @@ input[type="number"] { -moz-appearance: textfield; }
             <div id="inv-articulo-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;"></div>
           </div>
           <div class="two-col" style="margin-bottom:0.75rem;">
-            <div><label class="form-label">Talla</label><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div>
+            <div><label class="form-label">Talla</label><div id="inv-talla-wrapper"><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div></div>
             <div><label class="form-label">Cantidad a añadir</label><input class="form-input" type="number" id="inv-cantidad" min="1" placeholder="Ej: 10"></div>
           </div>
           <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
@@ -3029,6 +3029,33 @@ function inventarioKey(articuloId, talla) {
 let inventarioArticuloSeleccionado = null;
 let mostrarTodoInventario = false;
 
+// Tallas fijas en desplegable para pantalones (largos/cortos) y para polos/sudadera/chaqueta.
+// Guantes, chaleco y botas se quedan con el campo de texto libre (no tienen talla estándar).
+const TALLAS_DROPDOWN_POR_ARTICULO = {
+  pantalon_largo: ['38','40','42','44','46','48','50','52','54','56'],
+  pantalon_corto: ['38','40','42','44','46','48','50','52','54','56'],
+  polo_corta: ['XS','S','M','L','XL','XXL','3XL','4XL'],
+  polo_larga: ['XS','S','M','L','XL','XXL','3XL','4XL'],
+  sudadera: ['XS','S','M','L','XL','XXL','3XL','4XL'],
+  chaqueta: ['XS','S','M','L','XL','XXL','3XL','4XL'],
+};
+
+// Pinta el campo de talla del formulario "Añadir stock": desplegable si la prenda
+// seleccionada tiene tallas estándar, o input de texto libre en caso contrario.
+function renderTallaInputInventario() {
+  const wrapper = document.getElementById('inv-talla-wrapper');
+  if (!wrapper) return;
+  const tallas = TALLAS_DROPDOWN_POR_ARTICULO[inventarioArticuloSeleccionado];
+  if (tallas) {
+    wrapper.innerHTML = `<select class="form-input" id="inv-talla">
+      <option value="">— Talla —</option>
+      ${tallas.map(t=>`<option value="${t}">${t}</option>`).join('')}
+    </select>`;
+  } else {
+    wrapper.innerHTML = `<input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42...">`;
+  }
+}
+
 const ROPA_ARTICULOS_ICONOS = {
   botas: '🥾', chaleco: '🦺', chaqueta: '🧥', guantes: '🧤',
   pantalon_corto: '🩳', pantalon_largo: '👖', polo_corta: '👕',
@@ -3046,12 +3073,14 @@ function populateInventarioSelect() {
   // Seleccionar el primero por defecto
   if (!inventarioArticuloSeleccionado) inventarioArticuloSeleccionado = ROPA_ARTICULOS[0].id;
   marcarArticuloSeleccionadoInventario();
+  renderTallaInputInventario();
 }
 
 window.seleccionarArticuloInventario = (id) => {
   inventarioArticuloSeleccionado = id;
   mostrarTodoInventario = false;
   marcarArticuloSeleccionadoInventario();
+  renderTallaInputInventario();
   renderInventarioRopa();
 };
 
