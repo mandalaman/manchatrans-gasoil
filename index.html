@@ -2356,9 +2356,54 @@ function renderHistorialMant() {
         <div style="font-weight:600;font-size:14px;">🚗 ${h.matricula} — ${h.revision}</div>
       </div>
       <div style="font-size:14px;margin-bottom:0.4rem;">✓ ${h.descripcion}</div>
-      <div class="record-meta"><span>📅 Registrado el ${h.fechaStr} ${h.horaStr}</span></div>
+      <div class="record-meta" style="margin-bottom:0.6rem;"><span>📅 Registrado el ${h.fechaStr} ${h.horaStr}</span></div>
+      <div style="display:flex;gap:0.5rem;">
+        <button class="btn-sm" style="flex:1;" onclick="editarHistorialMant('${h.id}')">✏️ Editar</button>
+        <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarHistorialMant('${h.id}')">🗑 Eliminar</button>
+      </div>
     </div>`).join('');
 }
+
+window.editarHistorialMant = (id) => {
+  const h = historialMantCache.find(x=>x.id===id);
+  if (!h) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-hist-mant-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar registro — ${h.matricula}</div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-input" id="edit-hist-mant-desc">${h.descripcion}</textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-hist-mant-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-hist-mant-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-save-hist-mant-edit').addEventListener('click', async () => {
+    const descripcion = document.getElementById('edit-hist-mant-desc').value.trim();
+    if (!descripcion) { alert('Escribe la descripción'); return; }
+    try {
+      await updateDoc(doc(dbFleet,'historialMantenimiento',id), {descripcion});
+      const idx = historialMantCache.findIndex(x=>x.id===id);
+      if (idx>=0) historialMantCache[idx].descripcion = descripcion;
+      document.getElementById('edit-hist-mant-modal').remove();
+      renderHistorialMant();
+    } catch(e) { alert('Error: '+e.message); }
+  });
+};
+
+window.eliminarHistorialMant = async (id) => {
+  if (!confirm('¿Eliminar este registro del historial de mantenimiento?')) return;
+  try {
+    await deleteDoc(doc(dbFleet,'historialMantenimiento',id));
+    historialMantCache = historialMantCache.filter(h=>h.id!==id);
+    renderHistorialMant();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
 
 window.verPendientesMes = (esAutomatico) => {
   const hoy = new Date();
