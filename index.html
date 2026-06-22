@@ -1813,7 +1813,7 @@ window.editRecord = (id) => {
 };
 
 window.deleteRecord = async (id) => {
-  if (!confirm('¿Eliminar este repostaje? Esta acción no se puede deshacer.')) return;
+  if (!(await confirmarAccion('¿Eliminar este repostaje? Esta acción no se puede deshacer.'))) return;
   try {
     const { doc: fbDoc, deleteDoc: fbDelete } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     await fbDelete(fbDoc(db,'repostajes',id));
@@ -1899,10 +1899,12 @@ window.editarRecarga = (id) => {
 };
 
 window.eliminarRecarga = async (id) => {
-  if (!confirm('¿Eliminar esta recarga? Esto afectará al nivel calculado del depósito.')) return;
+  const ok = await confirmarAccion('¿Eliminar esta recarga? Esto afectará al nivel calculado del depósito.', '🗑 Eliminar');
+  if (!ok) return;
   try {
     await deleteDoc(doc(db,'recargas',id));
-  } catch(e) { alert('Error al eliminar: '+e.message); }
+    mostrarMensajeFlotante('✓ Recarga eliminada');
+  } catch(e) { mostrarMensajeFlotante('Error al eliminar: '+e.message, true); }
 };
 
 function renderConsumo() {
@@ -2042,8 +2044,8 @@ function renderDriverList() {
 window.eliminarDriverDefinitivo = async (code) => {
   const d = driversCache.find(x=>x.code===code);
   if (!d) return;
-  if (!confirm(`⚠️ ATENCIÓN: esto eliminará a "${d.name}" PARA SIEMPRE de la lista de conductores.\n\nSu historial de repostajes pasados NO se borrará, pero ya no podrás verlo en el filtro de conductores ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
-  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará a "${d.name}" PARA SIEMPRE de la lista de conductores.\n\nSu historial de repostajes pasados NO se borrará, pero ya no podrás verlo en el filtro de conductores ni reactivarlo.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(db,'conductores',code));
     driversCache = driversCache.filter(x=>x.code!==code);
@@ -2055,7 +2057,7 @@ window.eliminarDriverDefinitivo = async (code) => {
 window.bajaDriver = async (code) => {
   const d = driversCache.find(x=>x.code===code);
   if (!d) return;
-  if (!confirm(`¿Dar de baja a "${d.name}"? Ya no podrá acceder con su código, pero su historial de repostajes se mantendrá íntegro.`)) return;
+  if (!(await confirmarAccion(`¿Dar de baja a "${d.name}"? Ya no podrá acceder con su código, pero su historial de repostajes se mantendrá íntegro.`))) return;
   try {
     d.activo = false;
     await setDoc(doc(db,'conductores',code), d);
@@ -2182,8 +2184,8 @@ function renderMatList() {
 }
 
 window.eliminarVehiculoDefinitivo = async (mat) => {
-  if (!confirm(`⚠️ ATENCIÓN: esto eliminará "${mat}" PARA SIEMPRE de la lista de vehículos.\n\nSu historial pasado (repostajes, cambios, ITV) NO se borrará, pero ya no podrás verlo en los filtros ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
-  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará "${mat}" PARA SIEMPRE de la lista de vehículos.\n\nSu historial pasado (repostajes, cambios, ITV) NO se borrará, pero ya no podrás verlo en los filtros ni reactivarlo.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(db,'vehiculos',mat));
     vehiculosCache = vehiculosCache.filter(v=>v.matricula!==mat);
@@ -2195,7 +2197,7 @@ window.eliminarVehiculoDefinitivo = async (mat) => {
 window.bajaVehiculo = async (mat) => {
   const v = vehiculosCache.find(x=>x.matricula===mat);
   if (!v) return;
-  if (!confirm(`¿Dar de baja "${mat}"? Dejará de aparecer en los desplegables de Gasoil y Flota, pero su historial se mantendrá íntegro.`)) return;
+  if (!(await confirmarAccion(`¿Dar de baja "${mat}"? Dejará de aparecer en los desplegables de Gasoil y Flota, pero su historial se mantendrá íntegro.`))) return;
   try {
     v.activo = false;
     await setDoc(doc(db,'vehiculos',mat), v);
@@ -2489,7 +2491,7 @@ window.editarHistorial = (id) => {
 };
 
 window.eliminarHistorial = async (id) => {
-  if (!confirm('¿Eliminar este registro del historial?')) return;
+  if (!(await confirmarAccion('¿Eliminar este registro del historial?'))) return;
   try {
     await deleteDoc(doc(dbFleet,'historial',id));
     historialCache = historialCache.filter(h=>h.id!==id);
@@ -2637,7 +2639,7 @@ window.editMant = (mat, rev) => {
   const btnDelete = document.getElementById('btn-delete-mant');
   if (btnDelete) {
     btnDelete.addEventListener('click', async () => {
-      if (!confirm(`¿Eliminar la fecha de ${rev} de ${mat}? Esto no borra el historial de renovaciones pasadas, solo quita la fecha actual.`)) return;
+      if (!(await confirmarAccion(`¿Eliminar la fecha de ${rev} de ${mat}? Esto no borra el historial de renovaciones pasadas, solo quita la fecha actual.`))) return;
       const al=document.getElementById('mant-modal-alert');
       try {
         const idx=mantenimientoCache.findIndex(x=>x.matricula===mat);
@@ -2712,7 +2714,7 @@ window.editarHistorialMant = (id) => {
 };
 
 window.eliminarHistorialMant = async (id) => {
-  if (!confirm('¿Eliminar este registro del historial de mantenimiento?')) return;
+  if (!(await confirmarAccion('¿Eliminar este registro del historial de mantenimiento?'))) return;
   try {
     await deleteDoc(doc(dbFleet,'historialMantenimiento',id));
     historialMantCache = historialMantCache.filter(h=>h.id!==id);
@@ -2867,7 +2869,7 @@ function _generarExcel() {
 // SIMULACIÓN
 // ══════════════════════════════
 window.cargarSimulacion = async () => {
-  if (!confirm('Esto cargará 41 repostajes de prueba del 6 al 12 de junio. ¿Continuar?')) return;
+  if (!(await confirmarAccion('Esto cargará 41 repostajes de prueba del 6 al 12 de junio. ¿Continuar?'))) return;
   const sim=[
     {driverCode:'3035',driverName:'AGUSTIN CUESTA GUTIERREZ',matricula:'3402-NMD',lecturaIni:320,lecturaFin:375,litros:55,kmAnt:85000,kmAct:85143,consumo:38.46,obs:'',fechaStr:'06/06/2025',horaStr:'07:30',fecha:'2025-06-06T07:30:00'},
     {driverCode:'3008',driverName:'ALBERTO BRIÑAS LOPEZ',matricula:'5271-KZT',lecturaIni:210,lecturaFin:268,litros:58,kmAnt:120000,kmAct:120187,consumo:31.02,obs:'',fechaStr:'06/06/2025',horaStr:'08:15',fecha:'2025-06-06T08:15:00'},
@@ -2900,8 +2902,8 @@ window.cargarSimulacion = async () => {
 };
 
 window.borrarTodo = async () => {
-  if (!confirm('⚠️ Esto borrará TODOS los repostajes y recargas de Gasoil. Los conductores y vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?')) return;
-  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar repostajes y recargas?')) return;
+  if (!(await confirmarAccion('⚠️ Esto borrará TODOS los repostajes y recargas de Gasoil. Los conductores y vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?'))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar repostajes y recargas?'))) return;
   try {
     const rSnap=await getDocs(collection(db,'repostajes')); for(const d of rSnap.docs) await deleteDoc(d.ref);
     const rcSnap=await getDocs(collection(db,'recargas')); for(const d of rcSnap.docs) await deleteDoc(d.ref);
@@ -2911,8 +2913,8 @@ window.borrarTodo = async () => {
 };
 
 window.borrarTodoFlota = async () => {
-  if (!confirm('⚠️ Esto borrará TODO el historial de cambios, el mantenimiento (ITV/Tacógrafo) y su historial de Flota. Los vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?')) return;
-  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar todo lo de Flota?')) return;
+  if (!(await confirmarAccion('⚠️ Esto borrará TODO el historial de cambios, el mantenimiento (ITV/Tacógrafo) y su historial de Flota. Los vehículos NO se tocan.\n\n¿Has descargado ya la copia de seguridad por si acaso?'))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Borrar todo lo de Flota?'))) return;
   try {
     const hSnap=await getDocs(collection(dbFleet,'historial')); for(const d of hSnap.docs) await deleteDoc(d.ref);
     const mSnap=await getDocs(collection(dbFleet,'mantenimiento')); for(const d of mSnap.docs) await deleteDoc(d.ref);
@@ -3073,7 +3075,7 @@ window.editarStockRopa = (id) => {
 };
 
 window.eliminarStockRopa = async (id) => {
-  if (!confirm('¿Eliminar esta talla del inventario?')) return;
+  if (!(await confirmarAccion('¿Eliminar esta talla del inventario?'))) return;
   try {
     await deleteDoc(doc(db,'ropaInventario',id));
     ropaInventarioCache = ropaInventarioCache.filter(x=>x.id!==id);
@@ -3226,7 +3228,7 @@ window.addRopaEmpleado = async () => {
 window.bajaRopaEmpleado = async (id) => {
   const e = ropaEmpleadosCache.find(x=>x.id===id);
   if (!e) return;
-  if (!confirm(`¿Dar de baja a "${e.nombre}"? Ya no aparecerá para nuevas entregas, pero su historial se mantendrá íntegro.`)) return;
+  if (!(await confirmarAccion(`¿Dar de baja a "${e.nombre}"? Ya no aparecerá para nuevas entregas, pero su historial se mantendrá íntegro.`))) return;
   try {
     e.activo = false;
     await setDoc(doc(db,'ropaEmpleados',id), e);
@@ -3249,8 +3251,8 @@ window.reactivarRopaEmpleado = async (id) => {
 window.eliminarRopaEmpleadoDefinitivo = async (id) => {
   const e = ropaEmpleadosCache.find(x=>x.id===id);
   if (!e) return;
-  if (!confirm(`⚠️ ATENCIÓN: esto eliminará a "${e.nombre}" PARA SIEMPRE.\n\nSu historial de entregas pasadas NO se borrará, pero ya no podrás verlo en el filtro ni reactivarlo.\n\n¿Seguro que quieres continuar?`)) return;
-  if (!confirm('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?')) return;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará a "${e.nombre}" PARA SIEMPRE.\n\nSu historial de entregas pasadas NO se borrará, pero ya no podrás verlo en el filtro ni reactivarlo.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(db,'ropaEmpleados',id));
     ropaEmpleadosCache = ropaEmpleadosCache.filter(x=>x.id!==id);
@@ -3618,7 +3620,7 @@ window.abrirFirmaPendiente = (id) => {
 window.eliminarEntregaRopa = async (id) => {
   const h = ropaHistorialCache.find(x=>x.id===id);
   if (!h) return;
-  if (!confirm(`¿Eliminar esta entrega de "${h.empleadoNombre}" (${h.fechaStr})? Esta acción no se puede deshacer.`)) return;
+  if (!(await confirmarAccion(`¿Eliminar esta entrega de "${h.empleadoNombre}" (${h.fechaStr})? Esta acción no se puede deshacer.`))) return;
   try {
     await deleteDoc(doc(db,'ropaHistorial',id));
   } catch(e) { alert('Error al eliminar: '+e.message); }
@@ -3782,6 +3784,26 @@ function mostrarMensajeFlotante(msg, esError) {
   div.textContent = msg;
   document.body.appendChild(div);
   setTimeout(() => div.remove(), 3500);
+}
+
+// Modal de confirmación propio (sin mostrar el dominio, a diferencia de confirm() nativo)
+function confirmarAccion(mensaje, tituloBoton) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.id = 'confirmar-accion-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+        <div style="font-size:14px;color:var(--text);margin-bottom:1.25rem;white-space:pre-line;line-height:1.5;">${mensaje}</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button id="btn-confirmar-no" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+          <button id="btn-confirmar-si" style="flex:1;padding:0.75rem;background:var(--danger);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">${tituloBoton||'Confirmar'}</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    document.getElementById('btn-confirmar-no').addEventListener('click', () => { modal.remove(); resolve(false); });
+    document.getElementById('btn-confirmar-si').addEventListener('click', () => { modal.remove(); resolve(true); });
+  });
 }
 
 function mostrarAvisoInventarioBajo(avisos) {
