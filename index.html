@@ -556,7 +556,7 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group">
               <label class="form-label">Observaciones (opcional)</label>
-              <textarea class="form-input" id="lim-veh-obs" placeholder="Incidencias, notas..."></textarea>
+              <textarea class="form-input" id="lim-veh-obs" placeholder="Incidencias, notas...">LEJIA DILUCION 1:50</textarea>
             </div>
             <div class="form-group">
               <label class="form-label">Firma del operario <span style="color:var(--danger)">*</span></label>
@@ -3113,7 +3113,7 @@ async function guardarLimpiezaVehiculo() {
     document.getElementById('lim-veh-interior').checked=false;
     document.getElementById('lim-veh-exterior').checked=false;
     document.getElementById('lim-veh-desinfeccion').checked=false;
-    document.getElementById('lim-veh-obs').value='';
+    document.getElementById('lim-veh-obs').value='LEJIA DILUCION 1:50';
     firmaLimpiezaVeh.clear();
     showAlert(al,'✓ Registro guardado correctamente',false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
