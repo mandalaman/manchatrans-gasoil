@@ -606,7 +606,9 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group">
               <label class="form-label">Material empleado</label>
-              <input class="form-input" type="text" id="lim-inst-material" placeholder="Ej: Lejía, desinfectante...">
+              <select class="form-input" id="lim-inst-material">
+                <option value="">— Selecciona material —</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Observaciones (opcional)</label>
@@ -911,7 +913,8 @@ let limpiezaVehFiltroMat = '';
 let limpiezaVehFiltroFechaDesde = '';
 let limpiezaVehFiltroFechaHasta = '';
 let limpiezaInstFiltroArea = '';
-const AREAS_LIMPIEZA = ['Nave','Oficina','Vestuarios','Baños','Comedor / Sala de descanso','Taller','Exteriores / Patio'];
+const AREAS_LIMPIEZA = ['Nave 1','Nave 2','Fregadora'];
+const MATERIALES_LIMPIEZA_INST = ['Mopa','Barrido','Fregadora automática profesional'];
 let ropaEmpleadosCache = [];
 let ropaHistorialCache = [];
 let ropaEmpleadoSeleccionado = null;
@@ -3033,6 +3036,7 @@ function populateLimpiezaSelects() {
   const selOperarioVeh = document.getElementById('lim-veh-operario');
   const selOperarioInst = document.getElementById('lim-inst-operario');
   const selArea = document.getElementById('lim-inst-area');
+  const selMaterialInst = document.getElementById('lim-inst-material');
   const selFiltroArea = document.getElementById('hist-limpieza-inst-filter-area');
   // Para limpieza de vehículos: solo flota general (gasoil), sin remolques (matrículas "R-...")
   // y sin los vehículos propios de los conductores (campo "propietario"), que no entran en este registro.
@@ -3046,6 +3050,7 @@ function populateLimpiezaSelects() {
   if (selOperarioVeh) { selOperarioVeh.innerHTML = '<option value="">— Selecciona operario —</option>'; operarios.forEach(o=>{ selOperarioVeh.innerHTML += `<option value="${o}">${o}</option>`; }); }
   if (selOperarioInst) { selOperarioInst.innerHTML = '<option value="">— Selecciona operario —</option>'; operarios.forEach(o=>{ selOperarioInst.innerHTML += `<option value="${o}">${o}</option>`; }); }
   if (selArea) { selArea.innerHTML = '<option value="">— Selecciona área —</option>'; AREAS_LIMPIEZA.forEach(a=>{ selArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
+  if (selMaterialInst) { selMaterialInst.innerHTML = '<option value="">— Selecciona material —</option>'; MATERIALES_LIMPIEZA_INST.forEach(mt=>{ selMaterialInst.innerHTML += `<option value="${mt}">${mt}</option>`; }); }
   if (selFiltroArea) { selFiltroArea.innerHTML = '<option value="">Todas las áreas</option>'; AREAS_LIMPIEZA.forEach(a=>{ selFiltroArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
   if (!operarios.length) {
     const al = document.getElementById('lim-veh-alert');
@@ -3578,7 +3583,12 @@ window.editarLimpiezaInst = (id) => {
           })()}
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Material empleado</label><input class="form-input" id="edit-lim-inst-material" value="${h.material||''}"></div>
+      <div class="form-group"><label class="form-label">Material empleado</label>
+        <select class="form-input" id="edit-lim-inst-material">
+          <option value="">— Selecciona material —</option>
+          ${MATERIALES_LIMPIEZA_INST.map(mt=>`<option value="${mt}" ${mt===h.material?'selected':''}>${mt}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-input" id="edit-lim-inst-obs">${h.obs||''}</textarea></div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-lim-inst-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
