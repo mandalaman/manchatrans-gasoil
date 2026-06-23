@@ -4527,8 +4527,13 @@ async function exportarPdfTallasEmpleados() {
 
     // Columnas: nombre, categoría y las 6 prendas con talla estándar
     const ARTICULOS_COL = ['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'];
-    const colX = { nombre:M, cat:M+150, prendas: [M+230, M+320, M+410, M+500, M+590, M+680] };
+    const NOMBRE_X = M, NOMBRE_W = 175;
+    const CAT_X = M + NOMBRE_W, CAT_W = 90;
+    const PRENDA_W = 84.5;
+    const colX = { nombre:NOMBRE_X, cat:CAT_X, prendas: [0,1,2,3,4,5].map(i => CAT_X + CAT_W + i*PRENDA_W) };
     const tituloFiltro = ropaEmpFiltroCategoria ? `Categoría: ${CATEGORIAS_ROPA_EMPLEADO[ropaEmpFiltroCategoria].label}` : 'Todas las categorías';
+    // Centra un texto dentro de una columna de ancho colW que empieza en colXstart
+    const centrado = (txt, colXstart, colW, size, font) => colXstart + (colW - font.widthOfTextAtSize(txt, size)) / 2;
 
     let page, y;
     const nuevaPagina = (conTitulo) => {
@@ -4551,7 +4556,7 @@ async function exportarPdfTallasEmpleados() {
       cab('EMPLEADO', colX.nombre+8); cab('CATEGORÍA', colX.cat+8);
       ARTICULOS_COL.forEach((artId,i) => {
         const label = ROPA_ARTICULOS.find(a=>a.id===artId).label.toUpperCase();
-        cab(label, colX.prendas[i]+6);
+        page.drawText(label, { x:centrado(label, colX.prendas[i], PRENDA_W, 7.5, fontBold), y:y-10, size:7.5, font:fontBold, color: rgb(1,1,1) });
       });
       y -= 38;
     };
@@ -4562,15 +4567,19 @@ async function exportarPdfTallasEmpleados() {
       if (y < 60) nuevaPagina(false);
       const rowH = 22;
       if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
-      const nombreCorto = e.nombre.length > 22 ? e.nombre.slice(0,20)+'…' : e.nombre;
-      page.drawText(nombreCorto, { x:colX.nombre+8, y, size:9.5, font:fontBold, color: navy });
+      // Nombre completo, sin cortar: si no cabe al tamaño normal, se reduce progresivamente.
+      let sizeNombre = 9.5;
+      const maxNombreW = NOMBRE_W - 16;
+      while (sizeNombre > 6.5 && fontBold.widthOfTextAtSize(e.nombre, sizeNombre) > maxNombreW) sizeNombre -= 0.5;
+      page.drawText(e.nombre, { x:colX.nombre+8, y, size:sizeNombre, font:fontBold, color: navy });
       const catLabel = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].label : '—';
-      page.drawText(catLabel, { x:colX.cat+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(catLabel, { x:centrado(catLabel, colX.cat, CAT_W, 9, fontReg), y, size:9, font:fontReg, color: gray });
       const articulosCat = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].articulos : [];
       ARTICULOS_COL.forEach((artId,idx) => {
         const aplica = articulosCat.includes(artId);
         const valor = aplica ? (e.tallas && e.tallas[artId] ? e.tallas[artId] : '·') : '—';
-        page.drawText(valor, { x:colX.prendas[idx]+6, y, size:9.5, font:aplica?fontBold:fontReg, color: aplica?navy:rgb(0.75,0.77,0.8) });
+        const fnt = aplica?fontBold:fontReg;
+        page.drawText(valor, { x:centrado(valor, colX.prendas[idx], PRENDA_W, 9.5, fnt), y, size:9.5, font:fnt, color: aplica?navy:rgb(0.75,0.77,0.8) });
       });
       y -= rowH;
     });
