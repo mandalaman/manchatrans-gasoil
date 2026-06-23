@@ -3360,7 +3360,9 @@ async function exportarPdfLimpiezaVehiculos() {
       if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
       page.drawText(h.fechaStr||'', { x:colX.fecha+8, y, size:9.5, font:fontReg, color: navy });
       page.drawText(h.matricula||'', { x:colX.veh+8, y, size:9.5, font:fontBold, color: navy });
-      const operarioCorto = (h.operario||'').length > 24 ? h.operario.slice(0,22)+'…' : (h.operario||'');
+      const maxOpW = colX.interior - colX.op - 16;
+      let operarioCorto = h.operario || '';
+      while (fontReg.widthOfTextAtSize(operarioCorto,9.5) > maxOpW && operarioCorto.length>3) operarioCorto = operarioCorto.slice(0,-4)+'…';
       page.drawText(operarioCorto, { x:colX.op+8, y, size:9.5, font:fontReg, color: navy });
       const marca = (x, ok) => page.drawText(ok?'SI':'-', { x:x+24, y, size:9.5, font:fontBold, color: ok?verde:rgb(0.75,0.77,0.8) });
       marca(colX.interior, h.interior); marca(colX.exterior, h.exterior); marca(colX.desinf, h.desinfeccion);
@@ -3424,9 +3426,14 @@ async function generarPdfLimpiezaVehUnico(h) {
   // Tarjeta de datos principales (izquierda)
   const cardW = (W - 2*M - 30) * 0.55;
   page.drawRectangle({ x:M, y:y-150, width:cardW, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
+  const maxValW = cardW - 36; // ancho disponible dentro de la tarjeta, restando el padding
   const drawDato = (label, valor, yy) => {
     page.drawText(label, { x:M+18, y:yy, size:9, font:fontReg, color: gray });
-    page.drawText(valor, { x:M+18, y:yy-16, size:14, font:fontBold, color: navy });
+    // Si el texto (p.ej. un nombre largo de operario) no cabe al tamaño normal,
+    // lo reducimos progresivamente para que siempre se vea completo, sin cortarlo.
+    let size = 14;
+    while (size > 8.5 && fontBold.widthOfTextAtSize(valor, size) > maxValW) size -= 0.5;
+    page.drawText(valor, { x:M+18, y:yy-16, size, font:fontBold, color: navy });
   };
   drawDato('VEHÍCULO', h.matricula||'—', y-25);
   drawDato('OPERARIO', h.operario||'—', y-70);
