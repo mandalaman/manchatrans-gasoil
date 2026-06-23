@@ -3179,10 +3179,11 @@ function renderHistorialLimpiezaVeh() {
       <div id="hist-lim-veh-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         ${h.obs ? `<div style="font-size:14px;margin:0.75rem 0;line-height:1.5;"><strong>Observaciones:</strong> ${h.obs}</div>` : ''}
         ${h.firmaBase64 ? `<div style="margin:0.75rem 0;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Firma:</div><img src="${h.firmaBase64}" style="max-width:220px;background:#fff;border-radius:var(--radius-sm);border:1px solid var(--card-border);"></div>` : ''}
-        <div style="display:flex;gap:0.5rem;">
-          <button class="btn-sm" style="flex:1;" onclick="editarLimpiezaVeh('${h.id}')">✏️ Editar</button>
-          <button class="btn-sm" style="flex:1;" onclick="descargarPdfLimpiezaVehUnico('${h.id}')">📄 PDF</button>
-          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarLimpiezaVeh('${h.id}')">🗑 Eliminar</button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="editarLimpiezaVeh('${h.id}')">✏️ Editar</button>
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="verPdfLimpiezaVehUnico('${h.id}')">👁 Ver PDF</button>
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="descargarPdfLimpiezaVehUnico('${h.id}')">📄 Descargar PDF</button>
+          <button class="btn-sm btn-sm-danger" style="flex:1;min-width:90px;" onclick="eliminarLimpiezaVeh('${h.id}')">🗑 Eliminar</button>
         </div>
       </div>
     </div>`;
@@ -3357,91 +3358,95 @@ async function exportarPdfLimpiezaVehiculos() {
   }
 }
 
+async function generarPdfLimpiezaVehUnico(h) {
+  const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const navy = rgb(0.102, 0.227, 0.361);
+  const gray = rgb(0.45, 0.49, 0.54);
+  const accent = rgb(0.96, 0.65, 0.14);
+  const verde = rgb(0.16, 0.65, 0.35);
+  const W = 841.89, H = 595.28, M = 50; // A4 horizontal
+  const page = pdfDoc.addPage([W, H]);
+
+  // Banner de marca
+  page.drawRectangle({ x:0, y:H-80, width:W, height:80, color: navy });
+  page.drawRectangle({ x:0, y:H-84, width:W, height:4, color: accent });
+  page.drawText('MANCHATRANS S.L.', { x:M, y:H-35, size:16, font:fontBold, color: rgb(1,1,1) });
+  page.drawText('Ficha de limpieza de vehículo · NexoFlota', { x:M, y:H-56, size:10, font:fontReg, color: rgb(0.78,0.84,0.92) });
+  const tagTxt = 'LIMPIEZA';
+  const tagW = fontBold.widthOfTextAtSize(tagTxt, 14);
+  page.drawText(tagTxt, { x:W-M-tagW, y:H-42, size:14, font:fontBold, color: accent });
+
+  let y = H - 130;
+
+  // Tarjeta de datos principales (izquierda)
+  const cardW = (W - 2*M - 30) * 0.55;
+  page.drawRectangle({ x:M, y:y-150, width:cardW, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
+  const drawDato = (label, valor, yy) => {
+    page.drawText(label, { x:M+18, y:yy, size:9, font:fontReg, color: gray });
+    page.drawText(valor, { x:M+18, y:yy-16, size:14, font:fontBold, color: navy });
+  };
+  drawDato('VEHÍCULO', h.matricula||'—', y-25);
+  drawDato('OPERARIO', h.operario||'—', y-70);
+  drawDato('FECHA', h.fechaStr||'—', y-115);
+
+  // Tarjeta tipos de limpieza (derecha)
+  const cardX2 = M + cardW + 30;
+  const cardW2 = W - 2*M - cardW - 30;
+  page.drawRectangle({ x:cardX2, y:y-150, width:cardW2, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
+  page.drawText('LIMPIEZA REALIZADA', { x:cardX2+18, y:y-22, size:9, font:fontReg, color: gray });
+  const tipos = [['Interior', h.interior], ['Exterior', h.exterior], ['Desinfección', h.desinfeccion]];
+  tipos.forEach(([label, ok], i) => {
+    const ty = y - 50 - i*32;
+    page.drawText(ok?'SI':'-', { x:cardX2+18, y:ty, size:13, font:fontBold, color: ok?verde:rgb(0.75,0.77,0.8) });
+    page.drawText(label, { x:cardX2+42, y:ty, size:12, font:fontReg, color: ok?navy:gray });
+  });
+
+  y -= 170;
+
+  // Observaciones
+  if (h.obs) {
+    page.drawText('OBSERVACIONES', { x:M, y, size:9, font:fontBold, color: accent });
+    y -= 16;
+    const maxW = W-2*M;
+    const palabras = h.obs.split(' ');
+    let linea = '';
+    const lineas = [];
+    palabras.forEach(p => {
+      const prueba = linea ? linea+' '+p : p;
+      if (fontReg.widthOfTextAtSize(prueba, 10) > maxW) { lineas.push(linea); linea = p; } else { linea = prueba; }
+    });
+    if (linea) lineas.push(linea);
+    lineas.slice(0,3).forEach(l => { page.drawText(l, { x:M, y, size:10, font:fontReg, color: navy }); y -= 14; });
+    y -= 10;
+  }
+
+  // Firma
+  if (h.firmaBase64) {
+    const firmaBytes = dataUrlAPngBytes(h.firmaBase64);
+    const firmaImg = await pdfDoc.embedPng(firmaBytes);
+    const firmaBoxW = 260, firmaBoxH = 100;
+    const firmaY = 60;
+    page.drawText('FIRMA DEL OPERARIO', { x:M, y:firmaY+firmaBoxH+14, size:9, font:fontBold, color: accent });
+    page.drawRectangle({ x:M, y:firmaY, width:firmaBoxW, height:firmaBoxH, color: rgb(1,1,1), borderColor: rgb(0.8,0.82,0.86), borderWidth:1 });
+    const ratio = Math.min((firmaBoxW-16)/firmaImg.width, (firmaBoxH-16)/firmaImg.height);
+    const iw = firmaImg.width*ratio, ih = firmaImg.height*ratio;
+    page.drawImage(firmaImg, { x:M+(firmaBoxW-iw)/2, y:firmaY+(firmaBoxH-ih)/2, width:iw, height:ih });
+  }
+
+  page.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+  page.drawText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+
+  return pdfDoc.save();
+}
+
 window.descargarPdfLimpiezaVehUnico = async (id) => {
   const h = limpiezaVehCache.find(x=>x.id===id);
   if (!h) return;
   try {
-    const { PDFDocument, rgb, StandardFonts } = PDFLib;
-    const pdfDoc = await PDFDocument.create();
-    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const navy = rgb(0.102, 0.227, 0.361);
-    const gray = rgb(0.45, 0.49, 0.54);
-    const accent = rgb(0.96, 0.65, 0.14);
-    const verde = rgb(0.16, 0.65, 0.35);
-    const W = 841.89, H = 595.28, M = 50; // A4 horizontal
-    const page = pdfDoc.addPage([W, H]);
-
-    // Banner de marca
-    page.drawRectangle({ x:0, y:H-80, width:W, height:80, color: navy });
-    page.drawRectangle({ x:0, y:H-84, width:W, height:4, color: accent });
-    page.drawText('MANCHATRANS S.L.', { x:M, y:H-35, size:16, font:fontBold, color: rgb(1,1,1) });
-    page.drawText('Ficha de limpieza de vehículo · NexoFlota', { x:M, y:H-56, size:10, font:fontReg, color: rgb(0.78,0.84,0.92) });
-    const tagTxt = 'LIMPIEZA';
-    const tagW = fontBold.widthOfTextAtSize(tagTxt, 14);
-    page.drawText(tagTxt, { x:W-M-tagW, y:H-42, size:14, font:fontBold, color: accent });
-
-    let y = H - 130;
-
-    // Tarjeta de datos principales (izquierda)
-    const cardW = (W - 2*M - 30) * 0.55;
-    page.drawRectangle({ x:M, y:y-150, width:cardW, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
-    const drawDato = (label, valor, yy) => {
-      page.drawText(label, { x:M+18, y:yy, size:9, font:fontReg, color: gray });
-      page.drawText(valor, { x:M+18, y:yy-16, size:14, font:fontBold, color: navy });
-    };
-    drawDato('VEHÍCULO', h.matricula||'—', y-25);
-    drawDato('OPERARIO', h.operario||'—', y-70);
-    drawDato('FECHA', h.fechaStr||'—', y-115);
-
-    // Tarjeta tipos de limpieza (derecha)
-    const cardX2 = M + cardW + 30;
-    const cardW2 = W - 2*M - cardW - 30;
-    page.drawRectangle({ x:cardX2, y:y-150, width:cardW2, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
-    page.drawText('LIMPIEZA REALIZADA', { x:cardX2+18, y:y-22, size:9, font:fontReg, color: gray });
-    const tipos = [['Interior', h.interior], ['Exterior', h.exterior], ['Desinfección', h.desinfeccion]];
-    tipos.forEach(([label, ok], i) => {
-      const ty = y - 50 - i*32;
-      page.drawText(ok?'SI':'-', { x:cardX2+18, y:ty, size:13, font:fontBold, color: ok?verde:rgb(0.75,0.77,0.8) });
-      page.drawText(label, { x:cardX2+42, y:ty, size:12, font:fontReg, color: ok?navy:gray });
-    });
-
-    y -= 170;
-
-    // Observaciones
-    if (h.obs) {
-      page.drawText('OBSERVACIONES', { x:M, y, size:9, font:fontBold, color: accent });
-      y -= 16;
-      const maxW = W-2*M;
-      const palabras = h.obs.split(' ');
-      let linea = '';
-      const lineas = [];
-      palabras.forEach(p => {
-        const prueba = linea ? linea+' '+p : p;
-        if (fontReg.widthOfTextAtSize(prueba, 10) > maxW) { lineas.push(linea); linea = p; } else { linea = prueba; }
-      });
-      if (linea) lineas.push(linea);
-      lineas.slice(0,3).forEach(l => { page.drawText(l, { x:M, y, size:10, font:fontReg, color: navy }); y -= 14; });
-      y -= 10;
-    }
-
-    // Firma
-    if (h.firmaBase64) {
-      const firmaBytes = dataUrlAPngBytes(h.firmaBase64);
-      const firmaImg = await pdfDoc.embedPng(firmaBytes);
-      const firmaBoxW = 260, firmaBoxH = 100;
-      const firmaY = 60;
-      page.drawText('FIRMA DEL OPERARIO', { x:M, y:firmaY+firmaBoxH+14, size:9, font:fontBold, color: accent });
-      page.drawRectangle({ x:M, y:firmaY, width:firmaBoxW, height:firmaBoxH, color: rgb(1,1,1), borderColor: rgb(0.8,0.82,0.86), borderWidth:1 });
-      const ratio = Math.min((firmaBoxW-16)/firmaImg.width, (firmaBoxH-16)/firmaImg.height);
-      const iw = firmaImg.width*ratio, ih = firmaImg.height*ratio;
-      page.drawImage(firmaImg, { x:M+(firmaBoxW-iw)/2, y:firmaY+(firmaBoxH-ih)/2, width:iw, height:ih });
-    }
-
-    page.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
-    page.drawText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, { x:M, y:20, size:8, font:fontReg, color: gray });
-
-    const pdfBytes = await pdfDoc.save();
+    const pdfBytes = await generarPdfLimpiezaVehUnico(h);
     const blob = new Blob([pdfBytes], {type:'application/pdf'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3451,6 +3456,21 @@ window.descargarPdfLimpiezaVehUnico = async (id) => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  }
+};
+
+window.verPdfLimpiezaVehUnico = async (id) => {
+  const h = limpiezaVehCache.find(x=>x.id===id);
+  if (!h) return;
+  try {
+    const pdfBytes = await generarPdfLimpiezaVehUnico(h);
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    // No revocamos la URL de inmediato: la pestaña nueva necesita tiempo para cargar el PDF.
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
   } catch(e) {
     alert('Error al generar el PDF: '+e.message);
   }
