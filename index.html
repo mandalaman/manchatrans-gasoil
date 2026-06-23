@@ -747,6 +747,15 @@ input[type="number"] { -moz-appearance: textfield; }
 
         <button class="btn btn-secondary" id="btn-toggle-ropa-emp" style="margin-bottom:1rem;">📋 Ver empleados activos (<span class="ropa-emp-count">0</span>)</button>
         <div id="ropa-emp-list-wrapper" style="display:none;">
+          <div class="form-group">
+            <select class="form-input" id="ropa-emp-filter-categoria" style="font-size:14px;padding:0.6rem;">
+              <option value="">Todas las categorías</option>
+              <option value="conductor">Conductor</option>
+              <option value="oficina">Oficina</option>
+              <option value="limpieza">Limpieza</option>
+            </select>
+          </div>
+          <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="margin-bottom:1rem;width:100%;">📄 Exportar PDF de tallas (para preparar ropa)</button>
           <div id="ropa-emp-list"></div>
         </div>
 
@@ -976,6 +985,7 @@ let ropaEmpleadoSeleccionado = null;
 let ropaArticulosSeleccionados = {};
 let ropaPuestoSeleccionado = '';
 let ropaFiltroHist = '';
+let ropaEmpFiltroCategoria = '';
 let ropaInventarioCache = [];
 const ROPA_STOCK_BAJO_UMBRAL = 3;
 let histFiltroMat = '';
@@ -1149,6 +1159,8 @@ async function initApp() {
       btn.innerHTML = `📋 Ver empleados activos (<span class="ropa-emp-count">${count}</span>)`;
     }
   });
+  document.getElementById('ropa-emp-filter-categoria').addEventListener('change', (e)=>{ ropaEmpFiltroCategoria=e.target.value; renderRopaEmpleadosList(); });
+  document.getElementById('btn-exportar-pdf-tallas').addEventListener('click', exportarPdfTallasEmpleados);
   document.getElementById('btn-toggle-baja-ropa-emp').addEventListener('click', ()=>{
     const wrapper = document.getElementById('ropa-emp-baja-wrapper');
     const btn = document.getElementById('btn-toggle-baja-ropa-emp');
@@ -4458,7 +4470,7 @@ function renderRopaEmpleadosList() {
   const list = document.getElementById('ropa-emp-list');
   const bajaList = document.getElementById('ropa-emp-baja-list');
   if (!list || !bajaList) return;
-  const activos = ropaEmpleadosCache.filter(e=>e.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const activos = ropaEmpleadosCache.filter(e=>e.activo!==false && (!ropaEmpFiltroCategoria || e.categoria===ropaEmpFiltroCategoria)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   const bajas = ropaEmpleadosCache.filter(e=>e.activo===false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
   document.querySelectorAll('.ropa-emp-count').forEach(s=>s.textContent = activos.length);
   document.getElementById('ropa-emp-baja-count').textContent = bajas.length;
@@ -4489,6 +4501,104 @@ function renderRopaEmpleadosList() {
         <button onclick="eliminarRopaEmpleadoDefinitivo('${e.id}')" style="padding:4px 10px;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Eliminar definitivamente</button>
       </div>
     </div>`).join('');
+}
+
+async function exportarPdfTallasEmpleados() {
+  const btn = document.getElementById('btn-exportar-pdf-tallas');
+  const empleados = ropaEmpleadosCache
+    .filter(e => e.activo!==false && (!ropaEmpFiltroCategoria || e.categoria===ropaEmpFiltroCategoria))
+    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  if (!empleados.length) { alert('No hay empleados para ese filtro.'); return; }
+
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando PDF...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 36; // A4 horizontal
+    const pages = [];
+
+    // Columnas: nombre, categoría y las 6 prendas con talla estándar
+    const ARTICULOS_COL = ['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'];
+    const colX = { nombre:M, cat:M+150, prendas: [M+230, M+320, M+410, M+500, M+590, M+680] };
+    const tituloFiltro = ropaEmpFiltroCategoria ? `Categoría: ${CATEGORIAS_ROPA_EMPLEADO[ropaEmpFiltroCategoria].label}` : 'Todas las categorías';
+
+    let page, y;
+    const nuevaPagina = (conTitulo) => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Tallas de ropa laboral · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'PARA PREPARAR ROPA';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      if (conTitulo) {
+        page.drawText(tituloFiltro, { x:M, y, size:10.5, font:fontReg, color: gray });
+        y -= 26;
+      }
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('EMPLEADO', colX.nombre+8); cab('CATEGORÍA', colX.cat+8);
+      ARTICULOS_COL.forEach((artId,i) => {
+        const label = ROPA_ARTICULOS.find(a=>a.id===artId).label.toUpperCase();
+        cab(label, colX.prendas[i]+6);
+      });
+      y -= 38;
+    };
+
+    nuevaPagina(true);
+
+    empleados.forEach((e, i) => {
+      if (y < 60) nuevaPagina(false);
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      const nombreCorto = e.nombre.length > 22 ? e.nombre.slice(0,20)+'…' : e.nombre;
+      page.drawText(nombreCorto, { x:colX.nombre+8, y, size:9.5, font:fontBold, color: navy });
+      const catLabel = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].label : '—';
+      page.drawText(catLabel, { x:colX.cat+8, y, size:9, font:fontReg, color: gray });
+      const articulosCat = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].articulos : [];
+      ARTICULOS_COL.forEach((artId,idx) => {
+        const aplica = articulosCat.includes(artId);
+        const valor = aplica ? (e.tallas && e.tallas[artId] ? e.tallas[artId] : '·') : '—';
+        page.drawText(valor, { x:colX.prendas[idx]+6, y, size:9.5, font:aplica?fontBold:fontReg, color: aplica?navy:rgb(0.75,0.77,0.8) });
+      });
+      y -= rowH;
+    });
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total de empleados: ${empleados.length} · "·" = talla sin registrar`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manchatrans_Tallas_Ropa_${ropaEmpFiltroCategoria||'todas'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
 }
 
 // Pinta los campos de talla correspondientes a la categoría elegida (Conductor/Oficina/Limpieza).
