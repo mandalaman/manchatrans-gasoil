@@ -593,6 +593,13 @@ input[type="number"] { -moz-appearance: textfield; }
           <div id="lim-inst-alert" class="alert"></div>
           <div class="refuel-card">
             <div class="form-group">
+              <label class="form-label">Fecha <span style="color:var(--danger)">*</span></label>
+              <div style="display:flex;gap:0.5rem;align-items:center;">
+                <input class="form-input" type="date" id="lim-inst-fecha" style="flex:1;">
+                <button type="button" class="btn-sm" id="btn-borrar-fecha-limpieza-inst" title="Borrar fecha" style="flex-shrink:0;">🗑 Borrar</button>
+              </div>
+            </div>
+            <div class="form-group">
               <label class="form-label">Área <span style="color:var(--danger)">*</span></label>
               <select class="form-input" id="lim-inst-area">
                 <option value="">— Selecciona área —</option>
@@ -629,6 +636,11 @@ input[type="number"] { -moz-appearance: textfield; }
                 <option value="">Todas las áreas</option>
               </select>
             </div>
+            <div class="two-col" style="margin-bottom:0.75rem;">
+              <div><label class="form-label">Desde</label><input class="form-input" type="date" id="hist-limpieza-inst-fecha-desde"></div>
+              <div><label class="form-label">Hasta</label><input class="form-input" type="date" id="hist-limpieza-inst-fecha-hasta"></div>
+            </div>
+            <button class="btn btn-secondary" id="btn-exportar-pdf-limpieza-inst" style="margin-bottom:1rem;width:100%;">📄 Exportar PDF del filtro actual</button>
             <div id="hist-limpieza-inst-list"></div>
           </div>
         </div>
@@ -913,6 +925,8 @@ let limpiezaVehFiltroMat = '';
 let limpiezaVehFiltroFechaDesde = '';
 let limpiezaVehFiltroFechaHasta = '';
 let limpiezaInstFiltroArea = '';
+let limpiezaInstFiltroFechaDesde = '';
+let limpiezaInstFiltroFechaHasta = '';
 const AREAS_LIMPIEZA = ['Nave 1','Nave 2','Fregadora'];
 const MATERIALES_LIMPIEZA_INST = ['Mopa','Barrido','Fregadora automática profesional'];
 let ropaEmpleadosCache = [];
@@ -1173,6 +1187,10 @@ async function initApp() {
   document.getElementById('hist-limpieza-veh-fecha-hasta').addEventListener('change', (e)=>{ limpiezaVehFiltroFechaHasta=e.target.value; renderHistorialLimpiezaVeh(); });
   document.getElementById('btn-exportar-pdf-limpieza-veh').addEventListener('click', exportarPdfLimpiezaVehiculos);
   document.getElementById('hist-limpieza-inst-filter-area').addEventListener('change', (e)=>{ limpiezaInstFiltroArea=e.target.value; renderHistorialLimpiezaInst(); });
+  document.getElementById('btn-borrar-fecha-limpieza-inst').addEventListener('click', ()=>{ document.getElementById('lim-inst-fecha').value=''; });
+  document.getElementById('hist-limpieza-inst-fecha-desde').addEventListener('change', (e)=>{ limpiezaInstFiltroFechaDesde=e.target.value; renderHistorialLimpiezaInst(); });
+  document.getElementById('hist-limpieza-inst-fecha-hasta').addEventListener('change', (e)=>{ limpiezaInstFiltroFechaHasta=e.target.value; renderHistorialLimpiezaInst(); });
+  document.getElementById('btn-exportar-pdf-limpieza-inst').addEventListener('click', exportarPdfLimpiezaInstalaciones);
   document.getElementById('btn-toggle-hist-limpieza-veh').addEventListener('click', ()=>{
     const wrapper = document.getElementById('hist-limpieza-veh-wrapper');
     const btn = document.getElementById('btn-toggle-hist-limpieza-veh');
@@ -3160,21 +3178,24 @@ async function guardarLimpiezaVehiculo() {
 
 async function guardarLimpiezaInstalacion() {
   const al = document.getElementById('lim-inst-alert');
+  const fecha = document.getElementById('lim-inst-fecha').value;
   const area = document.getElementById('lim-inst-area').value;
   const operario = document.getElementById('lim-inst-operario').value.trim();
   const material = document.getElementById('lim-inst-material').value.trim();
   const obs = document.getElementById('lim-inst-obs').value.trim();
+  if (!fecha) { showAlert(al,'⚠️ Selecciona la fecha del registro',true); return; }
   if (!area) { showAlert(al,'⚠️ Selecciona el área',true); return; }
   if (!operario) { showAlert(al,'⚠️ Selecciona el operario',true); return; }
   if (!firmaLimpiezaInst || !firmaLimpiezaInst.tieneTrazo) { showAlert(al,'⚠️ El operario debe firmar antes de guardar',true); return; }
 
   const btn = document.getElementById('btn-guardar-limpieza-inst');
   btn.disabled = true; btn.textContent = 'Guardando...';
-  const now = new Date();
+  // La fecha la introduce el admin manualmente (no se usa la fecha/hora del dispositivo).
+  const fechaStr = new Date(fecha+'T00:00:00').toLocaleDateString('es-ES');
   const registro = {
     area, operario, material, obs,
     firmaBase64: firmaLimpiezaInst.getDataUrl(),
-    fecha: now.toISOString(), fechaStr: now.toLocaleDateString('es-ES'), horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})
+    fecha, fechaStr
   };
   try {
     await addDoc(collection(dbFleet,'limpiezaInstalaciones'), registro);
@@ -3528,27 +3549,38 @@ window.verPdfLimpiezaVehUnico = async (id) => {
   }
 };
 
+function getFilteredLimpiezaInst() {
+  return limpiezaInstCache.filter(h => {
+    if (limpiezaInstFiltroArea && h.area !== limpiezaInstFiltroArea) return false;
+    if (limpiezaInstFiltroFechaDesde && (h.fecha||'') < limpiezaInstFiltroFechaDesde) return false;
+    if (limpiezaInstFiltroFechaHasta && (h.fecha||'') > limpiezaInstFiltroFechaHasta) return false;
+    return true;
+  });
+}
+
 function renderHistorialLimpiezaInst() {
   const list = document.getElementById('hist-limpieza-inst-list');
   if (!list) return;
-  const f = limpiezaInstFiltroArea ? limpiezaInstCache.filter(h=>h.area===limpiezaInstFiltroArea) : limpiezaInstCache;
-  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🧹</div>No hay registros'+(limpiezaInstFiltroArea?' para esta área':'')+'</div>'; return; }
+  const f = getFilteredLimpiezaInst();
+  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🧹</div>No hay registros para este filtro</div>'; return; }
   list.innerHTML = f.map(h=>{
     const safeId = h.id.replace(/[^a-zA-Z0-9]/g,'_');
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleHistLimpiezaInst('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
           <div style="font-weight:600;font-size:14px;">🏭 ${h.area} — ${h.operario}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${h.fechaStr} ${h.horaStr}${h.material?' · '+h.material:''}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${h.fechaStr}${h.material?' · '+h.material:''}</div>
         </div>
         <span id="hist-lim-inst-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
       </div>
       <div id="hist-lim-inst-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         ${h.obs ? `<div style="font-size:14px;margin:0.75rem 0;line-height:1.5;"><strong>Observaciones:</strong> ${h.obs}</div>` : ''}
         ${h.firmaBase64 ? `<div style="margin:0.75rem 0;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Firma:</div><img src="${h.firmaBase64}" style="max-width:220px;background:#fff;border-radius:var(--radius-sm);border:1px solid var(--card-border);"></div>` : ''}
-        <div style="display:flex;gap:0.5rem;">
-          <button class="btn-sm" style="flex:1;" onclick="editarLimpiezaInst('${h.id}')">✏️ Editar</button>
-          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarLimpiezaInst('${h.id}')">🗑 Eliminar</button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="editarLimpiezaInst('${h.id}')">✏️ Editar</button>
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="verPdfLimpiezaInstUnico('${h.id}')">👁 Ver PDF</button>
+          <button class="btn-sm" style="flex:1;min-width:90px;" onclick="descargarPdfLimpiezaInstUnico('${h.id}')">📄 Descargar PDF</button>
+          <button class="btn-sm btn-sm-danger" style="flex:1;min-width:90px;" onclick="eliminarLimpiezaInst('${h.id}')">🗑 Eliminar</button>
         </div>
       </div>
     </div>`;
@@ -3571,6 +3603,7 @@ window.editarLimpiezaInst = (id) => {
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar limpieza — ${h.area}</div>
+      <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="edit-lim-inst-fecha" value="${h.fecha||''}"></div>
       <div class="form-group"><label class="form-label">Operario</label>
         <select class="form-input" id="edit-lim-inst-operario">
           ${(() => {
@@ -3597,9 +3630,13 @@ window.editarLimpiezaInst = (id) => {
     </div>`;
   document.body.appendChild(modal);
   document.getElementById('btn-save-lim-inst-edit').addEventListener('click', async () => {
+    const fecha = document.getElementById('edit-lim-inst-fecha').value;
     const operario = document.getElementById('edit-lim-inst-operario').value.trim();
-    if (!operario) { alert('Escribe el nombre del operario'); return; }
+    if (!fecha) { alert('Selecciona la fecha'); return; }
+    if (!operario) { alert('Selecciona el operario'); return; }
     const cambios = {
+      fecha,
+      fechaStr: new Date(fecha+'T00:00:00').toLocaleDateString('es-ES'),
       operario,
       material: document.getElementById('edit-lim-inst-material').value.trim(),
       obs: document.getElementById('edit-lim-inst-obs').value.trim()
@@ -3622,6 +3659,221 @@ window.eliminarLimpiezaInst = async (id) => {
     renderHistorialLimpiezaInst();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
+
+async function generarPdfLimpiezaInstUnico(h) {
+  const { PDFDocument, rgb, StandardFonts } = PDFLib;
+  const pdfDoc = await PDFDocument.create();
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+  const navy = rgb(0.102, 0.227, 0.361);
+  const gray = rgb(0.45, 0.49, 0.54);
+  const accent = rgb(0.96, 0.65, 0.14);
+  const W = 841.89, H = 595.28, M = 50; // A4 horizontal
+  const page = pdfDoc.addPage([W, H]);
+
+  // Banner de marca
+  page.drawRectangle({ x:0, y:H-80, width:W, height:80, color: navy });
+  page.drawRectangle({ x:0, y:H-84, width:W, height:4, color: accent });
+  page.drawText('MANCHATRANS S.L.', { x:M, y:H-35, size:16, font:fontBold, color: rgb(1,1,1) });
+  page.drawText('Ficha de limpieza de instalaciones · NexoFlota', { x:M, y:H-56, size:10, font:fontReg, color: rgb(0.78,0.84,0.92) });
+  const tagTxt = 'LIMPIEZA';
+  const tagW = fontBold.widthOfTextAtSize(tagTxt, 14);
+  page.drawText(tagTxt, { x:W-M-tagW, y:H-42, size:14, font:fontBold, color: accent });
+
+  let y = H - 130;
+
+  // Tarjeta de datos principales (izquierda)
+  const cardW = (W - 2*M - 30) * 0.55;
+  page.drawRectangle({ x:M, y:y-150, width:cardW, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
+  const maxValW = cardW - 36;
+  const drawDato = (label, valor, yy) => {
+    page.drawText(label, { x:M+18, y:yy, size:9, font:fontReg, color: gray });
+    let size = 14;
+    while (size > 8.5 && fontBold.widthOfTextAtSize(valor, size) > maxValW) size -= 0.5;
+    page.drawText(valor, { x:M+18, y:yy-16, size, font:fontBold, color: navy });
+  };
+  drawDato('ÁREA', h.area||'—', y-25);
+  drawDato('OPERARIO', h.operario||'—', y-70);
+  drawDato('FECHA', h.fechaStr||'—', y-115);
+
+  // Tarjeta material (derecha)
+  const cardX2 = M + cardW + 30;
+  const cardW2 = W - 2*M - cardW - 30;
+  page.drawRectangle({ x:cardX2, y:y-150, width:cardW2, height:150, color: rgb(0.96,0.97,0.98), borderColor: rgb(0.85,0.87,0.9), borderWidth:1 });
+  page.drawText('MATERIAL EMPLEADO', { x:cardX2+18, y:y-22, size:9, font:fontReg, color: gray });
+  const maxMatW = cardW2 - 36;
+  let sizeMat = 16;
+  const matTxt = h.material || '—';
+  while (sizeMat > 9 && fontBold.widthOfTextAtSize(matTxt, sizeMat) > maxMatW) sizeMat -= 0.5;
+  page.drawText(matTxt, { x:cardX2+18, y:y-50, size:sizeMat, font:fontBold, color: navy });
+
+  y -= 170;
+
+  // Observaciones
+  if (h.obs) {
+    page.drawText('OBSERVACIONES', { x:M, y, size:9, font:fontBold, color: accent });
+    y -= 16;
+    const maxW = W-2*M;
+    const palabras = h.obs.split(' ');
+    let linea = '';
+    const lineas = [];
+    palabras.forEach(p => {
+      const prueba = linea ? linea+' '+p : p;
+      if (fontReg.widthOfTextAtSize(prueba, 10) > maxW) { lineas.push(linea); linea = p; } else { linea = prueba; }
+    });
+    if (linea) lineas.push(linea);
+    lineas.slice(0,3).forEach(l => { page.drawText(l, { x:M, y, size:10, font:fontReg, color: navy }); y -= 14; });
+    y -= 10;
+  }
+
+  // Firma
+  if (h.firmaBase64) {
+    const firmaBytes = dataUrlAPngBytes(h.firmaBase64);
+    const firmaImg = await pdfDoc.embedPng(firmaBytes);
+    const firmaBoxW = 260, firmaBoxH = 100;
+    const firmaY = 60;
+    page.drawText('FIRMA DEL OPERARIO', { x:M, y:firmaY+firmaBoxH+14, size:9, font:fontBold, color: accent });
+    page.drawRectangle({ x:M, y:firmaY, width:firmaBoxW, height:firmaBoxH, color: rgb(1,1,1), borderColor: rgb(0.8,0.82,0.86), borderWidth:1 });
+    const ratio = Math.min((firmaBoxW-16)/firmaImg.width, (firmaBoxH-16)/firmaImg.height);
+    const iw = firmaImg.width*ratio, ih = firmaImg.height*ratio;
+    page.drawImage(firmaImg, { x:M+(firmaBoxW-iw)/2, y:firmaY+(firmaBoxH-ih)/2, width:iw, height:ih });
+  }
+
+  page.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+  page.drawText(`Generado el ${new Date().toLocaleDateString('es-ES')}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+
+  return pdfDoc.save();
+}
+
+window.descargarPdfLimpiezaInstUnico = async (id) => {
+  const h = limpiezaInstCache.find(x=>x.id===id);
+  if (!h) return;
+  try {
+    const pdfBytes = await generarPdfLimpiezaInstUnico(h);
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Limpieza_${h.area}_${h.fecha||''}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  }
+};
+
+window.verPdfLimpiezaInstUnico = async (id) => {
+  const h = limpiezaInstCache.find(x=>x.id===id);
+  if (!h) return;
+  try {
+    const pdfBytes = await generarPdfLimpiezaInstUnico(h);
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(()=>URL.revokeObjectURL(url), 60000);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  }
+};
+
+async function exportarPdfLimpiezaInstalaciones() {
+  const btn = document.getElementById('btn-exportar-pdf-limpieza-inst');
+  const registros = [...getFilteredLimpiezaInst()].sort((a,b)=> (a.fecha||'').localeCompare(b.fecha||''));
+  if (!registros.length) { alert('No hay registros para ese filtro.'); return; }
+
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando PDF...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 36; // A4 horizontal
+    const pages = [];
+
+    const rangoTexto = (limpiezaInstFiltroFechaDesde || limpiezaInstFiltroFechaHasta)
+      ? `Del ${limpiezaInstFiltroFechaDesde ? new Date(limpiezaInstFiltroFechaDesde+'T00:00:00').toLocaleDateString('es-ES') : '—'} al ${limpiezaInstFiltroFechaHasta ? new Date(limpiezaInstFiltroFechaHasta+'T00:00:00').toLocaleDateString('es-ES') : '—'}`
+      : 'Todos los registros';
+
+    const colX = { fecha:M, area:M+90, op:M+210, material:M+420, obs:M+620 };
+
+    let page, y;
+    const nuevaPagina = (conTitulo) => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Gestión de instalaciones · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'LIMPIEZA DE INSTALACIONES';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      if (conTitulo) {
+        page.drawText(rangoTexto + (limpiezaInstFiltroArea ? `  ·  Área: ${limpiezaInstFiltroArea}` : ''), { x:M, y, size:10.5, font:fontReg, color: gray });
+        y -= 26;
+      }
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:9, font:fontBold, color: rgb(1,1,1) });
+      cab('FECHA', colX.fecha+8); cab('ÁREA', colX.area+8); cab('OPERARIO', colX.op+8); cab('MATERIAL', colX.material+8); cab('OBSERVACIONES', colX.obs+8);
+      y -= 38;
+    };
+
+    nuevaPagina(true);
+
+    registros.forEach((h, i) => {
+      if (y < 60) nuevaPagina(false);
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      page.drawText(h.fechaStr||'', { x:colX.fecha+8, y, size:9.5, font:fontReg, color: navy });
+      page.drawText(h.area||'', { x:colX.area+8, y, size:9.5, font:fontBold, color: navy });
+      const maxOpW = colX.material - colX.op - 16;
+      let operarioCorto = h.operario || '';
+      while (fontReg.widthOfTextAtSize(operarioCorto,9.5) > maxOpW && operarioCorto.length>3) operarioCorto = operarioCorto.slice(0,-4)+'…';
+      page.drawText(operarioCorto, { x:colX.op+8, y, size:9.5, font:fontReg, color: navy });
+      const maxMatW = colX.obs - colX.material - 16;
+      let materialCorto = h.material || '—';
+      while (fontReg.widthOfTextAtSize(materialCorto,9.5) > maxMatW && materialCorto.length>3) materialCorto = materialCorto.slice(0,-4)+'…';
+      page.drawText(materialCorto, { x:colX.material+8, y, size:9.5, font:fontReg, color: navy });
+      const maxObsW = W-M-8-colX.obs;
+      let obsTxt = h.obs || '—';
+      while (fontReg.widthOfTextAtSize(obsTxt,9) > maxObsW && obsTxt.length>3) obsTxt = obsTxt.slice(0,-4)+'…';
+      page.drawText(obsTxt, { x:colX.obs+8, y, size:9, font:fontReg, color: gray });
+      y -= rowH;
+    });
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total de registros: ${registros.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manchatrans_Limpieza_Instalaciones_${limpiezaInstFiltroFechaDesde||'inicio'}_${limpiezaInstFiltroFechaHasta||'fin'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
 
 window.verPendientesMes = (esAutomatico) => {
   const hoy = new Date();
