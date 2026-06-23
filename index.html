@@ -308,6 +308,26 @@ input[type="number"] { -moz-appearance: textfield; }
           <span style="font-size:28px;">👥</span>
           <span style="font-size:16px;font-weight:700;">Conductores y Vehículos</span>
         </button>
+        <button class="modulo-home-btn" id="home-btn-backup">
+          <span style="font-size:28px;">💾</span>
+          <span style="font-size:16px;font-weight:700;">Copia de seguridad</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════ MÓDULO COPIA DE SEGURIDAD ═══════════ -->
+    <div id="module-backup" style="display:none;">
+      <div class="refuel-card">
+        <div class="section-title">Descargar copia</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, Flota, mantenimiento, Ropa y Limpieza) por si quieres guardar una copia.</div>
+        <button class="btn btn-secondary" id="btn-backup" style="width:100%;">💾 Descargar copia de seguridad</button>
+      </div>
+      <div class="refuel-card" style="margin-top:1rem;">
+        <div class="section-title">Restaurar copia</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Si alguna vez se pierden datos, puedes restaurarlos a partir de un archivo de copia de seguridad descargado antes. <strong>Solo se añade lo que falte</strong> — nunca se sobrescribe ni se borra nada de lo que ya exista.</div>
+        <input type="file" id="input-importar-backup" accept="application/json,.json" style="display:none;">
+        <button class="btn btn-secondary" id="btn-importar-backup" style="width:100%;">📂 Importar copia de seguridad</button>
+        <div id="import-backup-alert" class="alert" style="margin-top:0.75rem;white-space:pre-line;"></div>
       </div>
     </div>
 
@@ -449,16 +469,6 @@ input[type="number"] { -moz-appearance: textfield; }
       <button class="btn btn-ghost" id="btn-toggle-baja-mat" style="margin-top:1.25rem;font-size:13px;">🚗 Ver vehículos de baja (<span id="mat-baja-count">0</span>)</button>
       <div id="mat-baja-wrapper" style="display:none;margin-top:0.75rem;">
         <div id="mat-baja-list"></div>
-      </div>
-
-      <div class="refuel-card" style="margin-top:1.5rem;">
-        <div class="section-title">Copia de seguridad</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, Flota, mantenimiento, Ropa y Limpieza) por si quieres guardar una copia.</div>
-        <button class="btn btn-secondary" id="btn-backup" style="margin-bottom:1.25rem;">💾 Descargar copia de seguridad</button>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;border-top:1px solid var(--card-border);padding-top:1rem;">Si alguna vez se pierden datos, puedes restaurarlos a partir de un archivo de copia de seguridad descargado antes. <strong>Solo se añade lo que falte</strong> — nunca se sobrescribe ni se borra nada de lo que ya exista.</div>
-        <input type="file" id="input-importar-backup" accept="application/json,.json" style="display:none;">
-        <button class="btn btn-secondary" id="btn-importar-backup">📂 Importar copia de seguridad</button>
-        <div id="import-backup-alert" class="alert" style="margin-top:0.75rem;white-space:pre-line;"></div>
       </div>
     </div>
     </div>
@@ -1096,6 +1106,7 @@ async function initApp() {
   document.getElementById('home-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
   document.getElementById('home-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
   document.getElementById('home-btn-gestion').addEventListener('click', ()=>switchModule('gestion'));
+  document.getElementById('home-btn-backup').addEventListener('click', ()=>switchModule('backup'));
   document.getElementById('btn-cambiar-modulo').addEventListener('click', volverASeleccionModulo);
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
   document.getElementById('rtab-btn-historial').addEventListener('click', ()=>switchRopaTab('historial'));
@@ -2635,9 +2646,9 @@ window.switchGestionTab = (tab) => {
 // SELECTOR DE MÓDULO GASOIL / FLEET
 // ══════════════════════════════
 function switchModule(mod) {
-  // El módulo "gestion" (Conductores y Vehículos) se abre directo, sin código —
-  // solo entra el admin que ya ha iniciado sesión, no necesita una capa extra.
-  if (mod !== 'gestion' && !modulosDesbloqueados[mod]) {
+  // Los módulos "gestion" (Conductores y Vehículos) y "backup" (Copia de seguridad)
+  // se abren directo, sin código — solo entra el admin que ya ha iniciado sesión.
+  if (mod !== 'gestion' && mod !== 'backup' && !modulosDesbloqueados[mod]) {
     pedirCodigoModulo(mod);
     return;
   }
@@ -2647,8 +2658,9 @@ function switchModule(mod) {
   document.getElementById('module-fleet').style.display = mod==='fleet' ? 'block' : 'none';
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
   document.getElementById('module-gestion').style.display = mod==='gestion' ? 'block' : 'none';
+  document.getElementById('module-backup').style.display = mod==='backup' ? 'block' : 'none';
   document.getElementById('btn-cambiar-modulo').style.display = 'inline-block';
-  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', gestion:'👥 Conductores y Vehículos'};
+  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', gestion:'👥 Conductores y Vehículos', backup:'💾 Copia de seguridad'};
   document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); updatePendientesBadge(); }
@@ -2660,6 +2672,7 @@ function volverASeleccionModulo() {
   document.getElementById('module-fleet').style.display = 'none';
   document.getElementById('module-ropa').style.display = 'none';
   document.getElementById('module-gestion').style.display = 'none';
+  document.getElementById('module-backup').style.display = 'none';
   document.getElementById('modulo-home-screen').style.display = 'block';
   document.getElementById('btn-cambiar-modulo').style.display = 'none';
   document.getElementById('admin-topbar-title').textContent = 'NexoFlota';
