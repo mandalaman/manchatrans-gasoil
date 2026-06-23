@@ -392,6 +392,11 @@ input[type="number"] { -moz-appearance: textfield; }
           <label class="form-label">Código de acceso</label>
           <input class="form-input" type="text" id="new-driver-code" placeholder="Ej: 3062" autocomplete="off">
         </div>
+        <div style="margin-bottom:1.25rem;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
+          </label>
+        </div>
         <button class="btn btn-primary" id="btn-add-driver">Añadir conductor</button>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver conductores activos (<span id="driver-count">0</span>)</button>
@@ -595,7 +600,9 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group">
               <label class="form-label">Operario <span style="color:var(--danger)">*</span></label>
-              <input class="form-input" type="text" id="lim-inst-operario" placeholder="Nombre del operario">
+              <select class="form-input" id="lim-inst-operario">
+                <option value="">— Selecciona operario —</option>
+              </select>
             </div>
             <div class="form-group">
               <label class="form-label">Material empleado</label>
@@ -905,7 +912,6 @@ let limpiezaVehFiltroFechaDesde = '';
 let limpiezaVehFiltroFechaHasta = '';
 let limpiezaInstFiltroArea = '';
 const AREAS_LIMPIEZA = ['Nave','Oficina','Vestuarios','Baños','Comedor / Sala de descanso','Taller','Exteriores / Patio'];
-const OPERARIOS_LIMPIEZA_VEHICULOS = ['JOSE ALBERTO FERNANDEZ MONTERO','JAVIER DELGADO RODRIGO','ROBERTO DE LA FUENTE LOPEZ','LUIS JESUS DIAZ OLIVER'];
 let ropaEmpleadosCache = [];
 let ropaHistorialCache = [];
 let ropaEmpleadoSeleccionado = null;
@@ -1293,6 +1299,7 @@ function activarListenersTiempoReal() {
     if (currentUser && currentUser.isAdmin) {
       renderDriverList();
       populateFilters();
+      populateLimpiezaSelects();
     }
   });
 
@@ -2279,7 +2286,7 @@ function renderDriverList() {
 
   list.innerHTML = activos.map(d=>`
     <div class="driver-list-item">
-      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
+      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}${d.limpieza?' · 🧹 Limpieza':''}</div></div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         <button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>
@@ -2336,15 +2343,17 @@ window.reactivarDriver = async (code) => {
 window.addDriver = async () => {
   const name=document.getElementById('new-driver-name').value.trim();
   const code=document.getElementById('new-driver-code').value.trim();
+  const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
   if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
   if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
   try {
-    const nuevo = {name,code,activo:true};
+    const nuevo = {name,code,activo:true,limpieza};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
+    document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
     showAlert(al,`✓ Conductor "${name}" añadido`,false);
   } catch(e) { showAlert(al,'Error al guardar',true); }
@@ -2368,6 +2377,11 @@ window.editDriver = (code) => {
         <label class="form-label">Código de acceso</label>
         <input class="form-input" type="text" id="edit-driver-code" value="${d.code}">
       </div>
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="edit-driver-limpieza" ${d.limpieza?'checked':''} style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
+        </label>
+      </div>
       <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
         <button id="btn-save-driver-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
         <button onclick="document.getElementById('edit-driver-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
@@ -2379,21 +2393,26 @@ window.editDriver = (code) => {
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     const newCode = document.getElementById('edit-driver-code').value.trim();
+    const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
     if (!newName || !newCode) { showAlert(al,'Rellena nombre y código',true); return; }
     if (newCode !== code && driversCache.find(x=>x.code===newCode)) { showAlert(al,'Ese código ya existe',true); return; }
     try {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+      // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
+      // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza };
       if (newCode !== code) {
-        await fbSet(fbDoc(db,'conductores',newCode),{name:newName,code:newCode});
+        await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
       } else {
-        await fbSet(fbDoc(db,'conductores',code),{name:newName,code:newCode});
+        await fbSet(fbDoc(db,'conductores',code), actualizado);
       }
       const idx = driversCache.findIndex(x=>x.code===code);
-      if (idx>=0) driversCache[idx] = {name:newName, code:newCode};
+      if (idx>=0) driversCache[idx] = actualizado;
       document.getElementById('edit-driver-modal').remove();
       renderDriverList();
+      populateLimpiezaSelects();
     } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   });
 };
@@ -3001,10 +3020,18 @@ window.eliminarHistorialMant = async (id) => {
 // ══════════════════════════════
 // LIMPIEZA DE VEHÍCULOS E INSTALACIONES (FLEET)
 // ══════════════════════════════
+function getOperariosLimpieza() {
+  return driversCache
+    .filter(d => d.limpieza && d.activo !== false)
+    .map(d => d.name)
+    .sort((a,b) => a.localeCompare(b));
+}
+
 function populateLimpiezaSelects() {
   const selMat = document.getElementById('lim-veh-matricula');
   const selFiltroMat = document.getElementById('hist-limpieza-veh-filter-mat');
-  const selOperario = document.getElementById('lim-veh-operario');
+  const selOperarioVeh = document.getElementById('lim-veh-operario');
+  const selOperarioInst = document.getElementById('lim-inst-operario');
   const selArea = document.getElementById('lim-inst-area');
   const selFiltroArea = document.getElementById('hist-limpieza-inst-filter-area');
   // Para limpieza de vehículos: solo flota general (gasoil), sin remolques (matrículas "R-...")
@@ -3013,11 +3040,17 @@ function populateLimpiezaSelects() {
     .filter(v => v.gasoil && v.activo!==false && !v.propietario && !/^R-/i.test(v.matricula))
     .map(v => v.matricula);
   const todasMatLimpieza = ['TOROS CESAB', ...matLimpieza];
+  const operarios = getOperariosLimpieza();
   if (selMat) { selMat.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMatLimpieza.forEach(m=>{ selMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
   if (selFiltroMat) { selFiltroMat.innerHTML = '<option value="">Todos los vehículos</option>'; todasMatLimpieza.forEach(m=>{ selFiltroMat.innerHTML += `<option value="${m}">${m}</option>`; }); }
-  if (selOperario) { selOperario.innerHTML = '<option value="">— Selecciona operario —</option>'; OPERARIOS_LIMPIEZA_VEHICULOS.forEach(o=>{ selOperario.innerHTML += `<option value="${o}">${o}</option>`; }); }
+  if (selOperarioVeh) { selOperarioVeh.innerHTML = '<option value="">— Selecciona operario —</option>'; operarios.forEach(o=>{ selOperarioVeh.innerHTML += `<option value="${o}">${o}</option>`; }); }
+  if (selOperarioInst) { selOperarioInst.innerHTML = '<option value="">— Selecciona operario —</option>'; operarios.forEach(o=>{ selOperarioInst.innerHTML += `<option value="${o}">${o}</option>`; }); }
   if (selArea) { selArea.innerHTML = '<option value="">— Selecciona área —</option>'; AREAS_LIMPIEZA.forEach(a=>{ selArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
   if (selFiltroArea) { selFiltroArea.innerHTML = '<option value="">Todas las áreas</option>'; AREAS_LIMPIEZA.forEach(a=>{ selFiltroArea.innerHTML += `<option value="${a}">${a}</option>`; }); }
+  if (!operarios.length) {
+    const al = document.getElementById('lim-veh-alert');
+    if (al) showAlert(al, '⚠️ No hay ningún conductor marcado como disponible para limpieza. Márcalo en Gasoil → Conductores.', true);
+  }
 }
 
 function crearFirmaTactil(canvasId) {
@@ -3127,7 +3160,7 @@ async function guardarLimpiezaInstalacion() {
   const material = document.getElementById('lim-inst-material').value.trim();
   const obs = document.getElementById('lim-inst-obs').value.trim();
   if (!area) { showAlert(al,'⚠️ Selecciona el área',true); return; }
-  if (!operario) { showAlert(al,'⚠️ Escribe el nombre del operario',true); return; }
+  if (!operario) { showAlert(al,'⚠️ Selecciona el operario',true); return; }
   if (!firmaLimpiezaInst || !firmaLimpiezaInst.tieneTrazo) { showAlert(al,'⚠️ El operario debe firmar antes de guardar',true); return; }
 
   const btn = document.getElementById('btn-guardar-limpieza-inst');
@@ -3209,7 +3242,14 @@ window.editarLimpiezaVeh = (id) => {
       <div class="form-group"><label class="form-label">Fecha</label><input class="form-input" type="date" id="edit-lim-veh-fecha" value="${h.fecha||''}"></div>
       <div class="form-group"><label class="form-label">Operario</label>
         <select class="form-input" id="edit-lim-veh-operario">
-          ${OPERARIOS_LIMPIEZA_VEHICULOS.map(o=>`<option value="${o}" ${o===h.operario?'selected':''}>${o}</option>`).join('')}
+          ${(() => {
+            const ops = getOperariosLimpieza();
+            const extra = h.operario && !ops.includes(h.operario) ? [h.operario+' (inactivo)'] : [];
+            return [...extra, ...ops].map(o=>{
+              const valorReal = o.endsWith(' (inactivo)') ? h.operario : o;
+              return `<option value="${valorReal}" ${valorReal===h.operario?'selected':''}>${o}</option>`;
+            }).join('');
+          })()}
         </select>
       </div>
       <div class="form-group">
@@ -3519,7 +3559,18 @@ window.editarLimpiezaInst = (id) => {
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar limpieza — ${h.area}</div>
-      <div class="form-group"><label class="form-label">Operario</label><input class="form-input" id="edit-lim-inst-operario" value="${h.operario}"></div>
+      <div class="form-group"><label class="form-label">Operario</label>
+        <select class="form-input" id="edit-lim-inst-operario">
+          ${(() => {
+            const ops = getOperariosLimpieza();
+            const extra = h.operario && !ops.includes(h.operario) ? [h.operario+' (inactivo)'] : [];
+            return [...extra, ...ops].map(o=>{
+              const valorReal = o.endsWith(' (inactivo)') ? h.operario : o;
+              return `<option value="${valorReal}" ${valorReal===h.operario?'selected':''}>${o}</option>`;
+            }).join('');
+          })()}
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Material empleado</label><input class="form-input" id="edit-lim-inst-material" value="${h.material||''}"></div>
       <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-input" id="edit-lim-inst-obs">${h.obs||''}</textarea></div>
       <div style="display:flex;gap:0.5rem;">
