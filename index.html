@@ -453,8 +453,12 @@ input[type="number"] { -moz-appearance: textfield; }
 
       <div class="refuel-card" style="margin-top:1.5rem;">
         <div class="section-title">Copia de seguridad</div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, historial de Flota y mantenimiento) por si quieres guardar una copia.</div>
-        <button class="btn btn-secondary" id="btn-backup">💾 Descargar copia de seguridad</button>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">Descarga un archivo con todos los datos de la app (conductores, vehículos, repostajes, recargas, Flota, mantenimiento, Ropa y Limpieza) por si quieres guardar una copia.</div>
+        <button class="btn btn-secondary" id="btn-backup" style="margin-bottom:1.25rem;">💾 Descargar copia de seguridad</button>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;border-top:1px solid var(--card-border);padding-top:1rem;">Si alguna vez se pierden datos, puedes restaurarlos a partir de un archivo de copia de seguridad descargado antes. <strong>Solo se añade lo que falte</strong> — nunca se sobrescribe ni se borra nada de lo que ya exista.</div>
+        <input type="file" id="input-importar-backup" accept="application/json,.json" style="display:none;">
+        <button class="btn btn-secondary" id="btn-importar-backup">📂 Importar copia de seguridad</button>
+        <div id="import-backup-alert" class="alert" style="margin-top:0.75rem;white-space:pre-line;"></div>
       </div>
     </div>
     </div>
@@ -1268,6 +1272,8 @@ async function initApp() {
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchGestionTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
+  document.getElementById('btn-importar-backup').addEventListener('click', ()=>document.getElementById('input-importar-backup').click());
+  document.getElementById('input-importar-backup').addEventListener('change', (e)=>{ if(e.target.files[0]) importarBackup(e.target.files[0]); });
   document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
     const wrapper = document.getElementById('mat-list-wrapper');
     const btn = document.getElementById('btn-toggle-mat');
@@ -5127,7 +5133,12 @@ async function descargarBackup() {
       recargas: recargasCache,
       historialFlota: historialCache,
       mantenimiento: mantenimientoCache,
-      historialMantenimiento: historialMantCache
+      historialMantenimiento: historialMantCache,
+      ropaEmpleados: ropaEmpleadosCache,
+      ropaHistorial: ropaHistorialCache,
+      ropaInventario: ropaInventarioCache,
+      limpiezaVehiculos: limpiezaVehCache,
+      limpiezaInstalaciones: limpiezaInstCache
     };
     const blob = new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'});
     const url = URL.createObjectURL(blob);
@@ -5143,6 +5154,72 @@ async function descargarBackup() {
     alert('Error al generar la copia de seguridad: '+e.message);
   }
 }
+
+// Mapeo de cada bloque del backup a su base de datos / colección / cómo se identifica cada documento
+const BACKUP_COLECCIONES = [
+  { key:'conductores', db:'db', col:'conductores', cache:()=>driversCache, idField:'code' },
+  { key:'vehiculos', db:'db', col:'vehiculos', cache:()=>vehiculosCache, idField:'matricula' },
+  { key:'repostajes', db:'db', col:'repostajes', cache:()=>recordsCache, idField:'id' },
+  { key:'recargas', db:'db', col:'recargas', cache:()=>recargasCache, idField:'id' },
+  { key:'historialFlota', db:'dbFleet', col:'historial', cache:()=>historialCache, idField:'id' },
+  { key:'mantenimiento', db:'dbFleet', col:'mantenimiento', cache:()=>mantenimientoCache, idField:'id' },
+  { key:'historialMantenimiento', db:'dbFleet', col:'historialMantenimiento', cache:()=>historialMantCache, idField:'id' },
+  { key:'ropaEmpleados', db:'db', col:'ropaEmpleados', cache:()=>ropaEmpleadosCache, idField:'id' },
+  { key:'ropaHistorial', db:'db', col:'ropaHistorial', cache:()=>ropaHistorialCache, idField:'id' },
+  { key:'ropaInventario', db:'db', col:'ropaInventario', cache:()=>ropaInventarioCache, idField:'id' },
+  { key:'limpiezaVehiculos', db:'dbFleet', col:'limpiezaVehiculos', cache:()=>limpiezaVehCache, idField:'id' },
+  { key:'limpiezaInstalaciones', db:'dbFleet', col:'limpiezaInstalaciones', cache:()=>limpiezaInstCache, idField:'id' },
+];
+
+// Importa un archivo de copia de seguridad: SOLO añade lo que falte, nunca sobrescribe
+// ni borra nada de lo que ya existe en Firebase. Seguro de usar aunque haya datos nuevos.
+window.importarBackup = async (file) => {
+  if (!file) return;
+  const al = document.getElementById('import-backup-alert');
+  let texto, backup;
+  try { texto = await file.text(); backup = JSON.parse(texto); }
+  catch(e) { showAlert(al, '⚠️ El archivo no es una copia de seguridad válida (JSON)', true); return; }
+
+  if (!(await confirmarAccion('Esto añadirá a la app todo lo que falte del archivo seleccionado, SIN tocar ni borrar nada de lo que ya existe ahora mismo.\n\n¿Continuar con la importación?'))) return;
+
+  const btn = document.getElementById('btn-importar-backup');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Importando...';
+  const resumen = [];
+  try {
+    for (const conf of BACKUP_COLECCIONES) {
+      const items = backup[conf.key];
+      if (!Array.isArray(items) || !items.length) continue;
+      const targetDb = conf.db === 'dbFleet' ? dbFleet : db;
+      const idsExistentes = new Set(conf.cache().map(x => String(x[conf.idField])));
+      let añadidos = 0, existentes = 0, errores = 0;
+      for (const item of items) {
+        const idVal = item[conf.idField];
+        if (idVal === undefined || idVal === null || idVal === '') continue;
+        if (idsExistentes.has(String(idVal))) { existentes++; continue; }
+        try {
+          const datos = {...item};
+          delete datos.id; // "id" es metadato del documento, no se guarda como campo
+          await setDoc(doc(targetDb, conf.col, String(idVal)), datos);
+          añadidos++;
+          idsExistentes.add(String(idVal)); // evita duplicados si el propio archivo repite el id
+        } catch(e) { errores++; }
+      }
+      if (añadidos || existentes || errores) {
+        resumen.push(`${conf.key}: ${añadidos} restaurados, ${existentes} ya existían${errores?`, ${errores} con error`:''}`);
+      }
+    }
+    if (resumen.length) {
+      alert('✓ Importación completada:\n\n'+resumen.join('\n'));
+    } else {
+      showAlert(al, 'El archivo no contenía datos reconocibles.', true);
+    }
+  } catch(e) {
+    alert('Error al importar: '+e.message);
+  }
+  btn.disabled = false; btn.textContent = textoOriginal;
+  document.getElementById('input-importar-backup').value = '';
+};
 
 window.renderAdminRecords = renderAdminRecords;
 
