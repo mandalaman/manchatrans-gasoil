@@ -731,6 +731,16 @@ input[type="number"] { -moz-appearance: textfield; }
             <label class="form-label">Nombre de empresa</label>
             <input class="form-input" type="text" id="new-ropa-empresa" placeholder="Ej: MANCHEGA DE TRANSPORTES S.L.">
           </div>
+          <div class="form-group">
+            <label class="form-label">Categoría <span style="color:var(--danger)">*</span></label>
+            <select class="form-input" id="new-ropa-categoria">
+              <option value="">— Selecciona categoría —</option>
+              <option value="conductor">Conductor</option>
+              <option value="oficina">Oficina</option>
+              <option value="limpieza">Limpieza</option>
+            </select>
+          </div>
+          <div id="new-ropa-tallas-container"></div>
           <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir empleado</button>
           <button class="btn btn-ghost" id="btn-ver-plantilla-generica" style="width:100%;margin-top:0.6rem;font-size:13px;">👁 Ver plantilla en blanco</button>
         </div>
@@ -875,6 +885,15 @@ const ROPA_ARTICULOS = [
   {id:'polo_larga', label:'Polo manga larga'},
   {id:'sudadera', label:'Sudadera'},
 ];
+
+// Categorías de empleado para registrar sus tallas. Cada categoría solo pide
+// la talla de las prendas que de verdad usa (botas/chaleco/guantes no tienen
+// talla estándar, por eso no aparecen en ninguna categoría).
+const CATEGORIAS_ROPA_EMPLEADO = {
+  conductor: { label:'Conductor', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+  oficina:   { label:'Oficina',   articulos:['polo_corta','polo_larga','sudadera','chaqueta'] },
+  limpieza:  { label:'Limpieza',  articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+};
 
 const ROPA_ENTREGADO_CHECKS = {
   botas: [69.5, 297.8, 82.5, 310.8],
@@ -1115,6 +1134,7 @@ async function initApp() {
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
   document.getElementById('btn-zip-ropa').addEventListener('click', descargarZipRopa);
   document.getElementById('btn-add-ropa-emp').addEventListener('click', ()=>window.addRopaEmpleado());
+  document.getElementById('new-ropa-categoria').addEventListener('change', (e)=>renderTallasEmpleadoInputs('new-ropa-tallas-container', e.target.value, 'new-ropa'));
   document.getElementById('btn-ver-plantilla-generica').addEventListener('click', verPlantillaGenerica);
   document.getElementById('btn-toggle-ropa-emp').addEventListener('click', ()=>{
     const wrapper = document.getElementById('ropa-emp-list-wrapper');
@@ -4443,11 +4463,21 @@ function renderRopaEmpleadosList() {
   document.querySelectorAll('.ropa-emp-count').forEach(s=>s.textContent = activos.length);
   document.getElementById('ropa-emp-baja-count').textContent = bajas.length;
 
-  list.innerHTML = activos.map(e=>`
-    <div class="driver-list-item">
-      <div><div class="driver-info">👔 ${e.nombre}</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${e.empresa||''}</div></div>
-      <button class="btn-del" onclick="bajaRopaEmpleado('${e.id}')">Dar de baja</button>
-    </div>`).join('');
+  list.innerHTML = activos.map(e=>{
+    const catLabel = e.categoria ? (CATEGORIAS_ROPA_EMPLEADO[e.categoria]||{}).label : null;
+    const tallasTxt = resumenTallasEmpleado(e);
+    return `<div class="driver-list-item" style="flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">👔 ${e.nombre}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${e.empresa||''}${catLabel?' · '+catLabel:''}</div>
+        ${tallasTxt ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="editarRopaEmpleado('${e.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">✏️ Editar</button>
+        <button class="btn-del" onclick="bajaRopaEmpleado('${e.id}')">Dar de baja</button>
+      </div>
+    </div>`;
+  }).join('');
 
   bajaList.innerHTML = bajas.length === 0
     ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay empleados de baja</div>'
@@ -4461,28 +4491,133 @@ function renderRopaEmpleadosList() {
     </div>`).join('');
 }
 
+// Pinta los campos de talla correspondientes a la categoría elegida (Conductor/Oficina/Limpieza).
+// Se usa tanto en el alta de empleado nuevo como en el modal de edición.
+function renderTallasEmpleadoInputs(containerId, categoria, prefix, valoresActuales) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const cat = CATEGORIAS_ROPA_EMPLEADO[categoria];
+  if (!cat) { container.innerHTML = ''; return; }
+  container.innerHTML = `<div class="section-title" style="margin-top:0.75rem;">Tallas</div>` + cat.articulos.map(artId => {
+    const art = ROPA_ARTICULOS.find(a=>a.id===artId);
+    const tallasDisponibles = TALLAS_DROPDOWN_POR_ARTICULO[artId] || [];
+    const valorActual = (valoresActuales && valoresActuales[artId]) || '';
+    return `<div class="form-group">
+      <label class="form-label">${art.label}</label>
+      <select class="form-input" id="${prefix}-talla-${artId}">
+        <option value="">— Talla —</option>
+        ${tallasDisponibles.map(t=>`<option value="${t}" ${t===valorActual?'selected':''}>${t}</option>`).join('')}
+      </select>
+    </div>`;
+  }).join('');
+}
+
+// Lee los valores de talla actualmente seleccionados en los selects pintados por renderTallasEmpleadoInputs
+function leerTallasEmpleadoInputs(categoria, prefix) {
+  const cat = CATEGORIAS_ROPA_EMPLEADO[categoria];
+  if (!cat) return {};
+  const tallas = {};
+  cat.articulos.forEach(artId => {
+    const el = document.getElementById(`${prefix}-talla-${artId}`);
+    if (el && el.value) tallas[artId] = el.value;
+  });
+  return tallas;
+}
+
+// Resumen compacto de tallas para mostrar en la ficha del empleado, p.ej. "Sudadera: L · Pantalón largo: 44"
+function resumenTallasEmpleado(e) {
+  if (!e.categoria || !e.tallas) return '';
+  const cat = CATEGORIAS_ROPA_EMPLEADO[e.categoria];
+  if (!cat) return '';
+  const partes = cat.articulos
+    .filter(artId => e.tallas[artId])
+    .map(artId => `${ROPA_ARTICULOS.find(a=>a.id===artId).label}: ${e.tallas[artId]}`);
+  return partes.join(' · ');
+}
+
+
 window.addRopaEmpleado = async () => {
   const nombre = document.getElementById('new-ropa-nombre').value.trim().toUpperCase();
   const empresa = document.getElementById('new-ropa-empresa').value.trim();
+  const categoria = document.getElementById('new-ropa-categoria').value;
   const al = document.getElementById('ropa-emp-alert');
   if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+  if (!categoria) { showAlert(al,'Selecciona la categoría del empleado',true); return; }
 
   const id = nombre.replace(/[^a-zA-Z0-9]/g,'_');
   if (ropaEmpleadosCache.find(e=>e.id===id)) { showAlert(al,'Ya existe un empleado con ese nombre',true); return; }
 
+  const tallas = leerTallasEmpleadoInputs(categoria, 'new-ropa');
+
   try {
-    const nuevo = { nombre, empresa, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
+    const nuevo = { nombre, empresa, categoria, tallas, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
     await setDoc(doc(db, 'ropaEmpleados', id), nuevo);
     ropaEmpleadosCache.push({id, ...nuevo});
 
     document.getElementById('new-ropa-nombre').value = '';
     document.getElementById('new-ropa-empresa').value = '';
+    document.getElementById('new-ropa-categoria').value = '';
+    document.getElementById('new-ropa-tallas-container').innerHTML = '';
     populateRopaSelects();
     renderRopaEmpleadosList();
     showAlert(al, `✓ Empleado "${nombre}" añadido correctamente`, false);
   } catch(e) {
     showAlert(al, 'Error al guardar: '+e.message, true);
   }
+};
+
+window.editarRopaEmpleado = (id) => {
+  const e = ropaEmpleadosCache.find(x=>x.id===id);
+  if (!e) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-ropa-emp-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar empleado — ${e.nombre}</div>
+      <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="edit-ropa-emp-nombre" value="${e.nombre}"></div>
+      <div class="form-group"><label class="form-label">Nombre de empresa</label><input class="form-input" id="edit-ropa-emp-empresa" value="${e.empresa||''}"></div>
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <select class="form-input" id="edit-ropa-emp-categoria">
+          <option value="">— Selecciona categoría —</option>
+          <option value="conductor" ${e.categoria==='conductor'?'selected':''}>Conductor</option>
+          <option value="oficina" ${e.categoria==='oficina'?'selected':''}>Oficina</option>
+          <option value="limpieza" ${e.categoria==='limpieza'?'selected':''}>Limpieza</option>
+        </select>
+      </div>
+      <div id="edit-ropa-emp-tallas-container"></div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+        <button id="btn-save-ropa-emp-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-ropa-emp-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-ropa-emp-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', e.categoria, 'edit-ropa-emp', e.tallas);
+  document.getElementById('edit-ropa-emp-categoria').addEventListener('change', (ev)=>{
+    renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', ev.target.value, 'edit-ropa-emp', null);
+  });
+
+  document.getElementById('btn-save-ropa-emp-edit').addEventListener('click', async () => {
+    const nombre = document.getElementById('edit-ropa-emp-nombre').value.trim().toUpperCase();
+    const empresa = document.getElementById('edit-ropa-emp-empresa').value.trim();
+    const categoria = document.getElementById('edit-ropa-emp-categoria').value;
+    const al = document.getElementById('edit-ropa-emp-alert');
+    if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+    const tallas = categoria ? leerTallasEmpleadoInputs(categoria, 'edit-ropa-emp') : {};
+    try {
+      // Partimos del objeto completo "e" para no perder ningún campo (pdfBase64, activo, etc.)
+      const actualizado = { ...e, nombre, empresa, categoria, tallas };
+      await setDoc(doc(db,'ropaEmpleados',id), actualizado);
+      const idx = ropaEmpleadosCache.findIndex(x=>x.id===id);
+      if (idx>=0) ropaEmpleadosCache[idx] = actualizado;
+      document.getElementById('edit-ropa-emp-modal').remove();
+      populateRopaSelects();
+      renderRopaEmpleadosList();
+    } catch(err) { showAlert(al,'Error al guardar: '+err.message,true); }
+  });
 };
 
 window.bajaRopaEmpleado = async (id) => {
