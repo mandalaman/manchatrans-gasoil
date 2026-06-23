@@ -304,6 +304,10 @@ input[type="number"] { -moz-appearance: textfield; }
           <span style="font-size:28px;">👔</span>
           <span style="font-size:16px;font-weight:700;">Ropa</span>
         </button>
+        <button class="modulo-home-btn" id="home-btn-gestion">
+          <span style="font-size:28px;">👥</span>
+          <span style="font-size:16px;font-weight:700;">Conductores y Vehículos</span>
+        </button>
       </div>
     </div>
 
@@ -313,8 +317,6 @@ input[type="number"] { -moz-appearance: textfield; }
       <button class="btn btn-secondary atab-btn" id="atab-btn-registros">Registros</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-deposito">Depósito</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-consumo">Consumo</button>
-      <button class="btn btn-ghost atab-btn" id="atab-btn-conductores">Conductores</button>
-      <button class="btn btn-ghost atab-btn" id="atab-btn-vehiculos">Vehículos</button>
     </div>
 
     <!-- REGISTROS -->
@@ -378,9 +380,18 @@ input[type="number"] { -moz-appearance: textfield; }
       <div class="section-title">Consumo por vehículo (L/100km)</div>
       <div id="consumo-list"></div>
     </div>
+    </div>
+    <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
+
+    <!-- ═══════════ MÓDULO GESTIÓN (Conductores y Vehículos) ═══════════ -->
+    <div id="module-gestion" style="display:none;">
+    <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+      <button class="btn btn-secondary atab-btn" id="atab-btn-conductores">Conductores</button>
+      <button class="btn btn-ghost atab-btn" id="atab-btn-vehiculos">Vehículos</button>
+    </div>
 
     <!-- CONDUCTORES -->
-    <div id="atab-conductores" class="tab-pane">
+    <div id="atab-conductores" class="tab-pane active">
       <div id="admin-alert" class="alert"></div>
       <div class="refuel-card" style="margin-bottom:1rem;">
         <div class="section-title">Añadir conductor</div>
@@ -447,7 +458,7 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
     </div>
     </div>
-    <!-- ═══════════ FIN MÓDULO GASOIL ═══════════ -->
+    <!-- ═══════════ FIN MÓDULO GESTIÓN ═══════════ -->
 
     <!-- ═══════════ MÓDULO FLEET ═══════════ -->
     <div id="module-fleet" style="display:none;">
@@ -1080,6 +1091,7 @@ async function initApp() {
   document.getElementById('home-btn-gasoil').addEventListener('click', ()=>switchModule('gasoil'));
   document.getElementById('home-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
   document.getElementById('home-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
+  document.getElementById('home-btn-gestion').addEventListener('click', ()=>switchModule('gestion'));
   document.getElementById('btn-cambiar-modulo').addEventListener('click', volverASeleccionModulo);
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
   document.getElementById('rtab-btn-historial').addEventListener('click', ()=>switchRopaTab('historial'));
@@ -1125,7 +1137,7 @@ async function initApp() {
   document.getElementById('atab-btn-registros').addEventListener('click', ()=>switchAdminTab('registros'));
   document.getElementById('atab-btn-deposito').addEventListener('click', ()=>switchAdminTab('deposito'));
   document.getElementById('atab-btn-consumo').addEventListener('click', ()=>switchAdminTab('consumo'));
-  document.getElementById('atab-btn-conductores').addEventListener('click', ()=>switchAdminTab('conductores'));
+  document.getElementById('atab-btn-conductores').addEventListener('click', ()=>switchGestionTab('conductores'));
 
   // Admin tab buttons — Fleet
   document.getElementById('ftab-btn-historial').addEventListener('click', ()=>switchFleetTab('historial'));
@@ -1253,7 +1265,7 @@ async function initApp() {
   });
 
   // Vehículos (unificado)
-  document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchAdminTab('vehiculos'));
+  document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchGestionTab('vehiculos'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
   document.getElementById('btn-toggle-mat').addEventListener('click', ()=>{
@@ -2595,12 +2607,20 @@ window.editVehiculo = (mat) => {
 window.switchAdminTab = (tab) => {
   document.querySelectorAll('#module-gasoil .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('atab-'+tab).classList.add('active');
-  ['registros','deposito','consumo','conductores','vehiculos'].forEach(t=>{
+  ['registros','deposito','consumo'].forEach(t=>{
     document.getElementById('atab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='deposito') renderDeposito();
   if (tab==='consumo') renderConsumo();
   if (tab==='registros') { renderAdminStats(); if(document.getElementById('historial-wrapper').style.display!=='none') renderAdminRecords(); }
+};
+
+window.switchGestionTab = (tab) => {
+  document.querySelectorAll('#module-gestion .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('atab-'+tab).classList.add('active');
+  ['conductores','vehiculos'].forEach(t=>{
+    document.getElementById('atab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
+  });
   if (tab==='conductores' && (document.getElementById('driver-list-wrapper').style.display!=='none' || document.getElementById('driver-baja-wrapper').style.display!=='none')) renderDriverList();
   if (tab==='vehiculos' && (document.getElementById('mat-list-wrapper').style.display!=='none' || document.getElementById('mat-baja-wrapper').style.display!=='none')) renderMatList();
 };
@@ -2609,8 +2629,9 @@ window.switchAdminTab = (tab) => {
 // SELECTOR DE MÓDULO GASOIL / FLEET
 // ══════════════════════════════
 function switchModule(mod) {
-  // Siempre se pide el código del módulo, incluso para el admin general
-  if (!modulosDesbloqueados[mod]) {
+  // El módulo "gestion" (Conductores y Vehículos) se abre directo, sin código —
+  // solo entra el admin que ya ha iniciado sesión, no necesita una capa extra.
+  if (mod !== 'gestion' && !modulosDesbloqueados[mod]) {
     pedirCodigoModulo(mod);
     return;
   }
@@ -2619,17 +2640,20 @@ function switchModule(mod) {
   document.getElementById('module-gasoil').style.display = mod==='gasoil' ? 'block' : 'none';
   document.getElementById('module-fleet').style.display = mod==='fleet' ? 'block' : 'none';
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
+  document.getElementById('module-gestion').style.display = mod==='gestion' ? 'block' : 'none';
   document.getElementById('btn-cambiar-modulo').style.display = 'inline-block';
-  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
+  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', gestion:'👥 Conductores y Vehículos'};
   document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); updatePendientesBadge(); }
+  if (mod==='gestion') { switchGestionTab('conductores'); }
 }
 
 function volverASeleccionModulo() {
   document.getElementById('module-gasoil').style.display = 'none';
   document.getElementById('module-fleet').style.display = 'none';
   document.getElementById('module-ropa').style.display = 'none';
+  document.getElementById('module-gestion').style.display = 'none';
   document.getElementById('modulo-home-screen').style.display = 'block';
   document.getElementById('btn-cambiar-modulo').style.display = 'none';
   document.getElementById('admin-topbar-title').textContent = 'NexoFlota';
