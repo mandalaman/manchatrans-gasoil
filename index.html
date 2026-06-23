@@ -1713,12 +1713,6 @@ window.onMatriculaChange = () => {
   if (val==='TOROS CESAB') { document.getElementById('km-act').value=''; editarCampoRepostaje('km-act'); }
 };
 
-window.calcLitros = () => {
-  const ini = parseFloat(document.getElementById('lectura-ini').value)||0;
-  const fin = parseFloat(document.getElementById('lectura-fin').value)||0;
-  document.getElementById('litros-calc').textContent = Math.max(0,fin-ini).toFixed(1);
-};
-
 window.submitRepostaje = async () => {
   const matricula = document.getElementById('matricula').value.trim();
   const kmAct = parseFloat(document.getElementById('km-act').value);
