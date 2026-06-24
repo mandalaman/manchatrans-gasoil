@@ -459,9 +459,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <option value="">Todas las empresas</option>
           </select>
         </div>
-        <button class="btn btn-secondary" id="btn-exportar-pdf-empleados" style="margin-bottom:0.5rem;width:100%;">📄 Exportar PDF del listado filtrado</button>
-        <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="margin-bottom:0.5rem;width:100%;">📏 Exportar PDF de tallas (para preparar ropa)</button>
-        <button class="btn btn-ghost" id="btn-vincular-tallas" style="margin-bottom:1rem;width:100%;font-size:13px;" onclick="vincularTallasManualmente()">🔄 Vincular tallas antiguas de Ropa</button>
+        <div class="two-col" style="margin-bottom:1rem;">
+          <button class="btn btn-secondary" id="btn-exportar-pdf-empleados" style="font-size:13px;">📄 PDF listado</button>
+          <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="font-size:13px;">📏 PDF tallas</button>
+        </div>
         <div id="driver-list"></div>
       </div>
 
