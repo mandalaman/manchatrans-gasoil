@@ -2585,7 +2585,8 @@ window.addDriver = async () => {
   try {
     const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil,sinCodigo:!tieneCodigoReal};
     await setDoc(doc(db,'conductores',code),nuevo);
-    driversCache.push(nuevo);
+    // No tocamos driversCache a mano: el listener onSnapshot de conductores ya lo
+    // actualiza solo. Si lo hacemos aquí también, el empleado aparece duplicado.
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
     document.getElementById('new-driver-dni').value='';
@@ -2946,6 +2947,8 @@ function actualizarCachesVehiculos() {
 }
 
 window.addMat = async () => {
+  const btnAddMat = document.getElementById('btn-add-mat');
+  if (btnAddMat.disabled) return; // evita crear el vehículo dos veces por doble clic
   const matInput = document.getElementById('new-mat');
   const mat = matInput.value.trim().toUpperCase();
   const gasoil = document.getElementById('new-mat-gasoil').checked;
@@ -2954,10 +2957,11 @@ window.addMat = async () => {
   if (!mat) { showAlert(al,'Escribe una matrícula',true); return; }
   if (vehiculosCache.find(v=>v.matricula===mat)) { showAlert(al,'Esa matrícula ya existe',true); return; }
   if (!gasoil && !flota) { showAlert(al,'Marca al menos Gasoil o Flota',true); return; }
+  btnAddMat.disabled = true; const textoBtnMatOriginal = btnAddMat.textContent; btnAddMat.textContent = 'Guardando...';
   try {
     const nuevo = {matricula:mat, gasoil, flota, activo:true};
     await setDoc(doc(db,'vehiculos',mat),nuevo);
-    vehiculosCache.push(nuevo);
+    // No tocamos vehiculosCache a mano: el onSnapshot de vehículos ya lo actualiza solo.
     matInput.value='';
     document.getElementById('new-mat-gasoil').checked = true;
     document.getElementById('new-mat-flota').checked = true;
@@ -2965,6 +2969,7 @@ window.addMat = async () => {
     actualizarCachesVehiculos();
     showAlert(al,`✓ Vehículo "${mat}" añadido`,false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  btnAddMat.disabled = false; btnAddMat.textContent = textoBtnMatOriginal;
 };
 
 window.editVehiculo = (mat) => {
@@ -5467,7 +5472,7 @@ window.addRopaEmpleado = async () => {
     // enlazados 1 a 1, y nombre/empresa/categoría se leen siempre en vivo desde ahí.
     const nuevo = { conductorCode: codigo, tallas, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
     await setDoc(doc(db, 'ropaEmpleados', codigo), nuevo);
-    ropaEmpleadosCache.push({id:codigo, ...nuevo});
+    // No tocamos ropaEmpleadosCache a mano: el onSnapshot ya lo actualiza solo.
 
     document.getElementById('new-ropa-empleado').value = '';
     document.getElementById('new-ropa-empleado-info').innerHTML = '';
