@@ -2462,7 +2462,7 @@ function renderDriverList() {
     return `<div class="driver-list-item" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
         <div class="driver-info">${d.name}</div>
-        <div class="driver-code">Código: ${d.code}${d.limpieza?' · 🧹 Limpieza':''}</div>
+        <div class="driver-code">${d.sinCodigo ? 'Sin código de acceso' : 'Código: '+d.code}${d.limpieza?' · 🧹 Limpieza':''}</div>
         ${datosExtra ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">${datosExtra}</div>` : ''}
         ${sinGasoil}
         ${tallasTxt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
@@ -2479,7 +2479,7 @@ function renderDriverList() {
     ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay empleados de baja</div>'
     : bajas.map(d=>`
     <div class="driver-list-item" style="opacity:0.7;">
-      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
+      <div><div class="driver-info">${d.name}</div><div class="driver-code">${d.sinCodigo ? 'Sin código de acceso' : 'Código: '+d.code}</div></div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         <button onclick="reactivarDriver('${d.code}')" style="padding:4px 10px;background:var(--success);color:#111;border:none;border-radius:var(--radius-sm);font-size:12px;cursor:pointer;font-weight:600;">Reactivar</button>
@@ -2551,7 +2551,7 @@ async function guardarTallasParaEmpleado(code, categoria, prefix) {
 
 window.addDriver = async () => {
   const name=document.getElementById('new-driver-name').value.trim();
-  const code=document.getElementById('new-driver-code').value.trim();
+  let code=document.getElementById('new-driver-code').value.trim();
   const dni=document.getElementById('new-driver-dni').value.trim().toUpperCase();
   const categoria=document.getElementById('new-driver-categoria').value;
   const empresa=document.getElementById('new-driver-empresa').value;
@@ -2561,10 +2561,15 @@ window.addDriver = async () => {
   const permisoGasoil=document.getElementById('new-driver-permiso-gasoil').checked;
   const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
-  if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
-  if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
+  if (!name) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+  if (code && driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
+  // No todos los empleados necesitan código de acceso (ej. Oficina, Taller...). Si se deja
+  // en blanco, generamos uno interno único para identificarlo, pero no se le comunica a
+  // nadie y no sirve para entrar a Repostar (no es un código real, no es adivinable).
+  const tieneCodigoReal = !!code;
+  if (!code) code = 'SC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
   try {
-    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil};
+    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil,sinCodigo:!tieneCodigoReal};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
@@ -2639,7 +2644,7 @@ window.editDriver = (code) => {
       </div>
       <div class="form-group">
         <label class="form-label">Código de acceso</label>
-        <input class="form-input" type="text" id="edit-driver-code" value="${d.code}">
+        <input class="form-input" type="text" id="edit-driver-code" value="${d.sinCodigo?'':d.code}" placeholder="Déjalo en blanco si no necesita código">
       </div>
       <div class="form-group">
         <label class="form-label">DNI</label>
@@ -2693,7 +2698,7 @@ window.editDriver = (code) => {
 
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
-    const newCode = document.getElementById('edit-driver-code').value.trim();
+    let newCode = document.getElementById('edit-driver-code').value.trim();
     const newDni = document.getElementById('edit-driver-dni').value.trim().toUpperCase();
     const newCategoria = document.getElementById('edit-driver-categoria').value;
     const newEmpresa = document.getElementById('edit-driver-empresa').value;
@@ -2703,13 +2708,15 @@ window.editDriver = (code) => {
     const newPermisoGasoil = document.getElementById('edit-driver-permiso-gasoil').checked;
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
-    if (!newName || !newCode) { showAlert(al,'Rellena nombre y código',true); return; }
-    if (newCode !== code && driversCache.find(x=>x.code===newCode)) { showAlert(al,'Ese código ya existe',true); return; }
+    if (!newName) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+    if (newCode && newCode !== code && driversCache.find(x=>x.code===newCode)) { showAlert(al,'Ese código ya existe',true); return; }
+    const tieneCodigoReal = !!newCode;
+    if (!newCode) newCode = 'SC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
     try {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, permisoGasoil:newPermisoGasoil };
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, permisoGasoil:newPermisoGasoil, sinCodigo:!tieneCodigoReal };
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
