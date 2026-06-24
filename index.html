@@ -476,6 +476,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="ftab-btn-historial">Cambio/Reparación</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-mantenimiento">Mantenimiento</button>
+        <button class="btn btn-ghost atab-btn" id="ftab-btn-mant-conductores">👤 ADR/CAP</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-limpieza">🧹 Limpieza</button>
       </div>
 
@@ -540,6 +541,36 @@ input[type="number"] { -moz-appearance: textfield; }
           </select>
         </div>
         <div id="hist-mant-list"></div>
+      </div>
+
+      <!-- ADR/CAP POR CONDUCTOR -->
+      <div id="ftab-mant-conductores" class="tab-pane">
+        <div class="section-title">ADR y CAP por conductor</div>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona conductor —</option>
+          </select>
+        </div>
+        <div id="mantcond-alertas"></div>
+        <div id="mantcond-list"></div>
+      </div>
+
+      <!-- HISTORIAL DE ADR/CAP -->
+      <div id="ftab-hist-mant-cond" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Historial de ADR/CAP</div>
+          <button class="btn-sm" id="btn-volver-mant-cond">← Volver</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="hist-mant-cond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">Todos los conductores</option>
+          </select>
+        </div>
+        <div id="hist-mant-cond-list"></div>
       </div>
 
       <!-- LIMPIEZA -->
@@ -856,6 +887,8 @@ const DEPOSITO_CAP = 10000;
 const ALERTA_MIN = 1000;
 const DIAS_AVISO = 30;
 const REVISIONES = ['ITV','Tacógrafo'];
+const DIAS_AVISO_CONDUCTOR = 90;
+const REVISIONES_CONDUCTOR = ['ADR','CAP'];
 
 const DEFAULT_MATRICULAS = [
   '0044-HBJ','0328-MMR','0390-LWZ','0608-KFG','0620-MPR','0633-NGH',
@@ -975,6 +1008,10 @@ let remolquesCache = [];
 let historialCache = [];
 let mantenimientoCache = [];
 let historialMantCache = [];
+let mantConductoresCache = [];
+let historialMantCondCache = [];
+let mantCondFiltroCod = '';
+let histMantCondFiltroCod = '';
 let limpiezaVehCache = [];
 let limpiezaInstCache = [];
 let limpiezaVehFiltroMat = '';
@@ -1079,6 +1116,14 @@ async function initApp() {
     // Cargar historial de mantenimiento (Fleet)
     const hmSnap = await getDocs(query(collection(dbFleet, 'historialMantenimiento'), orderBy('fecha', 'desc')));
     historialMantCache = hmSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar ADR/CAP de conductores (Fleet)
+    const mcSnap = await getDocs(collection(dbFleet, 'mantenimientoConductores'));
+    mantConductoresCache = mcSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar historial de ADR/CAP de conductores (Fleet)
+    const hmcSnap = await getDocs(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')));
+    historialMantCondCache = hmcSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Cargar limpieza de vehículos (Fleet)
     const lvSnap = await getDocs(query(collection(dbFleet, 'limpiezaVehiculos'), orderBy('fecha', 'desc')));
@@ -1234,6 +1279,22 @@ async function initApp() {
   populateMantMatriculas();
   document.getElementById('mant-filter-mat').addEventListener('change', (e)=>{ mantFiltroMat=e.target.value; renderMantenimiento(); });
 
+  // ADR/CAP de conductores (Flota)
+  document.getElementById('ftab-btn-mant-conductores').addEventListener('click', ()=>switchFleetTab('mant-conductores'));
+  document.getElementById('mantcond-filter-cod').addEventListener('change', (e)=>{ mantCondFiltroCod=e.target.value; renderMantenimientoConductores(); });
+  document.getElementById('btn-ver-pendientes-cond').addEventListener('click', verPendientesMesCond);
+  document.getElementById('btn-ver-hist-mant-cond').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-hist-mant-cond').classList.add('active');
+    populateHistMantCondConductores();
+    renderHistMantCond();
+  });
+  document.getElementById('btn-volver-mant-cond').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-mant-conductores').classList.add('active');
+  });
+  document.getElementById('hist-mant-cond-filter-cod').addEventListener('change', (e)=>{ histMantCondFiltroCod=e.target.value; renderHistMantCond(); });
+
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
   document.getElementById('lim-subtab-btn-vehiculos').addEventListener('click', ()=>switchLimpiezaSubtab('vehiculos'));
@@ -1385,6 +1446,8 @@ function activarListenersTiempoReal() {
       renderDriverList();
       populateFilters();
       populateLimpiezaSelects();
+      populateMantCondConductores();
+      populateHistMantCondConductores();
     }
   });
 
@@ -1436,6 +1499,18 @@ function activarListenersTiempoReal() {
   onSnapshot(query(collection(dbFleet, 'historialMantenimiento'), orderBy('fecha', 'desc')), (snap) => {
     historialMantCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistorialMant();
+  });
+
+  // ADR/CAP de conductores (Flota)
+  onSnapshot(collection(dbFleet, 'mantenimientoConductores'), (snap) => {
+    mantConductoresCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderMantenimientoConductores(); updateFleetBadge(); }
+  });
+
+  // Historial de ADR/CAP de conductores (Flota)
+  onSnapshot(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')), (snap) => {
+    historialMantCondCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistMantCond();
   });
 
   // Limpieza de vehículos (Flota)
@@ -2751,11 +2826,12 @@ function switchRopaTab(tab) {
 function switchFleetTab(tab) {
   document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('ftab-'+tab).classList.add('active');
-  ['historial','mantenimiento','limpieza'].forEach(t=>{
+  ['historial','mantenimiento','mant-conductores','limpieza'].forEach(t=>{
     document.getElementById('ftab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderHistorial();
   if (tab==='mantenimiento') renderMantenimiento();
+  if (tab==='mant-conductores') { populateMantCondConductores(); renderMantenimientoConductores(); }
   if (tab==='limpieza') {
     document.querySelectorAll('#ftab-limpieza .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('lim-sub-vehiculos').classList.add('active');
@@ -2780,6 +2856,11 @@ function updateFleetBadge() {
   const hoy=new Date(); let alertas=0;
   mantenimientoCache.forEach(m=>{ REVISIONES.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO) alertas++; } }); });
   document.getElementById('ftab-btn-mantenimiento').textContent=alertas>0?`Mantenimiento 🔴${alertas}`:'Mantenimiento';
+
+  let alertasCond=0;
+  mantConductoresCache.forEach(m=>{ REVISIONES_CONDUCTOR.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_CONDUCTOR) alertasCond++; } }); });
+  const btnCond = document.getElementById('ftab-btn-mant-conductores');
+  if (btnCond) btnCond.textContent = alertasCond>0?`👤 ADR/CAP 🔴${alertasCond}`:'👤 ADR/CAP';
 }
 
 // ══════════════════════════════
@@ -2802,8 +2883,9 @@ async function guardarHistorial() {
   const now = new Date();
   const registro = { matricula: mat, comentarios, fecha: now.toISOString(), fechaStr: now.toLocaleDateString('es-ES'), horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) };
   try {
-    const ref = await addDoc(collection(dbFleet,'historial'), registro);
-    historialCache.unshift({id:ref.id,...registro});
+    await addDoc(collection(dbFleet,'historial'), registro);
+    // No tocamos historialCache a mano: el onSnapshot ya lo actualiza (si lo
+    // hacemos también aquí, el registro se duplica en la lista).
     document.getElementById('hist-matricula').value='';
     document.getElementById('hist-comentarios').value='';
     showAlert(al,'✓ Registro guardado correctamente',false);
@@ -3014,8 +3096,8 @@ window.editMant = (mat, rev) => {
           ? `${rev} renovada. Próxima revisión: ${new Date(fecha).toLocaleDateString('es-ES')}`
           : `${rev} registrada por primera vez. Próxima revisión: ${new Date(fecha).toLocaleDateString('es-ES')}`;
         const registro = { matricula: mat, revision: rev, descripcion, fecha: now.toISOString(), fechaStr: now.toLocaleDateString('es-ES'), horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) };
-        const ref = await addDoc(collection(dbFleet,'historialMantenimiento'), registro);
-        historialMantCache.unshift({id:ref.id,...registro});
+        await addDoc(collection(dbFleet,'historialMantenimiento'), registro);
+        // No tocamos historialMantCache a mano: el onSnapshot ya lo actualiza.
       }
 
       document.getElementById('mant-modal').remove();
@@ -3106,6 +3188,324 @@ window.eliminarHistorialMant = async (id) => {
     historialMantCache = historialMantCache.filter(h=>h.id!==id);
     renderHistorialMant();
   } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+// ══════════════════════════════
+// ADR/CAP DE CONDUCTORES (FLEET)
+// ══════════════════════════════
+
+function populateMantCondConductores() {
+  const sel = document.getElementById('mantcond-filter-cod');
+  if (!sel) return;
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const valorActual = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona conductor —</option>';
+  activos.forEach(d=>{ sel.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+  if (activos.find(d=>d.code===valorActual)) sel.value = valorActual;
+}
+
+function populateHistMantCondConductores() {
+  const sel = document.getElementById('hist-mant-cond-filter-cod');
+  if (!sel) return;
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">Todos los conductores</option>';
+  activos.forEach(d=>{ sel.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+}
+
+function nombreConductorPorCodigo(cod) {
+  const d = driversCache.find(x=>x.code===cod);
+  return d ? d.name : cod;
+}
+
+function renderMantenimientoConductores() {
+  const list=document.getElementById('mantcond-list');
+  if (!list) return;
+  const alertasEl=document.getElementById('mantcond-alertas');
+  const hoy=new Date();
+  let alertasHtml='';
+
+  mantConductoresCache.forEach(m=>{
+    REVISIONES_CONDUCTOR.forEach(rev=>{
+      const key=revKey(rev);
+      if (!m[key]) return;
+      const fecha=new Date(m[key]);
+      const dias=Math.ceil((fecha-hoy)/(1000*60*60*24));
+      if (dias<=DIAS_AVISO_CONDUCTOR) {
+        const color=dias<0?'var(--danger)':dias<=5?'#ff6b00':'var(--warning)';
+        const txt=dias<0?`Vencida hace ${Math.abs(dias)} días`:`Vence en ${dias} días`;
+        alertasHtml+=`<div style="background:#3a1e1e;border:1px solid ${color};border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:0.5rem;font-size:13px;">⚠️ <strong>${nombreConductorPorCodigo(m.id)}</strong> — ${rev}: <span style="color:${color};font-weight:700;">${txt}</span> (${fecha.toLocaleDateString('es-ES')})</div>`;
+      }
+    });
+  });
+  alertasEl.innerHTML=alertasHtml?`<div style="margin-bottom:1.25rem;">${alertasHtml}</div>`:'';
+
+  if (!mantCondFiltroCod) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">👤</div>Selecciona un conductor arriba para ver su ADR y CAP</div>';
+    return;
+  }
+
+  const cod = mantCondFiltroCod;
+  const m = mantConductoresCache.find(x=>x.id===cod) || {id:cod};
+  let tieneAlerta = false;
+  REVISIONES_CONDUCTOR.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_CONDUCTOR) tieneAlerta=true; } });
+  const safeId = cod.replace(/[^a-zA-Z0-9]/g,'_');
+  list.innerHTML = `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+    <div onclick="toggleMantCond('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
+      <span style="font-size:14px;font-weight:600;">👤 ${nombreConductorPorCodigo(cod)} ${tieneAlerta?'<span style="color:var(--danger);font-size:12px;">⚠️</span>':''}</span>
+      <span id="arrow-cond-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
+    </div>
+    <div id="mantcond-body-${safeId}" style="display:block;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+      ${REVISIONES_CONDUCTOR.map(rev=>{
+        const key=revKey(rev);
+        const keyUltima=key+'_ultima';
+        const fechaStr=m[key];
+        const fecha=fechaStr?new Date(fechaStr):null;
+        const fechaUltimaStr=m[keyUltima];
+        const dias=fecha?Math.ceil((fecha-hoy)/(1000*60*60*24)):null;
+        let color='var(--text-muted)';
+        if(dias!==null){ if(dias<0) color='var(--danger)'; else if(dias<=DIAS_AVISO_CONDUCTOR) color='var(--warning)'; else color='var(--success)'; }
+        return `<div class="mant-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+          <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
+            <span style="font-weight:500;">${rev} ${dias!==null && dias<=DIAS_AVISO_CONDUCTOR?`<span style="background:${color};color:#111;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px;">${dias<0?'VENCIDA':'PRÓXIMA'}</span>`:''}</span>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <span style="color:${color};font-size:13px;">${fecha?fecha.toLocaleDateString('es-ES'):'Sin fecha'}</span>
+              <button class="btn-sm" onclick="editMantCond('${cod}','${rev}')">Editar</button>
+            </div>
+          </div>
+          ${dias!==null?`<div style="font-size:12px;color:${color};font-weight:600;">${dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`}</div>`:''}
+          ${fechaUltimaStr?`<div style="font-size:11px;color:var(--text-muted);">Última vez: ${new Date(fechaUltimaStr).toLocaleDateString('es-ES')}</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+window.toggleMantCond = (safeId) => {
+  const body = document.getElementById('mantcond-body-'+safeId);
+  const arrow = document.getElementById('arrow-cond-'+safeId);
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; }
+};
+
+window.editMantCond = (cod, rev) => {
+  const m = mantConductoresCache.find(x=>x.id===cod) || {id:cod};
+  const key=revKey(rev);
+  const keyUltima=key+'_ultima';
+  const tieneFecha = !!m[key];
+  const modal=document.createElement('div');
+  modal.id='mant-cond-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML=`
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">👤 ${rev} — ${nombreConductorPorCodigo(cod)}</div>
+      <div class="form-group"><label class="form-label">Última vez que se renovó</label>
+      <input class="form-input" type="date" id="mant-cond-fecha-ultima" value="${m[keyUltima]||''}"></div>
+      <div class="form-group"><label class="form-label">Próxima fecha de caducidad</label>
+      <input class="form-input" type="date" id="mant-cond-fecha" value="${m[key]||''}"></div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-mant-cond" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('mant-cond-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      ${tieneFecha ? `<button id="btn-delete-mant-cond" style="width:100%;margin-top:0.75rem;padding:0.7rem;background:none;color:var(--danger);border:1px solid var(--danger);border-radius:var(--radius-sm);font-size:14px;cursor:pointer;">🗑 Eliminar este ${rev}</button>` : ''}
+      <div id="mant-cond-modal-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-save-mant-cond').addEventListener('click', async ()=>{
+    const fecha=document.getElementById('mant-cond-fecha').value;
+    const fechaUltima=document.getElementById('mant-cond-fecha-ultima').value;
+    const al=document.getElementById('mant-cond-modal-alert');
+    if (!fecha) { showAlert(al,'Selecciona la próxima fecha',true); return; }
+    try {
+      const fechaAnterior = m[key];
+      const idx=mantConductoresCache.findIndex(x=>x.id===cod);
+      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null};
+      if(idx>=0) { Object.assign(mantConductoresCache[idx],updates); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),mantConductoresCache[idx]); }
+      else { const nuevo={...updates}; mantConductoresCache.push({id:cod,...nuevo}); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),nuevo); }
+
+      if (fecha !== fechaAnterior) {
+        const now = new Date();
+        const descripcion = fechaAnterior
+          ? `${rev} renovado. Próxima caducidad: ${new Date(fecha).toLocaleDateString('es-ES')}`
+          : `${rev} registrado por primera vez. Próxima caducidad: ${new Date(fecha).toLocaleDateString('es-ES')}`;
+        const registro = { codigo: cod, revision: rev, descripcion, fecha: now.toISOString(), fechaStr: now.toLocaleDateString('es-ES'), horaStr: now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}) };
+        await addDoc(collection(dbFleet,'historialMantConductores'), registro);
+        // No tocamos historialMantCondCache a mano: el onSnapshot ya lo actualiza.
+      }
+
+      document.getElementById('mant-cond-modal').remove();
+      renderMantenimientoConductores(); updateFleetBadge();
+    } catch(e) { showAlert(al,'Error: '+e.message,true); }
+  });
+  const btnDelete = document.getElementById('btn-delete-mant-cond');
+  if (btnDelete) {
+    btnDelete.addEventListener('click', async () => {
+      if (!(await confirmarAccion(`¿Eliminar la fecha de ${rev} de ${nombreConductorPorCodigo(cod)}? Esto no borra el historial de renovaciones pasadas, solo quita la fecha actual.`))) return;
+      const al=document.getElementById('mant-cond-modal-alert');
+      try {
+        const idx=mantConductoresCache.findIndex(x=>x.id===cod);
+        if (idx>=0) {
+          mantConductoresCache[idx][key] = null;
+          mantConductoresCache[idx][keyUltima] = null;
+          await setDoc(doc(dbFleet,'mantenimientoConductores',cod), mantConductoresCache[idx]);
+        }
+        document.getElementById('mant-cond-modal').remove();
+        renderMantenimientoConductores(); updateFleetBadge();
+      } catch(e) { showAlert(al,'Error: '+e.message,true); }
+    });
+  }
+};
+
+function renderHistMantCond() {
+  const list = document.getElementById('hist-mant-cond-list');
+  if (!list) return;
+  let f = histMantCondFiltroCod ? historialMantCondCache.filter(h=>h.codigo===histMantCondFiltroCod) : historialMantCondCache;
+  if (!f.length) { list.innerHTML='<div class="empty-state"><div class="empty-icon">🔧</div>No hay renovaciones registradas'+(histMantCondFiltroCod?' para este conductor':'')+'</div>'; return; }
+  list.innerHTML = f.map(h=>`
+    <div class="record">
+      <div class="record-top">
+        <div style="font-weight:600;font-size:14px;">👤 ${nombreConductorPorCodigo(h.codigo)} — ${h.revision}</div>
+        <div style="display:flex;flex-direction:column;gap:0.3rem;">
+          <button class="btn-sm" onclick="editarHistMantCond('${h.id}')">✏️ Editar</button>
+          <button class="btn-sm btn-sm-danger" onclick="eliminarHistMantCond('${h.id}')">🗑 Eliminar</button>
+        </div>
+      </div>
+      <div style="font-size:14px;margin-bottom:0.4rem;">✓ ${h.descripcion}</div>
+      <div class="record-meta"><span>📅 Registrado el ${h.fechaStr} ${h.horaStr}</span></div>
+    </div>`).join('');
+}
+
+window.editarHistMantCond = (id) => {
+  const h = historialMantCondCache.find(x=>x.id===id);
+  if (!h) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-hist-mant-cond-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar registro — ${nombreConductorPorCodigo(h.codigo)}</div>
+      <div class="form-group">
+        <label class="form-label">Descripción</label>
+        <textarea class="form-input" id="edit-hist-mant-cond-desc">${h.descripcion}</textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-hist-mant-cond-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-hist-mant-cond-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  document.getElementById('btn-save-hist-mant-cond-edit').addEventListener('click', async () => {
+    const descripcion = document.getElementById('edit-hist-mant-cond-desc').value.trim();
+    if (!descripcion) { alert('Escribe la descripción'); return; }
+    try {
+      await updateDoc(doc(dbFleet,'historialMantConductores',id), {descripcion});
+      const idx = historialMantCondCache.findIndex(x=>x.id===id);
+      if (idx>=0) historialMantCondCache[idx].descripcion = descripcion;
+      document.getElementById('edit-hist-mant-cond-modal').remove();
+      renderHistMantCond();
+    } catch(e) { alert('Error: '+e.message); }
+  });
+};
+
+window.eliminarHistMantCond = async (id) => {
+  if (!(await confirmarAccion('¿Eliminar este registro del historial de ADR/CAP?'))) return;
+  try {
+    await deleteDoc(doc(dbFleet,'historialMantConductores',id));
+    historialMantCondCache = historialMantCondCache.filter(h=>h.id!==id);
+    renderHistMantCond();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+window.verPendientesMesCond = () => {
+  const hoy = new Date();
+  window._pendCondMes = hoy.getMonth();
+  window._pendCondAnio = hoy.getFullYear();
+
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const anioActual = hoy.getFullYear();
+  const opcionesMes = meses.map((m,i)=>`<option value="${i}" ${i===window._pendCondMes?'selected':''}>${m}</option>`).join('');
+  const opcionesAnio = [anioActual-1, anioActual, anioActual+1, anioActual+2].map(a=>`<option value="${a}" ${a===window._pendCondAnio?'selected':''}>${a}</option>`).join('');
+
+  const modal = document.createElement('div');
+  modal.id = 'pendientes-cond-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:flex;align-items:flex-start;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:450px;margin:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+        <div style="font-size:17px;font-weight:700;color:var(--accent);">📅 Pendientes ADR/CAP</div>
+        <button onclick="document.getElementById('pendientes-cond-modal').remove()" style="background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:6px 12px;font-size:13px;cursor:pointer;">✕</button>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+        <select class="form-input" id="pend-cond-sel-mes" style="font-size:14px;padding:0.6rem;flex:1.3;">${opcionesMes}</select>
+        <select class="form-input" id="pend-cond-sel-anio" style="font-size:14px;padding:0.6rem;flex:0.8;">${opcionesAnio}</select>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.25rem;">
+        <button class="btn btn-secondary" id="pend-cond-btn-todos" style="flex:1;padding:0.5rem;font-size:13px;" onclick="filtrarPendientesMesCond('todos')">Todos</button>
+        <button class="btn btn-ghost" id="pend-cond-btn-adr" style="flex:1;padding:0.5rem;font-size:13px;" onclick="filtrarPendientesMesCond('ADR')">ADR</button>
+        <button class="btn btn-ghost" id="pend-cond-btn-cap" style="flex:1;padding:0.5rem;font-size:13px;" onclick="filtrarPendientesMesCond('CAP')">CAP</button>
+      </div>
+      <div id="pendientes-cond-list-body"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('pend-cond-sel-mes').addEventListener('change', (e)=>{ window._pendCondMes=+e.target.value; recalcularPendientesCond(); });
+  document.getElementById('pend-cond-sel-anio').addEventListener('change', (e)=>{ window._pendCondAnio=+e.target.value; recalcularPendientesCond(); });
+
+  recalcularPendientesCond();
+};
+
+function recalcularPendientesCond() {
+  let pendientes = [];
+  mantConductoresCache.forEach(m => {
+    REVISIONES_CONDUCTOR.forEach(rev => {
+      const key = revKey(rev);
+      if (!m[key]) return;
+      const fecha = new Date(m[key]);
+      if (fecha.getMonth() === window._pendCondMes && fecha.getFullYear() === window._pendCondAnio) {
+        pendientes.push({codigo: m.id, revision: rev, fecha});
+      }
+    });
+  });
+  pendientes.sort((a,b) => a.fecha - b.fecha);
+  window._pendientesCondMesData = pendientes;
+  renderPendientesListCond('todos');
+  ['todos','adr','cap'].forEach(t=>{ document.getElementById('pend-cond-btn-'+t).className='btn btn-ghost'; });
+  document.getElementById('pend-cond-btn-todos').className='btn btn-secondary';
+}
+
+window.filtrarPendientesMesCond = (tipo) => {
+  ['todos','adr','cap'].forEach(t=>{ document.getElementById('pend-cond-btn-'+t).className='btn btn-ghost'; document.getElementById('pend-cond-btn-'+t).style.cssText='flex:1;padding:0.5rem;font-size:13px;'; });
+  const btnId = tipo==='todos'?'pend-cond-btn-todos':tipo==='ADR'?'pend-cond-btn-adr':'pend-cond-btn-cap';
+  document.getElementById(btnId).className='btn btn-secondary';
+  document.getElementById(btnId).style.cssText='flex:1;padding:0.5rem;font-size:13px;';
+  renderPendientesListCond(tipo);
+};
+
+function renderPendientesListCond(tipo) {
+  const hoy = new Date();
+  const body = document.getElementById('pendientes-cond-list-body');
+  let pendientes = window._pendientesCondMesData || [];
+  if (tipo !== 'todos') pendientes = pendientes.filter(p=>p.revision===tipo);
+
+  body.innerHTML = pendientes.length === 0
+    ? '<div class="empty-state"><div class="empty-icon">✅</div>No hay renovaciones de este tipo que venzan en ese mes</div>'
+    : pendientes.map(p => {
+        const dias = Math.ceil((p.fecha - hoy)/(1000*60*60*24));
+        const color = dias < 0 ? 'var(--danger)' : dias <= 5 ? '#ff6b00' : 'var(--warning)';
+        const txt = dias < 0 ? `Vencida hace ${Math.abs(dias)} días` : dias === 0 ? 'Vence hoy' : `Vence en ${dias} días`;
+        return `<div onclick="irAEditarDesdePendientesCond('${p.codigo}','${p.revision}')" style="background:var(--input-bg);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:0.5rem;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-weight:600;font-size:14px;">👤 ${nombreConductorPorCodigo(p.codigo)} — ${p.revision}</span>
+            <span style="color:var(--text-muted);font-size:12px;">›</span>
+          </div>
+          <div style="font-size:13px;color:${color};font-weight:600;margin-top:4px;">${txt} (${p.fecha.toLocaleDateString('es-ES')})</div>
+        </div>`;
+      }).join('');
+}
+
+window.irAEditarDesdePendientesCond = (cod, rev) => {
+  const modalPend = document.getElementById('pendientes-cond-modal');
+  if (modalPend) modalPend.remove();
+  editMantCond(cod, rev);
 };
 
 // ══════════════════════════════
@@ -4116,7 +4516,7 @@ window.cargarSimulacion = async () => {
     {driverCode:'3035',driverName:'AGUSTIN CUESTA GUTIERREZ',matricula:'8918-LSR',lecturaIni:572,lecturaFin:630,litros:58,kmAnt:132200,kmAct:132388,consumo:30.85,obs:'',fechaStr:'09/06/2025',horaStr:'08:45',fecha:'2025-06-09T08:45:00'},
   ];
   try {
-    for (const r of sim) { const ref=await addDoc(collection(db,'repostajes'),r); recordsCache.unshift({id:ref.id,...r}); }
+    for (const r of sim) { await addDoc(collection(db,'repostajes'),r); }
     const recarga={litros:8500,obs:'REPSOL - Albarán 00234',fecha:'2025-06-06T06:30:00',fechaStr:'06/06/2025',horaStr:'06:30'};
     const rRef=await addDoc(collection(db,'recargas'),recarga); recargasCache.unshift({id:rRef.id,...recarga});
     renderAdminPage(); switchAdminTab('registros');
@@ -5405,6 +5805,8 @@ async function descargarBackup() {
       historialFlota: historialCache,
       mantenimiento: mantenimientoCache,
       historialMantenimiento: historialMantCache,
+      mantenimientoConductores: mantConductoresCache,
+      historialMantConductores: historialMantCondCache,
       ropaEmpleados: ropaEmpleadosCache,
       ropaHistorial: ropaHistorialCache,
       ropaInventario: ropaInventarioCache,
@@ -5435,6 +5837,8 @@ const BACKUP_COLECCIONES = [
   { key:'historialFlota', db:'dbFleet', col:'historial', cache:()=>historialCache, idField:'id' },
   { key:'mantenimiento', db:'dbFleet', col:'mantenimiento', cache:()=>mantenimientoCache, idField:'id' },
   { key:'historialMantenimiento', db:'dbFleet', col:'historialMantenimiento', cache:()=>historialMantCache, idField:'id' },
+  { key:'mantenimientoConductores', db:'dbFleet', col:'mantenimientoConductores', cache:()=>mantConductoresCache, idField:'id' },
+  { key:'historialMantConductores', db:'dbFleet', col:'historialMantConductores', cache:()=>historialMantCondCache, idField:'id' },
   { key:'ropaEmpleados', db:'db', col:'ropaEmpleados', cache:()=>ropaEmpleadosCache, idField:'id' },
   { key:'ropaHistorial', db:'db', col:'ropaHistorial', cache:()=>ropaHistorialCache, idField:'id' },
   { key:'ropaInventario', db:'db', col:'ropaInventario', cache:()=>ropaInventarioCache, idField:'id' },
