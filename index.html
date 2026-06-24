@@ -2561,6 +2561,8 @@ async function guardarTallasParaEmpleado(code, categoria, prefix) {
 }
 
 window.addDriver = async () => {
+  const btnAdd = document.getElementById('btn-add-driver');
+  if (btnAdd.disabled) return; // evita crear dos veces el mismo empleado por doble clic
   const name=document.getElementById('new-driver-name').value.trim();
   let code=document.getElementById('new-driver-code').value.trim();
   const dni=document.getElementById('new-driver-dni').value.trim().toUpperCase();
@@ -2579,6 +2581,7 @@ window.addDriver = async () => {
   // nadie y no sirve para entrar a Repostar (no es un código real, no es adivinable).
   const tieneCodigoReal = !!code;
   if (!code) code = 'SC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
+  btnAdd.disabled = true; const textoBtnOriginal = btnAdd.textContent; btnAdd.textContent = 'Guardando...';
   try {
     const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil,sinCodigo:!tieneCodigoReal};
     await setDoc(doc(db,'conductores',code),nuevo);
@@ -2603,6 +2606,7 @@ window.addDriver = async () => {
       setTimeout(()=>editarTallasEmpleado(code), 300);
     }
   } catch(e) { showAlert(al,'Error al guardar',true); }
+  btnAdd.disabled = false; btnAdd.textContent = textoBtnOriginal;
 };
 
 window.editarTallasEmpleado = (code) => {
