@@ -4173,6 +4173,16 @@ const TALLAS_DROPDOWN_POR_ARTICULO = {
   chaqueta: ['XS','S','M','L','XL','XXL','3XL','4XL'],
 };
 
+// Orden lógico de tallas (no alfabético: alfabéticamente "3XL" se cuela antes de "L").
+const ORDEN_TALLAS = ['XS','S','M','L','XL','XXL','3XL','4XL','38','40','42','44','46','48','50','52','54','56'];
+function compararTallas(a, b) {
+  const ia = ORDEN_TALLAS.indexOf(a), ib = ORDEN_TALLAS.indexOf(b);
+  if (ia !== -1 && ib !== -1) return ia - ib;
+  if (ia !== -1) return -1;
+  if (ib !== -1) return 1;
+  return String(a).localeCompare(String(b));
+}
+
 // Pinta el campo de talla del formulario "Añadir stock": desplegable si la prenda
 // seleccionada tiene tallas estándar, o input de texto libre en caso contrario.
 function renderTallaInputInventario() {
@@ -4292,7 +4302,7 @@ function renderInventarioRopa() {
   }
 
   list.innerHTML = ROPA_ARTICULOS.filter(a => porArticulo[a.id]).map(art => {
-    const items = porArticulo[art.id].sort((a,b)=>a.talla.localeCompare(b.talla));
+    const items = porArticulo[art.id].sort((a,b)=>compararTallas(a.talla,b.talla));
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.85rem 1rem;margin-bottom:0.5rem;">
       ${mostrarTodoInventario ? `<div style="font-weight:700;font-size:15px;margin-bottom:0.6rem;">${art.label}</div>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.7rem;">
