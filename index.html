@@ -5007,10 +5007,14 @@ function renderInventarioRopa() {
           return `<div style="position:relative;background:var(--navy-light);border:2px solid ${color};border-radius:var(--radius-sm);padding:0.9rem 0.6rem 0.7rem;text-align:center;">
             <button class="btn-sm btn-sm-danger" onclick="eliminarStockRopa('${item.id}')" title="Eliminar" style="position:absolute;top:4px;right:4px;width:24px;height:24px;padding:0;font-size:12px;line-height:1;border-radius:50%;display:flex;align-items:center;justify-content:center;">✕</button>
             <div style="font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;">Talla ${item.talla}</div>
-            <div style="font-size:30px;font-weight:800;color:${color};line-height:1;">${item.cantidad}</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:6px;">
+              <button onclick="ajustarStockRopa('${item.id}',-1)" title="Quitar 1" style="width:26px;height:26px;border-radius:50%;border:1px solid ${color};background:none;color:${color};font-size:16px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button>
+              <div style="font-size:26px;font-weight:800;color:${color};line-height:1;min-width:32px;">${item.cantidad}</div>
+              <button onclick="ajustarStockRopa('${item.id}',1)" title="Añadir 1" style="width:26px;height:26px;border-radius:50%;border:1px solid ${color};background:none;color:${color};font-size:16px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button>
+            </div>
             ${(agotado||bajo)
-              ? `<div style="font-size:11px;font-weight:700;color:${color};margin-top:2px;margin-bottom:10px;">⚠️ ${agotado?'AGOTADO':'STOCK BAJO'}</div>`
-              : `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;margin-bottom:10px;">unidades</div>`}
+              ? `<div style="font-size:11px;font-weight:700;color:${color};margin-top:4px;margin-bottom:8px;">⚠️ ${agotado?'AGOTADO':'STOCK BAJO'}</div>`
+              : `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;margin-bottom:8px;">unidades</div>`}
             <button class="btn-sm" onclick="editarStockRopa('${item.id}')" style="width:100%;padding:7px 0;font-size:13px;">✏️ Editar</button>
           </div>`;
         }).join('')}
@@ -5018,6 +5022,19 @@ function renderInventarioRopa() {
     </div>`;
   }).join('');
 }
+
+// Ajusta la cantidad en +1 / -1 directamente desde la tarjeta, sin abrir el modal de editar.
+window.ajustarStockRopa = async (id, delta) => {
+  const item = ropaInventarioCache.find(x=>x.id===id);
+  if (!item) return;
+  const nuevaCantidad = Math.max(0, item.cantidad + delta);
+  if (nuevaCantidad === item.cantidad) return; // ya estaba en 0 y se intentó bajar más
+  try {
+    await setDoc(doc(db,'ropaInventario',id), {articuloId:item.articuloId, talla:item.talla, cantidad:nuevaCantidad});
+    item.cantidad = nuevaCantidad; // actualización visual inmediata; el onSnapshot confirmará el valor real
+    renderInventarioRopa();
+  } catch(e) { alert('Error al ajustar el stock: '+e.message); }
+};
 
 window.editarStockRopa = (id) => {
   const item = ropaInventarioCache.find(x=>x.id===id);
