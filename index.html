@@ -868,8 +868,9 @@ const dbFleet = getFirestore(appFleet);
 // ══════════════════════════════
 // CONSTANTES
 // ══════════════════════════════
-const ADMIN_USER = 'admin';
-const ADMIN_PASS = 'admin2026';
+// Acceso de admin normal: ahora solo con un código de 4 dígitos (sin usuario), igual que
+// los conductores. Valor por defecto, se carga/edita desde Firestore (lo cambia el Admin Superior).
+let ADMIN_CODE = '1234';
 
 // Admin Superior: único que puede cambiar los códigos de acceso a los módulos
 const SUPERADMIN_USER = 'superadmin';
@@ -1172,6 +1173,14 @@ async function initApp() {
       MODULO_CODIGOS = codigosDoc.data();
     } else {
       await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
+    }
+
+    // Cargar el código de acceso del admin (con migración inicial)
+    const adminCodeDoc = codigosSnap.docs.find(d => d.id === 'adminCode');
+    if (adminCodeDoc) {
+      ADMIN_CODE = adminCodeDoc.data().code;
+    } else {
+      await setDoc(doc(db, 'configuracion', 'adminCode'), { code: ADMIN_CODE });
     }
 
     clearTimeout(timeoutId);
@@ -1554,6 +1563,11 @@ function activarListenersTiempoReal() {
   onSnapshot(doc(db, 'configuracion', 'moduloCodigos'), (snap) => {
     if (snap.exists()) MODULO_CODIGOS = snap.data();
   });
+
+  // Código de acceso del admin normal (puede cambiarlo el Admin Superior)
+  onSnapshot(doc(db, 'configuracion', 'adminCode'), (snap) => {
+    if (snap.exists()) ADMIN_CODE = snap.data().code;
+  });
 }
 
 function calcLitrosLocal() {
@@ -1644,7 +1658,30 @@ function buildLoginForm() {
       const lnk=document.getElementById('link-admin');
       if(lnk) lnk.addEventListener('click', toggleLoginMode);
     },50);
+  } else if (loginMode === 'admin') {
+    card.innerHTML = `
+      <div class="form-group">
+        <label class="form-label">Código de administrador</label>
+        <input class="form-input" type="text" id="admin-code" placeholder="••••" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" maxlength="4" style="-webkit-text-security:disc;text-align:center;font-size:24px;letter-spacing:10px;">
+      </div>
+      <button class="btn btn-primary" id="btn-login-admin">Entrar</button>
+      <div style="text-align:center;margin-top:1rem;display:flex;flex-direction:column;gap:0.6rem;">
+        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Acceso conductores</span>
+        <span style="font-size:12px;color:var(--text-muted);cursor:pointer;opacity:0.65;" id="link-superadmin">🔑 Admin Superior</span>
+      </div>
+      <div class="error-msg" id="login-error"></div>`;
+    setTimeout(()=>{
+      const el=document.getElementById('admin-code');
+      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      const btn=document.getElementById('btn-login-admin');
+      if(btn) btn.addEventListener('click', doLogin);
+      const lnk=document.getElementById('link-driver');
+      if(lnk) lnk.addEventListener('click', toggleLoginMode);
+      const lnkSuper=document.getElementById('link-superadmin');
+      if(lnkSuper) lnkSuper.addEventListener('click', ()=>{ loginMode='superadmin'; buildLoginForm(); document.getElementById('login-sub').textContent='Acceso Admin Superior'; });
+    },50);
   } else {
+    // Admin Superior: sigue con usuario y contraseña, sin cambios
     card.innerHTML = `
       <div class="form-group">
         <label class="form-label">Usuario</label>
@@ -1656,14 +1693,14 @@ function buildLoginForm() {
       </div>
       <button class="btn btn-primary" id="btn-login-admin">Entrar</button>
       <div style="text-align:center;margin-top:1rem;">
-        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Acceso conductores</span>
+        <span style="font-size:13px;color:var(--text-muted);cursor:pointer;" id="link-driver">← Volver</span>
       </div>
       <div class="error-msg" id="login-error"></div>`;
     setTimeout(()=>{
       const btn=document.getElementById('btn-login-admin');
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-driver');
-      if(lnk) lnk.addEventListener('click', toggleLoginMode);
+      if(lnk) lnk.addEventListener('click', ()=>{ loginMode='admin'; buildLoginForm(); document.getElementById('login-sub').textContent='Acceso administrador'; });
       const adminUser=document.getElementById('admin-user');
       const adminPass=document.getElementById('admin-pass');
       if(adminUser) adminUser.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
@@ -1702,8 +1739,29 @@ function mostrarPantallaSuperAdmin() {
         </div>
         <button class="btn btn-primary" id="btn-guardar-codigos">💾 Guardar cambios</button>
       </div>
+
+      <div class="section-title">Código de acceso del admin normal</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">Es el código de 4 dígitos con el que entráis al panel de administración (no afecta a este acceso de Admin Superior).</div>
+      <div class="refuel-card">
+        <div class="form-group">
+          <label class="form-label">🔑 Código de administrador</label>
+          <input class="form-input" type="text" id="codigo-admin-input" value="${ADMIN_CODE}" maxlength="4" inputmode="numeric">
+        </div>
+        <button class="btn btn-primary" id="btn-guardar-codigo-admin">💾 Guardar código de admin</button>
+      </div>
     </div>`;
   document.body.appendChild(overlay);
+
+  document.getElementById('btn-guardar-codigo-admin').addEventListener('click', async () => {
+    const al = document.getElementById('superadmin-alert');
+    const nuevo = document.getElementById('codigo-admin-input').value.trim();
+    if (!nuevo) { showAlert(al,'El código no puede estar vacío',true); return; }
+    try {
+      await setDoc(doc(db, 'configuracion', 'adminCode'), { code: nuevo });
+      ADMIN_CODE = nuevo;
+      showAlert(al, '✓ Código de admin actualizado correctamente', false);
+    } catch(e) { showAlert(al, 'Error al guardar: '+e.message, true); }
+  });
 
   document.getElementById('btn-guardar-codigos').addEventListener('click', async () => {
     const al = document.getElementById('superadmin-alert');
@@ -1729,20 +1787,25 @@ window.toggleLoginMode = () => {
 
 window.doLogin = () => {
   const err = document.getElementById('login-error');
-  if (loginMode === 'admin') {
+  if (loginMode === 'superadmin') {
     const u = (document.getElementById('admin-user').value||'').trim().toLowerCase();
     const p = (document.getElementById('admin-pass').value||'').trim();
     if (u===SUPERADMIN_USER && p===SUPERADMIN_PASS) {
       mostrarPantallaSuperAdmin();
       return;
     }
-    if (u===ADMIN_USER && p===ADMIN_PASS) {
+    err.textContent = 'Usuario o contraseña incorrectos'; return;
+  }
+  if (loginMode === 'admin') {
+    const code = (document.getElementById('admin-code').value||'').trim();
+    if (!code) { err.textContent = 'Introduce el código'; return; }
+    if (code === ADMIN_CODE) {
       currentUser = { name:'Administrador', isAdmin:true };
       showScreen('admin'); renderAdminPage();
       comprobarRecordatorioBackup();
       return;
     }
-    err.textContent = 'Usuario o contraseña incorrectos'; return;
+    err.textContent = 'Código incorrecto'; return;
   }
   const code = (document.getElementById('login-code').value||'').trim();
   if (!code) { err.textContent = 'Introduce tu código'; return; }
