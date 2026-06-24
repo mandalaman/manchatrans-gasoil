@@ -786,7 +786,7 @@ input[type="number"] { -moz-appearance: textfield; }
           </div>
           <div class="two-col" style="margin-bottom:0.75rem;">
             <div><label class="form-label">Talla</label><div id="inv-talla-wrapper"><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div></div>
-            <div><label class="form-label">Cantidad a añadir</label><input class="form-input" type="number" id="inv-cantidad" min="1" placeholder="Ej: 10"></div>
+            <div><label class="form-label">Cantidad a añadir</label><input class="form-input" type="number" id="inv-cantidad" min="0" placeholder="Ej: 10"></div>
           </div>
           <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
         </div>
@@ -4251,7 +4251,7 @@ window.addStockRopa = async () => {
   const al = document.getElementById('inv-alert');
   if (!articuloId) { showAlert(al,'Selecciona un artículo',true); return; }
   if (!talla) { showAlert(al,'Escribe la talla',true); return; }
-  if (!cantidad || cantidad <= 0) { showAlert(al,'Indica una cantidad válida',true); return; }
+  if (isNaN(cantidad) || cantidad < 0) { showAlert(al,'Indica una cantidad válida (puede ser 0)',true); return; }
 
   const key = inventarioKey(articuloId, talla);
   try {
