@@ -1149,6 +1149,10 @@ async function initApp() {
     const ropaEmpSnap = await getDocs(collection(db, 'ropaEmpleados'));
     ropaEmpleadosCache = ropaEmpSnap.docs.map(d => ({id:d.id, ...d.data()}));
 
+    // Vincular automáticamente por nombre los empleados de Ropa que ya existían antes
+    // de unificar con Configuración (para que sus tallas no se queden "huérfanas").
+    await migrarTallasLegacy();
+
     // Cargar historial de entregas de ropa
     const ropaHistSnap = await getDocs(query(collection(db, 'ropaHistorial'), orderBy('fecha', 'desc')));
     ropaHistorialCache = ropaHistSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -2965,7 +2969,13 @@ window.switchGestionTab = (tab) => {
   ['conductores','vehiculos','backup'].forEach(t=>{
     document.getElementById('atab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
-  if (tab==='conductores' && (document.getElementById('driver-list-wrapper').style.display!=='none' || document.getElementById('driver-baja-wrapper').style.display!=='none')) renderDriverList();
+  if (tab==='conductores') {
+    if (document.getElementById('driver-list-wrapper').style.display!=='none' || document.getElementById('driver-baja-wrapper').style.display!=='none') renderDriverList();
+    if (window._empleadosRopaSinVincular && window._empleadosRopaSinVincular.length) {
+      alert(`⚠️ No se han podido vincular automáticamente las tallas de estos empleados de Ropa:\n\n${window._empleadosRopaSinVincular.join('\n')}\n\nProbablemente su nombre no coincide exactamente con el de Configuración. Revísalos y, si hace falta, vuelve a poner sus tallas desde la ficha del empleado correspondiente.`);
+      window._empleadosRopaSinVincular = null; // mostrar el aviso solo una vez
+    }
+  }
   if (tab==='vehiculos' && (document.getElementById('mat-list-wrapper').style.display!=='none' || document.getElementById('mat-baja-wrapper').style.display!=='none')) renderMatList();
 };
 
@@ -5260,6 +5270,32 @@ async function exportarPdfTallasEmpleados() {
 // empleado de Configuración (conductorCode), el nombre/empresa/categoría se toman
 // SIEMPRE de ahí en vivo (única fuente de verdad). Si no está vinculado (registros
 // antiguos), se usan los campos propios que ya tuviera guardados como antes.
+// Vincula automáticamente, por coincidencia exacta de nombre, los empleados de Ropa
+// que ya existían ANTES de unificar con Configuración (no tenían conductorCode).
+// Los que no encuentren una coincidencia clara se guardan en window._empleadosRopaSinVincular
+// para avisar al admin, en vez de perder sus tallas en silencio.
+async function migrarTallasLegacy() {
+  const sinVincular = ropaEmpleadosCache.filter(e => !e.conductorCode && e.nombre);
+  if (!sinVincular.length) return;
+  const sinMatch = [];
+  for (const e of sinVincular) {
+    const nombreNorm = (e.nombre||'').trim().toUpperCase();
+    const match = driversCache.find(d => (d.name||'').trim().toUpperCase() === nombreNorm);
+    if (match) {
+      try {
+        const datos = { ...e, conductorCode: match.code };
+        delete datos.id;
+        await setDoc(doc(db,'ropaEmpleados', e.id), datos);
+        const idx = ropaEmpleadosCache.findIndex(x=>x.id===e.id);
+        if (idx>=0) ropaEmpleadosCache[idx] = { ...ropaEmpleadosCache[idx], conductorCode: match.code };
+      } catch(err) { console.error('Error vinculando empleado de Ropa:', e.nombre, err); sinMatch.push(e.nombre); }
+    } else {
+      sinMatch.push(e.nombre);
+    }
+  }
+  if (sinMatch.length) window._empleadosRopaSinVincular = sinMatch;
+}
+
 function resolverEmpleadoRopa(e) {
   if (e.conductorCode) {
     const d = driversCache.find(x => x.code === e.conductorCode);
