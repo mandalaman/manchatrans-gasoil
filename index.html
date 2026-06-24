@@ -386,7 +386,7 @@ input[type="number"] { -moz-appearance: textfield; }
     <!-- ═══════════ MÓDULO GESTIÓN (Conductores y Vehículos) ═══════════ -->
     <div id="module-gestion" style="display:none;">
     <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
-      <button class="btn btn-secondary atab-btn" id="atab-btn-conductores">Conductores</button>
+      <button class="btn btn-secondary atab-btn" id="atab-btn-conductores">Empleados</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-vehiculos">Vehículos</button>
       <button class="btn btn-ghost atab-btn" id="atab-btn-backup">💾 Copia de seguridad</button>
     </div>
@@ -395,7 +395,7 @@ input[type="number"] { -moz-appearance: textfield; }
     <div id="atab-conductores" class="tab-pane active">
       <div id="admin-alert" class="alert"></div>
       <div class="refuel-card" style="margin-bottom:1rem;">
-        <div class="section-title">Añadir conductor</div>
+        <div class="section-title">Añadir empleado</div>
         <div class="form-group">
           <label class="form-label">Nombre completo</label>
           <input class="form-input" type="text" id="new-driver-name" placeholder="Nombre completo">
@@ -407,6 +407,18 @@ input[type="number"] { -moz-appearance: textfield; }
         <div class="form-group">
           <label class="form-label">DNI</label>
           <input class="form-input" type="text" id="new-driver-dni" placeholder="Ej: 12345678A" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categoría</label>
+          <select class="form-input" id="new-driver-categoria">
+            <option value="">— Selecciona categoría —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Empresa</label>
+          <select class="form-input" id="new-driver-empresa">
+            <option value="">— Selecciona empresa —</option>
+          </select>
         </div>
         <div class="two-col">
           <div class="form-group">
@@ -423,14 +435,23 @@ input[type="number"] { -moz-appearance: textfield; }
             <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
           </label>
         </div>
-        <button class="btn btn-primary" id="btn-add-driver">Añadir conductor</button>
+        <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
       </div>
-      <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver conductores activos (<span id="driver-count">0</span>)</button>
+      <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver empleados activos (<span id="driver-count">0</span>)</button>
       <div id="driver-list-wrapper" style="display:none;">
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <select class="form-input" id="empleado-filter-categoria" style="font-size:14px;padding:0.6rem;">
+            <option value="">Todas las categorías</option>
+          </select>
+          <select class="form-input" id="empleado-filter-empresa" style="font-size:14px;padding:0.6rem;">
+            <option value="">Todas las empresas</option>
+          </select>
+        </div>
+        <button class="btn btn-secondary" id="btn-exportar-pdf-empleados" style="margin-bottom:1rem;width:100%;">📄 Exportar PDF del listado filtrado</button>
         <div id="driver-list"></div>
       </div>
 
-      <button class="btn btn-ghost" id="btn-toggle-baja-drivers" style="margin-top:1.25rem;font-size:13px;">👤 Ver conductores de baja (<span id="driver-baja-count">0</span>)</button>
+      <button class="btn btn-ghost" id="btn-toggle-baja-drivers" style="margin-top:1.25rem;font-size:13px;">👤 Ver empleados de baja (<span id="driver-baja-count">0</span>)</button>
       <div id="driver-baja-wrapper" style="display:none;margin-top:0.75rem;">
         <div id="driver-baja-list"></div>
       </div>
@@ -904,6 +925,22 @@ const REVISIONES = ['ITV','Tacógrafo'];
 const DIAS_AVISO_CONDUCTOR = 90;
 const REVISIONES_CONDUCTOR = ['ADR','CAP'];
 
+// Categoría de empleado (para la ficha de personal en Configuración) y listado de empresas.
+const CATEGORIAS_EMPLEADO = [
+  {id:'conductor', label:'Conductor'},
+  {id:'mozo_almacen', label:'Mozo almacén'},
+  {id:'oficina', label:'Oficina'},
+  {id:'taller', label:'Taller'},
+  {id:'limpieza', label:'Limpieza'},
+];
+const EMPRESAS_EMPLEADO = [
+  'MANCHEGA DE TRANSPORTES S.L.',
+  'TRANSPORTES Y DISTRIBUCIONES MANCHEGOS S.L.',
+  'ALICIA FORNER DIAZ',
+  'SANTOS DIAZ ASTILLEROS',
+  'VICENTE DIAZ ASTILLEROS',
+];
+
 const DEFAULT_MATRICULAS = [
   '0044-HBJ','0328-MMR','0390-LWZ','0608-KFG','0620-MPR','0633-NGH',
   '0724-KFG','1789-LZR','1931-CWD','1979-LMH','3257-LGZ','3299-MZB',
@@ -1026,6 +1063,8 @@ let mantConductoresCache = [];
 let historialMantCondCache = [];
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
+let empleadoFiltroCategoria = '';
+let empleadoFiltroEmpresa = '';
 let limpiezaVehCache = [];
 let limpiezaInstCache = [];
 let limpiezaVehFiltroMat = '';
@@ -1340,6 +1379,7 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '📋 Ver historial'; }
   });
   populateLimpiezaSelects();
+  populateEmpleadoSelects();
 
   // Depósito recarga
   const btnRecarga = document.getElementById('btn-registrar-recarga');
@@ -1359,6 +1399,9 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+  document.getElementById('empleado-filter-categoria').addEventListener('change', (e)=>{ empleadoFiltroCategoria=e.target.value; renderDriverList(); });
+  document.getElementById('empleado-filter-empresa').addEventListener('change', (e)=>{ empleadoFiltroEmpresa=e.target.value; renderDriverList(); });
+  document.getElementById('btn-exportar-pdf-empleados').addEventListener('click', exportarPdfEmpleados);
 
   document.getElementById('btn-toggle-drivers').addEventListener('click', ()=>{
     const wrapper = document.getElementById('driver-list-wrapper');
@@ -1366,11 +1409,11 @@ async function initApp() {
     const count = driversCache.filter(d=>d.activo!==false).length;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'block';
-      btn.innerHTML = `📋 Ocultar conductores activos (<span id="driver-count">${count}</span>)`;
+      btn.innerHTML = `📋 Ocultar empleados activos (<span id="driver-count">${count}</span>)`;
       renderDriverList();
     } else {
       wrapper.style.display = 'none';
-      btn.innerHTML = `📋 Ver conductores activos (<span id="driver-count">${count}</span>)`;
+      btn.innerHTML = `📋 Ver empleados activos (<span id="driver-count">${count}</span>)`;
     }
   });
 
@@ -1380,11 +1423,11 @@ async function initApp() {
     const count = driversCache.filter(d=>d.activo===false).length;
     if (wrapper.style.display === 'none') {
       wrapper.style.display = 'block';
-      btn.innerHTML = `👤 Ocultar conductores de baja (<span id="driver-baja-count">${count}</span>)`;
+      btn.innerHTML = `👤 Ocultar empleados de baja (<span id="driver-baja-count">${count}</span>)`;
       renderDriverList();
     } else {
       wrapper.style.display = 'none';
-      btn.innerHTML = `👤 Ver conductores de baja (<span id="driver-baja-count">${count}</span>)`;
+      btn.innerHTML = `👤 Ver empleados de baja (<span id="driver-baja-count">${count}</span>)`;
     }
   });
 
@@ -2447,13 +2490,19 @@ window.verDetalleMatricula = (mat) => {
 function renderDriverList() {
   const list=document.getElementById('driver-list');
   const bajaList=document.getElementById('driver-baja-list');
-  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const todosActivos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const activos = todosActivos.filter(d => (!empleadoFiltroCategoria || d.categoria===empleadoFiltroCategoria) && (!empleadoFiltroEmpresa || d.empresa===empleadoFiltroEmpresa));
   const bajas = driversCache.filter(d=>d.activo===false).sort((a,b)=>a.name.localeCompare(b.name));
-  document.getElementById('driver-count').textContent = activos.length;
+  document.getElementById('driver-count').textContent = todosActivos.length;
   document.getElementById('driver-baja-count').textContent = bajas.length;
 
-  list.innerHTML = activos.map(d=>{
+  list.innerHTML = !activos.length
+    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">👤</div>Ningún empleado coincide con ese filtro</div>'
+    : activos.map(d=>{
+    const catLabel = d.categoria ? (CATEGORIAS_EMPLEADO.find(c=>c.id===d.categoria)||{}).label : null;
     const datosExtra = [
+      catLabel ? `💼 ${catLabel}` : null,
+      d.empresa ? `🏭 ${d.empresa}` : null,
       d.dni ? `🪪 ${d.dni}` : null,
       d.telParticular ? `📱 ${d.telParticular}` : null,
       d.telEmpresa ? `🏢 ${d.telEmpresa}` : null
@@ -2472,7 +2521,7 @@ function renderDriverList() {
   }).join('');
 
   bajaList.innerHTML = bajas.length === 0
-    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay conductores de baja</div>'
+    ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay empleados de baja</div>'
     : bajas.map(d=>`
     <div class="driver-list-item" style="opacity:0.7;">
       <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}</div></div>
@@ -2518,10 +2567,23 @@ window.reactivarDriver = async (code) => {
   } catch(e) { alert('Error: '+e.message); }
 };
 
+function populateEmpleadoSelects() {
+  const selCat = document.getElementById('new-driver-categoria');
+  const selEmp = document.getElementById('new-driver-empresa');
+  const selFiltroCat = document.getElementById('empleado-filter-categoria');
+  const selFiltroEmp = document.getElementById('empleado-filter-empresa');
+  if (selCat) { selCat.innerHTML = '<option value="">— Selecciona categoría —</option>'; CATEGORIAS_EMPLEADO.forEach(c=>{ selCat.innerHTML += `<option value="${c.id}">${c.label}</option>`; }); }
+  if (selEmp) { selEmp.innerHTML = '<option value="">— Selecciona empresa —</option>'; EMPRESAS_EMPLEADO.forEach(e=>{ selEmp.innerHTML += `<option value="${e}">${e}</option>`; }); }
+  if (selFiltroCat) { selFiltroCat.innerHTML = '<option value="">Todas las categorías</option>'; CATEGORIAS_EMPLEADO.forEach(c=>{ selFiltroCat.innerHTML += `<option value="${c.id}">${c.label}</option>`; }); }
+  if (selFiltroEmp) { selFiltroEmp.innerHTML = '<option value="">Todas las empresas</option>'; EMPRESAS_EMPLEADO.forEach(e=>{ selFiltroEmp.innerHTML += `<option value="${e}">${e}</option>`; }); }
+}
+
 window.addDriver = async () => {
   const name=document.getElementById('new-driver-name').value.trim();
   const code=document.getElementById('new-driver-code').value.trim();
   const dni=document.getElementById('new-driver-dni').value.trim().toUpperCase();
+  const categoria=document.getElementById('new-driver-categoria').value;
+  const empresa=document.getElementById('new-driver-empresa').value;
   const telParticular=document.getElementById('new-driver-tel-particular').value.trim();
   const telEmpresa=document.getElementById('new-driver-tel-empresa').value.trim();
   const limpieza=document.getElementById('new-driver-limpieza').checked;
@@ -2529,17 +2591,19 @@ window.addDriver = async () => {
   if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
   if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
   try {
-    const nuevo = {name,code,activo:true,limpieza,dni,telParticular,telEmpresa};
+    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
     document.getElementById('new-driver-dni').value='';
+    document.getElementById('new-driver-categoria').value='';
+    document.getElementById('new-driver-empresa').value='';
     document.getElementById('new-driver-tel-particular').value='';
     document.getElementById('new-driver-tel-empresa').value='';
     document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
-    showAlert(al,`✓ Conductor "${name}" añadido`,false);
+    showAlert(al,`✓ Empleado "${name}" añadido`,false);
   } catch(e) { showAlert(al,'Error al guardar',true); }
 };
 
@@ -2552,7 +2616,7 @@ window.editDriver = (code) => {
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;">
-      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar conductor</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar empleado</div>
       <div class="form-group">
         <label class="form-label">Nombre completo</label>
         <input class="form-input" type="text" id="edit-driver-name" value="${d.name}">
@@ -2564,6 +2628,20 @@ window.editDriver = (code) => {
       <div class="form-group">
         <label class="form-label">DNI</label>
         <input class="form-input" type="text" id="edit-driver-dni" value="${d.dni||''}" style="text-transform:uppercase;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categoría</label>
+        <select class="form-input" id="edit-driver-categoria">
+          <option value="">— Selecciona categoría —</option>
+          ${CATEGORIAS_EMPLEADO.map(c=>`<option value="${c.id}" ${c.id===d.categoria?'selected':''}>${c.label}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Empresa</label>
+        <select class="form-input" id="edit-driver-empresa">
+          <option value="">— Selecciona empresa —</option>
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===d.empresa?'selected':''}>${e}</option>`).join('')}
+        </select>
       </div>
       <div class="two-col">
         <div class="form-group">
@@ -2592,6 +2670,8 @@ window.editDriver = (code) => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     const newCode = document.getElementById('edit-driver-code').value.trim();
     const newDni = document.getElementById('edit-driver-dni').value.trim().toUpperCase();
+    const newCategoria = document.getElementById('edit-driver-categoria').value;
+    const newEmpresa = document.getElementById('edit-driver-empresa').value;
     const newTelParticular = document.getElementById('edit-driver-tel-particular').value.trim();
     const newTelEmpresa = document.getElementById('edit-driver-tel-empresa').value.trim();
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
@@ -2602,7 +2682,7 @@ window.editDriver = (code) => {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, telParticular:newTelParticular, telEmpresa:newTelEmpresa };
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa };
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
@@ -2617,6 +2697,106 @@ window.editDriver = (code) => {
     } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   });
 };
+
+async function exportarPdfEmpleados() {
+  const btn = document.getElementById('btn-exportar-pdf-empleados');
+  const empleados = driversCache
+    .filter(d => d.activo!==false && (!empleadoFiltroCategoria || d.categoria===empleadoFiltroCategoria) && (!empleadoFiltroEmpresa || d.empresa===empleadoFiltroEmpresa))
+    .sort((a,b)=>a.name.localeCompare(b.name));
+  if (!empleados.length) { alert('No hay empleados para ese filtro.'); return; }
+
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Generando PDF...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 30; // A4 horizontal
+    const pages = [];
+
+    const filtros = [];
+    if (empleadoFiltroCategoria) filtros.push('Categoría: '+(CATEGORIAS_EMPLEADO.find(c=>c.id===empleadoFiltroCategoria)||{}).label);
+    if (empleadoFiltroEmpresa) filtros.push('Empresa: '+empleadoFiltroEmpresa);
+    const tituloFiltro = filtros.length ? filtros.join('  ·  ') : 'Todos los empleados';
+
+    const colX = { nombre:M, cat:M+150, emp:M+255, dni:M+430, telPart:M+520, telEmp:M+660 };
+    const colW = { nombre:150, cat:105, emp:175, dni:90, telPart:140, telEmp:781-30-660 };
+
+    let page, y;
+    const nuevaPagina = (conTitulo) => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Listado de empleados · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'EMPLEADOS';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      if (conTitulo) {
+        page.drawText(tituloFiltro, { x:M, y, size:10.5, font:fontReg, color: gray });
+        y -= 26;
+      }
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('NOMBRE', colX.nombre+8); cab('CATEGORÍA', colX.cat+8); cab('EMPRESA', colX.emp+8);
+      cab('DNI', colX.dni+8); cab('TEL. PARTICULAR', colX.telPart+8); cab('TEL. EMPRESA', colX.telEmp+8);
+      y -= 38;
+    };
+
+    nuevaPagina(true);
+
+    empleados.forEach((d, i) => {
+      if (y < 60) nuevaPagina(false);
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      const recortar = (txt, maxW, size, font) => {
+        let t = txt || '';
+        while (font.widthOfTextAtSize(t, size) > maxW && t.length > 3) t = t.slice(0,-4)+'…';
+        return t;
+      };
+      page.drawText(recortar(d.name, colW.nombre-12, 9.5, fontBold), { x:colX.nombre+8, y, size:9.5, font:fontBold, color: navy });
+      const catLabel = d.categoria ? (CATEGORIAS_EMPLEADO.find(c=>c.id===d.categoria)||{}).label : '—';
+      page.drawText(recortar(catLabel, colW.cat-12, 9, fontReg), { x:colX.cat+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(recortar(d.empresa||'—', colW.emp-12, 9, fontReg), { x:colX.emp+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(d.dni||'—', { x:colX.dni+8, y, size:9, font:fontReg, color: navy });
+      page.drawText(d.telParticular||'—', { x:colX.telPart+8, y, size:9, font:fontReg, color: navy });
+      page.drawText(d.telEmpresa||'—', { x:colX.telEmp+8, y, size:9, font:fontReg, color: navy });
+      y -= rowH;
+    });
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total de empleados: ${empleados.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Manchatrans_Empleados_${empleadoFiltroCategoria||'todas'}_${empleadoFiltroEmpresa?empleadoFiltroEmpresa.slice(0,15).replace(/[^a-zA-Z0-9]/g,'_'):'todas'}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Error al generar el PDF: '+e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = textoOriginal;
+  }
+}
 
 // ══════════════════════════════
 // VEHÍCULOS (unificado: Gasoil + Flota)
