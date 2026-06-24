@@ -430,6 +430,15 @@ input[type="number"] { -moz-appearance: textfield; }
             <input class="form-input" type="tel" id="new-driver-tel-empresa" placeholder="Ej: 900 11 22 33">
           </div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Extensión de teléfono móvil</label>
+          <input class="form-input" type="text" id="new-driver-extension" placeholder="Ej: 105 (opcional)">
+        </div>
+        <div style="margin-bottom:0.75rem;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+            <input type="checkbox" id="new-driver-permiso-gasoil" checked style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
+          </label>
+        </div>
         <div style="margin-bottom:1.25rem;">
           <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
             <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
@@ -788,28 +797,17 @@ input[type="number"] { -moz-appearance: textfield; }
       <div id="rtab-empleados" class="tab-pane">
         <div id="ropa-emp-alert" class="alert"></div>
         <div class="refuel-card" style="margin-bottom:1rem;">
-          <div class="section-title">Dar de alta nuevo empleado</div>
+          <div class="section-title">Añadir empleado para entregas de ropa</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">El nombre, empresa y categoría se toman automáticamente del empleado dado de alta en <strong>⚙️ Configuración → Empleados</strong>. Si no aparece en la lista, primero hay que crearlo ahí.</div>
           <div class="form-group">
-            <label class="form-label">Nombre completo</label>
-            <input class="form-input" type="text" id="new-ropa-nombre" placeholder="Nombre completo">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Nombre de empresa</label>
-            <input class="form-input" type="text" id="new-ropa-empresa" placeholder="Ej: MANCHEGA DE TRANSPORTES S.L.">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Categoría <span style="color:var(--danger)">*</span></label>
-            <select class="form-input" id="new-ropa-categoria">
-              <option value="">— Selecciona categoría —</option>
-              <option value="conductor">Conductor</option>
-              <option value="oficina">Oficina</option>
-              <option value="limpieza">Limpieza</option>
-              <option value="almacen">Almacén</option>
-              <option value="taller">Taller mecánico</option>
+            <label class="form-label">Empleado <span style="color:var(--danger)">*</span></label>
+            <select class="form-input" id="new-ropa-empleado">
+              <option value="">— Selecciona empleado —</option>
             </select>
           </div>
+          <div id="new-ropa-empleado-info"></div>
           <div id="new-ropa-tallas-container"></div>
-          <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir empleado</button>
+          <button class="btn btn-primary" id="btn-add-ropa-emp">Añadir a Ropa</button>
           <button class="btn btn-ghost" id="btn-ver-plantilla-generica" style="width:100%;margin-top:0.6rem;font-size:13px;">👁 Ver plantilla en blanco</button>
         </div>
 
@@ -821,8 +819,8 @@ input[type="number"] { -moz-appearance: textfield; }
               <option value="conductor">Conductor</option>
               <option value="oficina">Oficina</option>
               <option value="limpieza">Limpieza</option>
-              <option value="almacen">Almacén</option>
-              <option value="taller">Taller mecánico</option>
+              <option value="mozo_almacen">Mozo almacén</option>
+              <option value="taller">Taller</option>
             </select>
           </div>
           <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="margin-bottom:1rem;width:100%;">📄 Exportar PDF de tallas (para preparar ropa)</button>
@@ -987,11 +985,11 @@ const ROPA_ARTICULOS = [
 // la talla de las prendas que de verdad usa (botas/chaleco/guantes no tienen
 // talla estándar, por eso no aparecen en ninguna categoría).
 const CATEGORIAS_ROPA_EMPLEADO = {
-  conductor: { label:'Conductor', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
-  oficina:   { label:'Oficina',   articulos:['polo_corta','polo_larga','sudadera','chaqueta'] },
-  limpieza:  { label:'Limpieza',  articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
-  almacen:   { label:'Almacén',   articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
-  taller:    { label:'Taller mecánico', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+  conductor:    { label:'Conductor', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+  oficina:      { label:'Oficina',   articulos:['polo_corta','polo_larga','sudadera','chaqueta'] },
+  limpieza:     { label:'Limpieza',  articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+  mozo_almacen: { label:'Mozo almacén', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
+  taller:       { label:'Taller', articulos:['pantalon_corto','pantalon_largo','polo_corta','polo_larga','sudadera','chaqueta'] },
 };
 
 const ROPA_ENTREGADO_CHECKS = {
@@ -1248,7 +1246,19 @@ async function initApp() {
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
   document.getElementById('btn-zip-ropa').addEventListener('click', descargarZipRopa);
   document.getElementById('btn-add-ropa-emp').addEventListener('click', ()=>window.addRopaEmpleado());
-  document.getElementById('new-ropa-categoria').addEventListener('change', (e)=>renderTallasEmpleadoInputs('new-ropa-tallas-container', e.target.value, 'new-ropa'));
+  document.getElementById('new-ropa-empleado').addEventListener('change', (e)=>{
+    const cod = e.target.value;
+    const infoEl = document.getElementById('new-ropa-empleado-info');
+    const d = driversCache.find(x=>x.code===cod);
+    if (!d) { infoEl.innerHTML = ''; renderTallasEmpleadoInputs('new-ropa-tallas-container', '', 'new-ropa'); return; }
+    const catLabel = d.categoria ? (CATEGORIAS_EMPLEADO.find(c=>c.id===d.categoria)||{}).label : null;
+    if (!d.categoria) {
+      infoEl.innerHTML = `<div class="alert error show" style="margin-bottom:0.75rem;">⚠️ Este empleado no tiene categoría asignada en Configuración. Ve a Configuración → Empleados y asígnale una para poder pedirle las tallas correctas.</div>`;
+    } else {
+      infoEl.innerHTML = `<div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">💼 ${catLabel}${d.empresa?' · 🏭 '+d.empresa:''}</div>`;
+    }
+    renderTallasEmpleadoInputs('new-ropa-tallas-container', d.categoria||'', 'new-ropa');
+  });
   document.getElementById('btn-ver-plantilla-generica').addEventListener('click', verPlantillaGenerica);
   document.getElementById('btn-toggle-ropa-emp').addEventListener('click', ()=>{
     const wrapper = document.getElementById('ropa-emp-list-wrapper');
@@ -1279,8 +1289,7 @@ async function initApp() {
     }
   });
   populateRopaSelects();
-
-  // Admin tab buttons — Gasoil
+  populateNuevoRopaEmpleadoSelect();
   document.getElementById('atab-btn-registros').addEventListener('click', ()=>switchAdminTab('registros'));
   document.getElementById('atab-btn-deposito').addEventListener('click', ()=>switchAdminTab('deposito'));
   document.getElementById('atab-btn-consumo').addEventListener('click', ()=>switchAdminTab('consumo'));
@@ -1505,6 +1514,8 @@ function activarListenersTiempoReal() {
       populateLimpiezaSelects();
       populateMantCondConductores();
       populateHistMantCondConductores();
+      populateNuevoRopaEmpleadoSelect();
+      if (currentModule==='ropa') renderRopaEmpleadosList();
     }
   });
 
@@ -1587,6 +1598,7 @@ function activarListenersTiempoReal() {
     ropaEmpleadosCache = snap.docs.map(d => ({id:d.id, ...d.data()}));
     if (currentUser && currentUser.isAdmin && currentModule==='ropa') {
       populateRopaSelects();
+      populateNuevoRopaEmpleadoSelect();
       renderRopaEmpleadosList();
     }
   });
@@ -1805,6 +1817,9 @@ window.doLogin = () => {
   const driver = driversCache.find(d => d.code === code);
   if (driver && driver.activo === false) {
     err.textContent = 'Este código ya no está activo. Contacta con tu jefe.'; return;
+  }
+  if (driver && driver.permisoGasoil === false) {
+    err.textContent = 'No tienes permiso para acceder al registro de Gasoil. Contacta con tu jefe.'; return;
   }
   if (driver) {
     currentUser = { name:driver.name, code:driver.code, isAdmin:false };
@@ -2505,13 +2520,16 @@ function renderDriverList() {
       d.empresa ? `🏭 ${d.empresa}` : null,
       d.dni ? `🪪 ${d.dni}` : null,
       d.telParticular ? `📱 ${d.telParticular}` : null,
-      d.telEmpresa ? `🏢 ${d.telEmpresa}` : null
+      d.telEmpresa ? `🏢 ${d.telEmpresa}` : null,
+      d.extension ? `☎️ Ext. ${d.extension}` : null
     ].filter(Boolean).join(' · ');
+    const sinGasoil = d.permisoGasoil===false ? `<div style="font-size:11px;color:var(--danger);font-weight:600;margin-top:3px;">⛔ Sin permiso de Gasoil</div>` : '';
     return `<div class="driver-list-item" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
         <div class="driver-info">${d.name}</div>
         <div class="driver-code">Código: ${d.code}${d.limpieza?' · 🧹 Limpieza':''}</div>
         ${datosExtra ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">${datosExtra}</div>` : ''}
+        ${sinGasoil}
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
@@ -2586,12 +2604,14 @@ window.addDriver = async () => {
   const empresa=document.getElementById('new-driver-empresa').value;
   const telParticular=document.getElementById('new-driver-tel-particular').value.trim();
   const telEmpresa=document.getElementById('new-driver-tel-empresa').value.trim();
+  const extension=document.getElementById('new-driver-extension').value.trim();
+  const permisoGasoil=document.getElementById('new-driver-permiso-gasoil').checked;
   const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
   if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
   if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
   try {
-    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa};
+    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
@@ -2601,6 +2621,8 @@ window.addDriver = async () => {
     document.getElementById('new-driver-empresa').value='';
     document.getElementById('new-driver-tel-particular').value='';
     document.getElementById('new-driver-tel-empresa').value='';
+    document.getElementById('new-driver-extension').value='';
+    document.getElementById('new-driver-permiso-gasoil').checked=true;
     document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
     showAlert(al,`✓ Empleado "${name}" añadido`,false);
@@ -2653,6 +2675,15 @@ window.editDriver = (code) => {
           <input class="form-input" type="tel" id="edit-driver-tel-empresa" value="${d.telEmpresa||''}">
         </div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Extensión de teléfono móvil</label>
+        <input class="form-input" type="text" id="edit-driver-extension" value="${d.extension||''}" placeholder="Opcional">
+      </div>
+      <div style="margin-bottom:0.75rem;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="edit-driver-permiso-gasoil" ${d.permisoGasoil===false?'':'checked'} style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
+        </label>
+      </div>
       <div style="margin-bottom:1.25rem;">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
           <input type="checkbox" id="edit-driver-limpieza" ${d.limpieza?'checked':''} style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
@@ -2674,6 +2705,8 @@ window.editDriver = (code) => {
     const newEmpresa = document.getElementById('edit-driver-empresa').value;
     const newTelParticular = document.getElementById('edit-driver-tel-particular').value.trim();
     const newTelEmpresa = document.getElementById('edit-driver-tel-empresa').value.trim();
+    const newExtension = document.getElementById('edit-driver-extension').value.trim();
+    const newPermisoGasoil = document.getElementById('edit-driver-permiso-gasoil').checked;
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
     if (!newName || !newCode) { showAlert(al,'Rellena nombre y código',true); return; }
@@ -2682,7 +2715,7 @@ window.editDriver = (code) => {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa };
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, permisoGasoil:newPermisoGasoil };
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
@@ -2725,8 +2758,8 @@ async function exportarPdfEmpleados() {
     if (empleadoFiltroEmpresa) filtros.push('Empresa: '+empleadoFiltroEmpresa);
     const tituloFiltro = filtros.length ? filtros.join('  ·  ') : 'Todos los empleados';
 
-    const colX = { nombre:M, cat:M+150, emp:M+255, dni:M+430, telPart:M+520, telEmp:M+660 };
-    const colW = { nombre:150, cat:105, emp:175, dni:90, telPart:140, telEmp:781-30-660 };
+    const colX = { nombre:M, cat:M+140, emp:M+235, dni:M+395, telPart:M+475, telEmp:M+600, ext:M+725 };
+    const colW = { nombre:140, cat:95, emp:160, dni:80, telPart:125, telEmp:125, ext:50 };
 
     let page, y;
     const nuevaPagina = (conTitulo) => {
@@ -2747,7 +2780,7 @@ async function exportarPdfEmpleados() {
       page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
       const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
       cab('NOMBRE', colX.nombre+8); cab('CATEGORÍA', colX.cat+8); cab('EMPRESA', colX.emp+8);
-      cab('DNI', colX.dni+8); cab('TEL. PARTICULAR', colX.telPart+8); cab('TEL. EMPRESA', colX.telEmp+8);
+      cab('DNI', colX.dni+8); cab('TEL. PARTICULAR', colX.telPart+8); cab('TEL. EMPRESA', colX.telEmp+8); cab('EXT.', colX.ext+8);
       y -= 38;
     };
 
@@ -2769,6 +2802,7 @@ async function exportarPdfEmpleados() {
       page.drawText(d.dni||'—', { x:colX.dni+8, y, size:9, font:fontReg, color: navy });
       page.drawText(d.telParticular||'—', { x:colX.telPart+8, y, size:9, font:fontReg, color: navy });
       page.drawText(d.telEmpresa||'—', { x:colX.telEmp+8, y, size:9, font:fontReg, color: navy });
+      page.drawText(d.extension||'—', { x:colX.ext+8, y, size:9, font:fontReg, color: navy });
       y -= rowH;
     });
 
@@ -5042,17 +5076,18 @@ function populateRopaSelects() {
   const sel = document.getElementById('ropa-sel-empleado');
   const selFilter = document.getElementById('ropa-hist-filter');
   if (!sel) return;
-  const ordenados = [...ropaEmpleadosCache].filter(e=>e.activo!==false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const resueltos = ropaEmpleadosCache.map(resolverEmpleadoRopa);
+  const ordenados = resueltos.filter(e=>e.activo!==false).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
   sel.innerHTML = '<option value="">— Selecciona empleado —</option>';
-  ordenados.forEach(e=>{ sel.innerHTML += `<option value="${e.id}">${e.nombre}</option>`; });
+  ordenados.forEach(e=>{ sel.innerHTML += `<option value="${e.id}">${e.nombre||'(sin nombre)'}</option>`; });
   if (selFilter) {
     selFilter.innerHTML = '<option value="">Todos los empleados</option>';
-    [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ selFilter.innerHTML += `<option value="${e.id}">${e.nombre}${e.activo===false?' (baja)':''}</option>`; });
+    [...resueltos].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).forEach(e=>{ selFilter.innerHTML += `<option value="${e.id}">${e.nombre||'(sin nombre)'}${e.activo===false?' (baja)':''}</option>`; });
   }
   const zipSel = document.getElementById('zip-sel-empleado');
   if (zipSel) {
     zipSel.innerHTML = '<option value="">Todos los empleados</option>';
-    [...ropaEmpleadosCache].sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(e=>{ zipSel.innerHTML += `<option value="${e.id}">${e.nombre}${e.activo===false?' (baja)':''}</option>`; });
+    [...resueltos].sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||'')).forEach(e=>{ zipSel.innerHTML += `<option value="${e.id}">${e.nombre||'(sin nombre)'}${e.activo===false?' (baja)':''}</option>`; });
   }
 }
 
@@ -5061,7 +5096,7 @@ function seleccionarEmpleadoRopa(empId) {
   if (!empId) { wrapper.style.display = 'none'; wrapper.innerHTML=''; ropaEmpleadoSeleccionado=null; return; }
   const emp = ropaEmpleadosCache.find(e=>e.id===empId);
   if (!emp) return;
-  ropaEmpleadoSeleccionado = emp;
+  ropaEmpleadoSeleccionado = resolverEmpleadoRopa(emp);
   ropaArticulosSeleccionados = {};
   ropaPuestoSeleccionado = '';
   wrapper.style.display = 'block';
@@ -5110,19 +5145,22 @@ function renderRopaEmpleadosList() {
   const list = document.getElementById('ropa-emp-list');
   const bajaList = document.getElementById('ropa-emp-baja-list');
   if (!list || !bajaList) return;
-  const activos = ropaEmpleadosCache.filter(e=>e.activo!==false && (!ropaEmpFiltroCategoria || e.categoria===ropaEmpFiltroCategoria)).sort((a,b)=>a.nombre.localeCompare(b.nombre));
-  const bajas = ropaEmpleadosCache.filter(e=>e.activo===false).sort((a,b)=>a.nombre.localeCompare(b.nombre));
+  const resueltos = ropaEmpleadosCache.map(resolverEmpleadoRopa);
+  const activos = resueltos.filter(e=>e.activo!==false && (!ropaEmpFiltroCategoria || e.categoria===ropaEmpFiltroCategoria)).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  const bajas = resueltos.filter(e=>e.activo===false).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
   document.querySelectorAll('.ropa-emp-count').forEach(s=>s.textContent = activos.length);
   document.getElementById('ropa-emp-baja-count').textContent = bajas.length;
 
   list.innerHTML = activos.map(e=>{
     const catLabel = e.categoria ? (CATEGORIAS_ROPA_EMPLEADO[e.categoria]||{}).label : null;
     const tallasTxt = resumenTallasEmpleado(e);
+    const avisoSinVincular = !e.vinculado ? `<div style="font-size:11px;color:var(--warning);font-weight:600;margin-top:3px;">⚠️ Sin vincular a Configuración — edítalo para enlazarlo</div>` : '';
     return `<div class="driver-list-item" style="flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
-        <div class="driver-info">👔 ${e.nombre}</div>
+        <div class="driver-info">👔 ${e.nombre||'(sin nombre)'}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${e.empresa||''}${catLabel?' · '+catLabel:''}</div>
         ${tallasTxt ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
+        ${avisoSinVincular}
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editarRopaEmpleado('${e.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">✏️ Editar</button>
@@ -5146,8 +5184,9 @@ function renderRopaEmpleadosList() {
 async function exportarPdfTallasEmpleados() {
   const btn = document.getElementById('btn-exportar-pdf-tallas');
   const empleados = ropaEmpleadosCache
+    .map(resolverEmpleadoRopa)
     .filter(e => e.activo!==false && (!ropaEmpFiltroCategoria || e.categoria===ropaEmpFiltroCategoria))
-    .sort((a,b)=>a.nombre.localeCompare(b.nombre));
+    .sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
   if (!empleados.length) { alert('No hay empleados para ese filtro.'); return; }
 
   const textoOriginal = btn.textContent;
@@ -5208,10 +5247,11 @@ async function exportarPdfTallasEmpleados() {
       const rowH = 22;
       if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
       // Nombre completo, sin cortar: si no cabe al tamaño normal, se reduce progresivamente.
+      const nombreTxt = e.nombre || '(sin nombre)';
       let sizeNombre = 9.5;
       const maxNombreW = NOMBRE_W - 16;
-      while (sizeNombre > 6.5 && fontBold.widthOfTextAtSize(e.nombre, sizeNombre) > maxNombreW) sizeNombre -= 0.5;
-      page.drawText(e.nombre, { x:colX.nombre+8, y, size:sizeNombre, font:fontBold, color: navy });
+      while (sizeNombre > 6.5 && fontBold.widthOfTextAtSize(nombreTxt, sizeNombre) > maxNombreW) sizeNombre -= 0.5;
+      page.drawText(nombreTxt, { x:colX.nombre+8, y, size:sizeNombre, font:fontBold, color: navy });
       const catLabel = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].label : '—';
       page.drawText(catLabel, { x:centrado(catLabel, colX.cat, CAT_W, 9, fontReg), y, size:9, font:fontReg, color: gray });
       const articulosCat = e.categoria ? CATEGORIAS_ROPA_EMPLEADO[e.categoria].articulos : [];
@@ -5252,6 +5292,27 @@ async function exportarPdfTallasEmpleados() {
 
 // Pinta los campos de talla correspondientes a la categoría elegida (Conductor/Oficina/Limpieza).
 // Se usa tanto en el alta de empleado nuevo como en el modal de edición.
+// Resuelve los datos "efectivos" de un empleado de Ropa: si está vinculado a un
+// empleado de Configuración (conductorCode), el nombre/empresa/categoría se toman
+// SIEMPRE de ahí en vivo (única fuente de verdad). Si no está vinculado (registros
+// antiguos), se usan los campos propios que ya tuviera guardados como antes.
+function resolverEmpleadoRopa(e) {
+  if (e.conductorCode) {
+    const d = driversCache.find(x => x.code === e.conductorCode);
+    if (d) return { ...e, nombre: d.name, empresa: d.empresa||'', categoria: d.categoria||'', vinculado: true };
+  }
+  return { ...e, vinculado: false };
+}
+
+function populateNuevoRopaEmpleadoSelect() {
+  const sel = document.getElementById('new-ropa-empleado');
+  if (!sel) return;
+  const yaVinculados = new Set(ropaEmpleadosCache.filter(e=>e.conductorCode).map(e=>e.conductorCode));
+  const disponibles = driversCache.filter(d => d.activo!==false && !yaVinculados.has(d.code)).sort((a,b)=>a.name.localeCompare(b.name));
+  sel.innerHTML = '<option value="">— Selecciona empleado —</option>';
+  disponibles.forEach(d => { sel.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+}
+
 function renderTallasEmpleadoInputs(containerId, categoria, prefix, valoresActuales) {
   const container = document.getElementById(containerId);
   if (!container) return;
@@ -5296,57 +5357,77 @@ function resumenTallasEmpleado(e) {
 
 
 window.addRopaEmpleado = async () => {
-  const nombre = document.getElementById('new-ropa-nombre').value.trim().toUpperCase();
-  const empresa = document.getElementById('new-ropa-empresa').value.trim();
-  const categoria = document.getElementById('new-ropa-categoria').value;
+  const codigo = document.getElementById('new-ropa-empleado').value;
   const al = document.getElementById('ropa-emp-alert');
-  if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
-  if (!categoria) { showAlert(al,'Selecciona la categoría del empleado',true); return; }
+  if (!codigo) { showAlert(al,'Selecciona el empleado',true); return; }
+  const d = driversCache.find(x=>x.code===codigo);
+  if (!d) { showAlert(al,'No se encuentra ese empleado en Configuración',true); return; }
+  if (ropaEmpleadosCache.find(e=>e.conductorCode===codigo)) { showAlert(al,'Ese empleado ya está añadido a Ropa',true); return; }
+  if (!d.categoria) { showAlert(al,'Este empleado no tiene categoría asignada en Configuración. Asígnale una primero.',true); return; }
 
-  const id = nombre.replace(/[^a-zA-Z0-9]/g,'_');
-  if (ropaEmpleadosCache.find(e=>e.id===id)) { showAlert(al,'Ya existe un empleado con ese nombre',true); return; }
-
-  const tallas = leerTallasEmpleadoInputs(categoria, 'new-ropa');
+  const tallas = leerTallasEmpleadoInputs(d.categoria, 'new-ropa');
 
   try {
-    const nuevo = { nombre, empresa, categoria, tallas, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
-    await setDoc(doc(db, 'ropaEmpleados', id), nuevo);
-    ropaEmpleadosCache.push({id, ...nuevo});
+    // El doc usa como id el propio código del empleado de Configuración: así quedan
+    // enlazados 1 a 1, y nombre/empresa/categoría se leen siempre en vivo desde ahí.
+    const nuevo = { conductorCode: codigo, tallas, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
+    await setDoc(doc(db, 'ropaEmpleados', codigo), nuevo);
+    ropaEmpleadosCache.push({id:codigo, ...nuevo});
 
-    document.getElementById('new-ropa-nombre').value = '';
-    document.getElementById('new-ropa-empresa').value = '';
-    document.getElementById('new-ropa-categoria').value = '';
+    document.getElementById('new-ropa-empleado').value = '';
+    document.getElementById('new-ropa-empleado-info').innerHTML = '';
     document.getElementById('new-ropa-tallas-container').innerHTML = '';
     populateRopaSelects();
+    populateNuevoRopaEmpleadoSelect();
     renderRopaEmpleadosList();
-    showAlert(al, `✓ Empleado "${nombre}" añadido correctamente`, false);
+    showAlert(al, `✓ Empleado "${d.name}" añadido a Ropa correctamente`, false);
   } catch(e) {
     showAlert(al, 'Error al guardar: '+e.message, true);
   }
 };
 
 window.editarRopaEmpleado = (id) => {
-  const e = ropaEmpleadosCache.find(x=>x.id===id);
-  if (!e) return;
-  const modal = document.createElement('div');
-  modal.id = 'edit-ropa-emp-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
-  modal.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
-      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar empleado — ${e.nombre}</div>
-      <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="edit-ropa-emp-nombre" value="${e.nombre}"></div>
+  const eRaw = ropaEmpleadosCache.find(x=>x.id===id);
+  if (!eRaw) return;
+  const e = resolverEmpleadoRopa(eRaw);
+  const activosConfig = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+
+  const renderInfoPersonal = (codigoVinculado) => {
+    if (codigoVinculado) {
+      const d = driversCache.find(x=>x.code===codigoVinculado);
+      const catLabel = d && d.categoria ? (CATEGORIAS_EMPLEADO.find(c=>c.id===d.categoria)||{}).label : null;
+      return `<div style="font-size:13px;background:var(--navy-light);border:1px solid var(--card-border);border-radius:var(--radius-sm);padding:0.75rem;margin-bottom:0.75rem;">
+        <div><strong>${d?d.name:'—'}</strong></div>
+        <div style="color:var(--text-muted);margin-top:2px;">${catLabel?'💼 '+catLabel:''}${d&&d.empresa?' · 🏭 '+d.empresa:''}</div>
+        <div style="color:var(--text-muted);font-size:11px;margin-top:4px;">Estos datos se editan desde ⚙️ Configuración → Empleados.</div>
+      </div>`;
+    }
+    return `
+      <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="edit-ropa-emp-nombre" value="${e.nombre||''}"></div>
       <div class="form-group"><label class="form-label">Nombre de empresa</label><input class="form-input" id="edit-ropa-emp-empresa" value="${e.empresa||''}"></div>
       <div class="form-group">
         <label class="form-label">Categoría</label>
         <select class="form-input" id="edit-ropa-emp-categoria">
           <option value="">— Selecciona categoría —</option>
-          <option value="conductor" ${e.categoria==='conductor'?'selected':''}>Conductor</option>
-          <option value="oficina" ${e.categoria==='oficina'?'selected':''}>Oficina</option>
-          <option value="limpieza" ${e.categoria==='limpieza'?'selected':''}>Limpieza</option>
-          <option value="almacen" ${e.categoria==='almacen'?'selected':''}>Almacén</option>
-          <option value="taller" ${e.categoria==='taller'?'selected':''}>Taller mecánico</option>
+          ${Object.entries(CATEGORIAS_ROPA_EMPLEADO).map(([id,c])=>`<option value="${id}" ${id===e.categoria?'selected':''}>${c.label}</option>`).join('')}
+        </select>
+      </div>`;
+  };
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-ropa-emp-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar empleado de Ropa</div>
+      <div class="form-group">
+        <label class="form-label">Vincular con empleado de Configuración</label>
+        <select class="form-input" id="edit-ropa-emp-vinculo">
+          <option value="">— Sin vincular (usar datos propios) —</option>
+          ${activosConfig.map(d=>`<option value="${d.code}" ${d.code===eRaw.conductorCode?'selected':''}>${d.name}</option>`).join('')}
         </select>
       </div>
+      <div id="edit-ropa-emp-personal">${renderInfoPersonal(eRaw.conductorCode)}</div>
       <div id="edit-ropa-emp-tallas-container"></div>
       <div style="display:flex;gap:0.5rem;margin-top:1rem;">
         <button id="btn-save-ropa-emp-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
@@ -5356,21 +5437,40 @@ window.editarRopaEmpleado = (id) => {
     </div>`;
   document.body.appendChild(modal);
 
-  renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', e.categoria, 'edit-ropa-emp', e.tallas);
-  document.getElementById('edit-ropa-emp-categoria').addEventListener('change', (ev)=>{
-    renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', ev.target.value, 'edit-ropa-emp', null);
+  renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', e.categoria, 'edit-ropa-emp', eRaw.tallas);
+
+  document.getElementById('edit-ropa-emp-vinculo').addEventListener('change', (ev)=>{
+    const cod = ev.target.value;
+    document.getElementById('edit-ropa-emp-personal').innerHTML = renderInfoPersonal(cod);
+    const catParaTallas = cod ? (driversCache.find(x=>x.code===cod)||{}).categoria : null;
+    renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', catParaTallas || '', 'edit-ropa-emp', null);
+    if (!cod) {
+      // Al volver a "sin vincular" hay que poder elegir categoría manualmente otra vez
+      const selCat = document.getElementById('edit-ropa-emp-categoria');
+      if (selCat) selCat.addEventListener('change', (e2)=>renderTallasEmpleadoInputs('edit-ropa-emp-tallas-container', e2.target.value, 'edit-ropa-emp', null));
+    }
   });
 
   document.getElementById('btn-save-ropa-emp-edit').addEventListener('click', async () => {
-    const nombre = document.getElementById('edit-ropa-emp-nombre').value.trim().toUpperCase();
-    const empresa = document.getElementById('edit-ropa-emp-empresa').value.trim();
-    const categoria = document.getElementById('edit-ropa-emp-categoria').value;
+    const codigoVinculo = document.getElementById('edit-ropa-emp-vinculo').value;
     const al = document.getElementById('edit-ropa-emp-alert');
-    if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
-    const tallas = categoria ? leerTallasEmpleadoInputs(categoria, 'edit-ropa-emp') : {};
+    let categoriaParaTallas;
+    const cambios = { conductorCode: codigoVinculo || null };
+    if (codigoVinculo) {
+      const d = driversCache.find(x=>x.code===codigoVinculo);
+      categoriaParaTallas = d ? d.categoria : null;
+    } else {
+      const nombre = document.getElementById('edit-ropa-emp-nombre').value.trim().toUpperCase();
+      const empresa = document.getElementById('edit-ropa-emp-empresa').value.trim();
+      const categoria = document.getElementById('edit-ropa-emp-categoria').value;
+      if (!nombre) { showAlert(al,'Escribe el nombre del empleado',true); return; }
+      cambios.nombre = nombre; cambios.empresa = empresa; cambios.categoria = categoria;
+      categoriaParaTallas = categoria;
+    }
+    cambios.tallas = categoriaParaTallas ? leerTallasEmpleadoInputs(categoriaParaTallas, 'edit-ropa-emp') : {};
     try {
-      // Partimos del objeto completo "e" para no perder ningún campo (pdfBase64, activo, etc.)
-      const actualizado = { ...e, nombre, empresa, categoria, tallas };
+      // Partimos del objeto original "eRaw" para no perder ningún campo (pdfBase64, activo, etc.)
+      const actualizado = { ...eRaw, ...cambios };
       await setDoc(doc(db,'ropaEmpleados',id), actualizado);
       const idx = ropaEmpleadosCache.findIndex(x=>x.id===id);
       if (idx>=0) ropaEmpleadosCache[idx] = actualizado;
@@ -5384,11 +5484,13 @@ window.editarRopaEmpleado = (id) => {
 window.bajaRopaEmpleado = async (id) => {
   const e = ropaEmpleadosCache.find(x=>x.id===id);
   if (!e) return;
-  if (!(await confirmarAccion(`¿Dar de baja a "${e.nombre}"? Ya no aparecerá para nuevas entregas, pero su historial se mantendrá íntegro.`))) return;
+  const nombreVisible = resolverEmpleadoRopa(e).nombre || '(sin nombre)';
+  if (!(await confirmarAccion(`¿Dar de baja a "${nombreVisible}"? Ya no aparecerá para nuevas entregas, pero su historial se mantendrá íntegro.`))) return;
   try {
     e.activo = false;
     await setDoc(doc(db,'ropaEmpleados',id), e);
     populateRopaSelects();
+    populateNuevoRopaEmpleadoSelect();
     renderRopaEmpleadosList();
   } catch(err) { alert('Error: '+err.message); }
 };
@@ -5400,6 +5502,7 @@ window.reactivarRopaEmpleado = async (id) => {
     e.activo = true;
     await setDoc(doc(db,'ropaEmpleados',id), e);
     populateRopaSelects();
+    populateNuevoRopaEmpleadoSelect();
     renderRopaEmpleadosList();
   } catch(err) { alert('Error: '+err.message); }
 };
@@ -5407,12 +5510,14 @@ window.reactivarRopaEmpleado = async (id) => {
 window.eliminarRopaEmpleadoDefinitivo = async (id) => {
   const e = ropaEmpleadosCache.find(x=>x.id===id);
   if (!e) return;
-  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará a "${e.nombre}" PARA SIEMPRE.\n\nSu historial de entregas pasadas NO se borrará, pero ya no podrás verlo en el filtro ni reactivarlo.\n\n¿Seguro que quieres continuar?`))) return;
+  const nombreVisible = resolverEmpleadoRopa(e).nombre || '(sin nombre)';
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará a "${nombreVisible}" PARA SIEMPRE.\n\nSu historial de entregas pasadas NO se borrará, pero ya no podrás verlo en el filtro ni reactivarlo.\n\n¿Seguro que quieres continuar?`))) return;
   if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(db,'ropaEmpleados',id));
     ropaEmpleadosCache = ropaEmpleadosCache.filter(x=>x.id!==id);
     populateRopaSelects();
+    populateNuevoRopaEmpleadoSelect();
     renderRopaEmpleadosList();
   } catch(err) { alert('Error al eliminar: '+err.message); }
 };
@@ -5747,9 +5852,10 @@ window.abrirFirmaPendiente = (id) => {
     try {
       const firmaDataUrl = canvas.toDataURL('image/png');
       const firmaPngBytes = Uint8Array.from(atob(firmaDataUrl.split(',')[1]), c => c.charCodeAt(0));
-      const empleado = ropaEmpleadosCache.find(e=>e.id===h.empleadoId) || {pdfBase64: null};
+      const empleadoRaw = ropaEmpleadosCache.find(e=>e.id===h.empleadoId);
+      const empleado = empleadoRaw ? resolverEmpleadoRopa(empleadoRaw) : {pdfBase64: null};
       // Si el empleado ya no está en caché (poco probable), usamos su nombre/empresa guardados en el propio registro
-      const empleadoBase = empleado.pdfBase64 ? empleado : ropaEmpleadosCache.find(e=>e.nombre===h.empleadoNombre);
+      const empleadoBase = empleado.pdfBase64 ? empleado : { nombre: h.empleadoNombre, empresa: h.empresa, pdfBase64: ROPA_PLANTILLA_GENERICA };
       if (!empleadoBase) { showAlert(al,'No se encuentra la plantilla de este empleado',true); btn.disabled=false; btn.textContent='💾 Confirmar firma'; return; }
 
       const pdfFinalBase64 = await generarPdfRopa(empleadoBase, h.puesto, h.articulos, firmaPngBytes);
@@ -5829,7 +5935,8 @@ window.editarEntregaRopa = (id) => {
         cant: document.getElementById('edit-cant-'+a.id).value || ''
       }));
 
-      const empleadoBase = ropaEmpleadosCache.find(e=>e.id===h.empleadoId) || ropaEmpleadosCache.find(e=>e.nombre===h.empleadoNombre);
+      const empleadoRawEdit = ropaEmpleadosCache.find(e=>e.id===h.empleadoId);
+      const empleadoBase = empleadoRawEdit ? resolverEmpleadoRopa(empleadoRawEdit) : { nombre: h.empleadoNombre, empresa: h.empresa, pdfBase64: ROPA_PLANTILLA_GENERICA };
       if (!empleadoBase) { showAlert(al,'No se encuentra la plantilla de este empleado',true); btn.disabled=false; btn.textContent='💾 Guardar cambios'; return; }
 
       let firmaPngBytes = null;
