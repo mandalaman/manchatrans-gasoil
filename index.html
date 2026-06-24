@@ -394,6 +394,8 @@ input[type="number"] { -moz-appearance: textfield; }
     <!-- CONDUCTORES -->
     <div id="atab-conductores" class="tab-pane active">
       <div id="admin-alert" class="alert"></div>
+      <button class="btn btn-secondary" id="btn-toggle-add-driver" style="margin-bottom:1rem;width:100%;">➕ Añadir empleado</button>
+      <div id="add-driver-wrapper" style="display:none;">
       <div class="refuel-card" style="margin-bottom:1rem;">
         <div class="section-title">Añadir empleado</div>
         <div class="form-group">
@@ -445,6 +447,7 @@ input[type="number"] { -moz-appearance: textfield; }
           </label>
         </div>
         <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
+      </div>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver empleados activos (<span id="driver-count">0</span>)</button>
       <div id="driver-list-wrapper" style="display:none;">
@@ -1334,6 +1337,12 @@ async function initApp() {
   document.getElementById('btn-exportar-pdf-empleados').addEventListener('click', exportarPdfEmpleados);
   document.getElementById('btn-exportar-pdf-tallas').addEventListener('click', exportarPdfTallasEmpleados);
 
+  document.getElementById('btn-toggle-add-driver').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('add-driver-wrapper');
+    const btn = document.getElementById('btn-toggle-add-driver');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.textContent = '➖ Ocultar formulario'; }
+    else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir empleado'; }
+  });
   document.getElementById('btn-toggle-drivers').addEventListener('click', ()=>{
     const wrapper = document.getElementById('driver-list-wrapper');
     const btn = document.getElementById('btn-toggle-drivers');
@@ -2570,6 +2579,8 @@ window.addDriver = async () => {
     document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
     showAlert(al,`✓ Empleado "${name}" añadido`,false);
+    document.getElementById('add-driver-wrapper').style.display = 'none';
+    document.getElementById('btn-toggle-add-driver').textContent = '➕ Añadir empleado';
     // Si la categoría usa tallas, abrimos directamente la ventana de tallas para
     // no tener que ir a buscarlo después en la lista.
     if (categoria && CATEGORIAS_ROPA_EMPLEADO[categoria]) {
