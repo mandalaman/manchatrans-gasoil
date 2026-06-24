@@ -2570,6 +2570,11 @@ window.addDriver = async () => {
     document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
     showAlert(al,`✓ Empleado "${name}" añadido`,false);
+    // Si la categoría usa tallas, abrimos directamente la ventana de tallas para
+    // no tener que ir a buscarlo después en la lista.
+    if (categoria && CATEGORIAS_ROPA_EMPLEADO[categoria]) {
+      setTimeout(()=>editarTallasEmpleado(code), 300);
+    }
   } catch(e) { showAlert(al,'Error al guardar',true); }
 };
 
