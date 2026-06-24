@@ -420,7 +420,6 @@ input[type="number"] { -moz-appearance: textfield; }
             <option value="">— Selecciona empresa —</option>
           </select>
         </div>
-        <div id="new-driver-tallas-container"></div>
         <div class="two-col">
           <div class="form-group">
             <label class="form-label">Teléfono particular</label>
@@ -458,7 +457,8 @@ input[type="number"] { -moz-appearance: textfield; }
           </select>
         </div>
         <button class="btn btn-secondary" id="btn-exportar-pdf-empleados" style="margin-bottom:0.5rem;width:100%;">📄 Exportar PDF del listado filtrado</button>
-        <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="margin-bottom:1rem;width:100%;">📏 Exportar PDF de tallas (para preparar ropa)</button>
+        <button class="btn btn-secondary" id="btn-exportar-pdf-tallas" style="margin-bottom:0.5rem;width:100%;">📏 Exportar PDF de tallas (para preparar ropa)</button>
+        <button class="btn btn-ghost" id="btn-vincular-tallas" style="margin-bottom:1rem;width:100%;font-size:13px;" onclick="vincularTallasManualmente()">🔄 Vincular tallas antiguas de Ropa</button>
         <div id="driver-list"></div>
       </div>
 
@@ -1329,9 +1329,6 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
-  document.getElementById('new-driver-categoria').addEventListener('change', (e)=>{
-    renderTallasEmpleadoInputs('new-driver-tallas-container', e.target.value, 'new-driver');
-  });
   document.getElementById('empleado-filter-categoria').addEventListener('change', (e)=>{ empleadoFiltroCategoria=e.target.value; renderDriverList(); });
   document.getElementById('empleado-filter-empresa').addEventListener('change', (e)=>{ empleadoFiltroEmpresa=e.target.value; renderDriverList(); });
   document.getElementById('btn-exportar-pdf-empleados').addEventListener('click', exportarPdfEmpleados);
@@ -2461,8 +2458,9 @@ function renderDriverList() {
         ${sinGasoil}
         ${tallasTxt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
       </div>
-      <div style="display:flex;gap:0.5rem;">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
+        ${d.categoria && CATEGORIAS_ROPA_EMPLEADO[d.categoria] ? `<button onclick="editarTallasEmpleado('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">📏 Tallas</button>` : ''}
         <button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>
       </div>
     </div>`;
@@ -2560,13 +2558,11 @@ window.addDriver = async () => {
     const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
-    if (categoria) await guardarTallasParaEmpleado(code, categoria, 'new-driver');
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
     document.getElementById('new-driver-dni').value='';
     document.getElementById('new-driver-categoria').value='';
     document.getElementById('new-driver-empresa').value='';
-    document.getElementById('new-driver-tallas-container').innerHTML='';
     document.getElementById('new-driver-tel-particular').value='';
     document.getElementById('new-driver-tel-empresa').value='';
     document.getElementById('new-driver-extension').value='';
@@ -2577,15 +2573,49 @@ window.addDriver = async () => {
   } catch(e) { showAlert(al,'Error al guardar',true); }
 };
 
+window.editarTallasEmpleado = (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  if (!d.categoria || !CATEGORIAS_ROPA_EMPLEADO[d.categoria]) { alert('Este empleado no tiene una categoría con tallas asignadas.'); return; }
+  const ropaDoc = ropaEmpleadosCache.find(e=>e.conductorCode===code);
+
+  const modal = document.createElement('div');
+  modal.id = 'edit-tallas-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:0.25rem;color:var(--accent);">📏 Tallas</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:1.25rem;">${d.name} · ${(CATEGORIAS_EMPLEADO.find(c=>c.id===d.categoria)||{}).label||''}</div>
+      <div id="edit-tallas-container"></div>
+      <div style="display:flex;gap:0.5rem;margin-top:1rem;">
+        <button id="btn-save-tallas" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-tallas-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-tallas-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  renderTallasEmpleadoInputs('edit-tallas-container', d.categoria, 'edit-tallas', ropaDoc?ropaDoc.tallas:null);
+
+  document.getElementById('btn-save-tallas').addEventListener('click', async () => {
+    const al = document.getElementById('edit-tallas-alert');
+    try {
+      await guardarTallasParaEmpleado(code, d.categoria, 'edit-tallas');
+      document.getElementById('edit-tallas-modal').remove();
+      renderDriverList();
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+};
+
 window.editDriver = (code) => {
   const d = driversCache.find(x=>x.code===code);
   if (!d) return;
 
   const modal = document.createElement('div');
   modal.id = 'edit-driver-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
   modal.innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;">
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar empleado</div>
       <div class="form-group">
         <label class="form-label">Nombre completo</label>
@@ -2613,7 +2643,6 @@ window.editDriver = (code) => {
           ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===d.empresa?'selected':''}>${e}</option>`).join('')}
         </select>
       </div>
-      <div id="edit-driver-tallas-container"></div>
       <div class="two-col">
         <div class="form-group">
           <label class="form-label">Teléfono particular</label>
@@ -2646,12 +2675,6 @@ window.editDriver = (code) => {
     </div>`;
   document.body.appendChild(modal);
 
-  const ropaDocActual = ropaEmpleadosCache.find(e=>e.conductorCode===code);
-  renderTallasEmpleadoInputs('edit-driver-tallas-container', d.categoria, 'edit-driver', ropaDocActual?ropaDocActual.tallas:null);
-  document.getElementById('edit-driver-categoria').addEventListener('change', (ev)=>{
-    renderTallasEmpleadoInputs('edit-driver-tallas-container', ev.target.value, 'edit-driver', null);
-  });
-
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     const newCode = document.getElementById('edit-driver-code').value.trim();
@@ -2682,13 +2705,13 @@ window.editDriver = (code) => {
 
       // Si el código ha cambiado, hay que actualizar el vínculo del documento de Ropa
       // (si lo tenía) para que no se quede enlazado al código antiguo.
+      const ropaDocActual = ropaEmpleadosCache.find(e=>e.conductorCode===code);
       if (newCode !== code && ropaDocActual) {
         const datosVinculo = { ...ropaDocActual, conductorCode: newCode };
         await setDoc(doc(db,'ropaEmpleados', ropaDocActual.id), datosVinculo);
         const idxRopa = ropaEmpleadosCache.findIndex(e=>e.id===ropaDocActual.id);
         if (idxRopa>=0) ropaEmpleadosCache[idxRopa] = datosVinculo;
       }
-      if (newCategoria) await guardarTallasParaEmpleado(newCode, newCategoria, 'edit-driver');
 
       document.getElementById('edit-driver-modal').remove();
       renderDriverList();
@@ -2971,10 +2994,6 @@ window.switchGestionTab = (tab) => {
   });
   if (tab==='conductores') {
     if (document.getElementById('driver-list-wrapper').style.display!=='none' || document.getElementById('driver-baja-wrapper').style.display!=='none') renderDriverList();
-    if (window._empleadosRopaSinVincular && window._empleadosRopaSinVincular.length) {
-      alert(`⚠️ No se han podido vincular automáticamente las tallas de estos empleados de Ropa:\n\n${window._empleadosRopaSinVincular.join('\n')}\n\nProbablemente su nombre no coincide exactamente con el de Configuración. Revísalos y, si hace falta, vuelve a poner sus tallas desde la ficha del empleado correspondiente.`);
-      window._empleadosRopaSinVincular = null; // mostrar el aviso solo una vez
-    }
   }
   if (tab==='vehiculos' && (document.getElementById('mat-list-wrapper').style.display!=='none' || document.getElementById('mat-baja-wrapper').style.display!=='none')) renderMatList();
 };
@@ -5276,25 +5295,63 @@ async function exportarPdfTallasEmpleados() {
 // para avisar al admin, en vez de perder sus tallas en silencio.
 async function migrarTallasLegacy() {
   const sinVincular = ropaEmpleadosCache.filter(e => !e.conductorCode && e.nombre);
-  if (!sinVincular.length) return;
   const sinMatch = [];
+  let vinculados = 0;
   for (const e of sinVincular) {
     const nombreNorm = (e.nombre||'').trim().toUpperCase();
     const match = driversCache.find(d => (d.name||'').trim().toUpperCase() === nombreNorm);
-    if (match) {
-      try {
-        const datos = { ...e, conductorCode: match.code };
-        delete datos.id;
-        await setDoc(doc(db,'ropaEmpleados', e.id), datos);
-        const idx = ropaEmpleadosCache.findIndex(x=>x.id===e.id);
-        if (idx>=0) ropaEmpleadosCache[idx] = { ...ropaEmpleadosCache[idx], conductorCode: match.code };
-      } catch(err) { console.error('Error vinculando empleado de Ropa:', e.nombre, err); sinMatch.push(e.nombre); }
-    } else {
-      sinMatch.push(e.nombre);
-    }
+    if (!match) { sinMatch.push(e.nombre); continue; }
+    try {
+      // ¿Ya hay otro documento vinculado a este mismo empleado? (p.ej. creado desde el
+      // nuevo botón "Tallas" antes de migrar). Si está vacío de tallas, le pasamos las
+      // tallas del registro antiguo y borramos el antiguo para no dejar duplicados.
+      const yaVinculado = ropaEmpleadosCache.find(x => x.conductorCode === match.code && x.id !== e.id);
+      if (yaVinculado) {
+        const tieneTallasPropias = yaVinculado.tallas && Object.keys(yaVinculado.tallas).length > 0;
+        if (!tieneTallasPropias && e.tallas && Object.keys(e.tallas).length > 0) {
+          const datos = { ...yaVinculado, tallas: e.tallas };
+          delete datos.id;
+          await setDoc(doc(db,'ropaEmpleados', yaVinculado.id), datos);
+          await deleteDoc(doc(db,'ropaEmpleados', e.id));
+          const idxY = ropaEmpleadosCache.findIndex(x=>x.id===yaVinculado.id);
+          if (idxY>=0) ropaEmpleadosCache[idxY] = {...ropaEmpleadosCache[idxY], tallas:e.tallas};
+          ropaEmpleadosCache = ropaEmpleadosCache.filter(x=>x.id!==e.id);
+          vinculados++;
+        } else {
+          sinMatch.push(e.nombre + ' (ya hay otro registro de tallas para ese empleado; revísalo a mano)');
+        }
+        continue;
+      }
+      const datos = { ...e, conductorCode: match.code };
+      delete datos.id;
+      await setDoc(doc(db,'ropaEmpleados', e.id), datos);
+      const idx = ropaEmpleadosCache.findIndex(x=>x.id===e.id);
+      if (idx>=0) ropaEmpleadosCache[idx] = { ...ropaEmpleadosCache[idx], conductorCode: match.code };
+      vinculados++;
+    } catch(err) { console.error('Error vinculando empleado de Ropa:', e.nombre, err); sinMatch.push(e.nombre+' (error: '+err.message+')'); }
   }
-  if (sinMatch.length) window._empleadosRopaSinVincular = sinMatch;
+  return { totalEncontrados: sinVincular.length, vinculados, sinMatch };
 }
+
+window.vincularTallasManualmente = async () => {
+  const btn = document.getElementById('btn-vincular-tallas');
+  const textoOriginal = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Comprobando...';
+  try {
+    const r = await migrarTallasLegacy();
+    renderDriverList();
+    if (r.totalEncontrados === 0) {
+      alert('No hay ningún empleado de Ropa antiguo pendiente de vincular. Si esperabas ver tallas de alguien y no aparecen, puede que ese empleado nunca llegara a tener tallas guardadas en Ropa, o que su nombre no coincida exactamente con el de aquí.');
+    } else {
+      let msg = `Revisados: ${r.totalEncontrados}\nVinculados correctamente: ${r.vinculados}`;
+      if (r.sinMatch.length) msg += `\n\nNo se han podido vincular:\n${r.sinMatch.join('\n')}`;
+      alert(msg);
+    }
+  } catch(e) {
+    alert('Error al vincular: '+e.message);
+  }
+  btn.disabled = false; btn.textContent = textoOriginal;
+};
 
 function resolverEmpleadoRopa(e) {
   if (e.conductorCode) {
