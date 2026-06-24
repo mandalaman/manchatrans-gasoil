@@ -404,6 +404,20 @@ input[type="number"] { -moz-appearance: textfield; }
           <label class="form-label">Código de acceso</label>
           <input class="form-input" type="text" id="new-driver-code" placeholder="Ej: 3062" autocomplete="off">
         </div>
+        <div class="form-group">
+          <label class="form-label">DNI</label>
+          <input class="form-input" type="text" id="new-driver-dni" placeholder="Ej: 12345678A" autocomplete="off" style="text-transform:uppercase;">
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label class="form-label">Teléfono particular</label>
+            <input class="form-input" type="tel" id="new-driver-tel-particular" placeholder="Ej: 600 11 22 33">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Teléfono empresa</label>
+            <input class="form-input" type="tel" id="new-driver-tel-empresa" placeholder="Ej: 900 11 22 33">
+          </div>
+        </div>
         <div style="margin-bottom:1.25rem;">
           <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
             <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
@@ -2438,14 +2452,24 @@ function renderDriverList() {
   document.getElementById('driver-count').textContent = activos.length;
   document.getElementById('driver-baja-count').textContent = bajas.length;
 
-  list.innerHTML = activos.map(d=>`
-    <div class="driver-list-item">
-      <div><div class="driver-info">${d.name}</div><div class="driver-code">Código: ${d.code}${d.limpieza?' · 🧹 Limpieza':''}</div></div>
+  list.innerHTML = activos.map(d=>{
+    const datosExtra = [
+      d.dni ? `🪪 ${d.dni}` : null,
+      d.telParticular ? `📱 ${d.telParticular}` : null,
+      d.telEmpresa ? `🏢 ${d.telEmpresa}` : null
+    ].filter(Boolean).join(' · ');
+    return `<div class="driver-list-item" style="flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">${d.name}</div>
+        <div class="driver-code">Código: ${d.code}${d.limpieza?' · 🧹 Limpieza':''}</div>
+        ${datosExtra ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">${datosExtra}</div>` : ''}
+      </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
         <button class="btn-del" onclick="bajaDriver('${d.code}')">Dar de baja</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   bajaList.innerHTML = bajas.length === 0
     ? '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay conductores de baja</div>'
@@ -2497,16 +2521,22 @@ window.reactivarDriver = async (code) => {
 window.addDriver = async () => {
   const name=document.getElementById('new-driver-name').value.trim();
   const code=document.getElementById('new-driver-code').value.trim();
+  const dni=document.getElementById('new-driver-dni').value.trim().toUpperCase();
+  const telParticular=document.getElementById('new-driver-tel-particular').value.trim();
+  const telEmpresa=document.getElementById('new-driver-tel-empresa').value.trim();
   const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
   if (!name||!code) { showAlert(al,'Rellena nombre y código',true); return; }
   if (driversCache.find(d=>d.code===code)) { showAlert(al,'Ese código ya existe',true); return; }
   try {
-    const nuevo = {name,code,activo:true,limpieza};
+    const nuevo = {name,code,activo:true,limpieza,dni,telParticular,telEmpresa};
     await setDoc(doc(db,'conductores',code),nuevo);
     driversCache.push(nuevo);
     document.getElementById('new-driver-name').value='';
     document.getElementById('new-driver-code').value='';
+    document.getElementById('new-driver-dni').value='';
+    document.getElementById('new-driver-tel-particular').value='';
+    document.getElementById('new-driver-tel-empresa').value='';
     document.getElementById('new-driver-limpieza').checked=false;
     renderDriverList();
     showAlert(al,`✓ Conductor "${name}" añadido`,false);
@@ -2531,6 +2561,20 @@ window.editDriver = (code) => {
         <label class="form-label">Código de acceso</label>
         <input class="form-input" type="text" id="edit-driver-code" value="${d.code}">
       </div>
+      <div class="form-group">
+        <label class="form-label">DNI</label>
+        <input class="form-input" type="text" id="edit-driver-dni" value="${d.dni||''}" style="text-transform:uppercase;">
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label class="form-label">Teléfono particular</label>
+          <input class="form-input" type="tel" id="edit-driver-tel-particular" value="${d.telParticular||''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Teléfono empresa</label>
+          <input class="form-input" type="tel" id="edit-driver-tel-empresa" value="${d.telEmpresa||''}">
+        </div>
+      </div>
       <div style="margin-bottom:1.25rem;">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
           <input type="checkbox" id="edit-driver-limpieza" ${d.limpieza?'checked':''} style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
@@ -2547,6 +2591,9 @@ window.editDriver = (code) => {
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     const newCode = document.getElementById('edit-driver-code').value.trim();
+    const newDni = document.getElementById('edit-driver-dni').value.trim().toUpperCase();
+    const newTelParticular = document.getElementById('edit-driver-tel-particular').value.trim();
+    const newTelEmpresa = document.getElementById('edit-driver-tel-empresa').value.trim();
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
     if (!newName || !newCode) { showAlert(al,'Rellena nombre y código',true); return; }
@@ -2555,7 +2602,7 @@ window.editDriver = (code) => {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza };
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, telParticular:newTelParticular, telEmpresa:newTelEmpresa };
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
