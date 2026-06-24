@@ -2540,14 +2540,24 @@ function populateEmpleadoSelects() {
 async function guardarTallasParaEmpleado(code, categoria, prefix) {
   if (!CATEGORIAS_ROPA_EMPLEADO[categoria]) return; // esta categoría no usa tallas (ej. ninguna definida)
   const tallas = leerTallasEmpleadoInputs(categoria, prefix);
-  const existente = ropaEmpleadosCache.find(e=>e.conductorCode===code);
+  // Por si quedó algún duplicado de un fallo anterior, buscamos TODAS las coincidencias
+  // (no solo la primera) y nos quedamos con una sola al guardar.
+  const coincidencias = ropaEmpleadosCache.filter(e=>e.conductorCode===code);
+  const existente = coincidencias[0];
+  const docId = existente ? existente.id : code;
   const datos = existente
     ? { ...existente, tallas }
     : { conductorCode: code, tallas, pdfBase64: ROPA_PLANTILLA_GENERICA, usaPlantillaGenerica: true, activo: true };
-  await setDoc(doc(db,'ropaEmpleados', existente?existente.id:code), datos);
-  const idx = ropaEmpleadosCache.findIndex(e=>e.id===(existente?existente.id:code));
-  if (idx>=0) ropaEmpleadosCache[idx] = {id: existente.id, ...datos};
-  else ropaEmpleadosCache.push({id: code, ...datos});
+  delete datos.id; // el id nunca se guarda como campo dentro del propio documento
+  await setDoc(doc(db,'ropaEmpleados', docId), datos);
+  // Si había más de uno vinculado al mismo empleado (duplicado), borramos los extra.
+  for (const dup of coincidencias.slice(1)) {
+    try { await deleteDoc(doc(db,'ropaEmpleados', dup.id)); } catch(err) { console.error('Error al borrar duplicado:', err); }
+  }
+  ropaEmpleadosCache = ropaEmpleadosCache.filter(e=>e.conductorCode!==code || e.id===docId);
+  const idx = ropaEmpleadosCache.findIndex(e=>e.id===docId);
+  if (idx>=0) ropaEmpleadosCache[idx] = {id: docId, ...datos};
+  else ropaEmpleadosCache.push({id: docId, ...datos});
 }
 
 window.addDriver = async () => {
