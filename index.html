@@ -4266,21 +4266,15 @@ function renderInventarioRopa() {
   const btnToggle = document.getElementById('btn-toggle-inv-todos');
   if (btnToggle) btnToggle.textContent = mostrarTodoInventario ? 'Ver solo seleccionado' : 'Ver todos';
 
-  // Por defecto solo se muestra el stock (y sus alertas) del artículo seleccionado
-  // en el grid de arriba. El botón "Ver todos" permite ver el inventario completo.
+  // Por defecto solo se muestra el stock del artículo seleccionado en el grid de arriba.
+  // El botón "Ver todos" permite ver el inventario completo.
   const cacheFiltrada = mostrarTodoInventario
     ? ropaInventarioCache
     : ropaInventarioCache.filter(x => x.articuloId === inventarioArticuloSeleccionado);
 
-  const bajos = cacheFiltrada.filter(x=>x.cantidad <= ROPA_STOCK_BAJO_UMBRAL && x.cantidad > 0);
-  const agotados = cacheFiltrada.filter(x=>x.cantidad <= 0);
-  let alertasHtml = '';
-  [...agotados, ...bajos].forEach(item => {
-    const art = ROPA_ARTICULOS.find(a=>a.id===item.articuloId);
-    const esAgotado = item.cantidad <= 0;
-    alertasHtml += `<div style="background:#3a1e1e;border:1px solid ${esAgotado?'var(--danger)':'var(--warning)'};border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:0.5rem;font-size:13px;">⚠️ <strong>${art?art.label:item.articuloId}</strong> — Talla ${item.talla}: <span style="color:${esAgotado?'var(--danger)':'var(--warning)'};font-weight:700;">${esAgotado?'AGOTADO':item.cantidad+' unidades (stock bajo)'}</span></div>`;
-  });
-  if (alertasEl) alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
+  // El aviso de stock bajo/agotado ya no se repite en una lista aparte: se muestra
+  // directamente dentro de la tarjeta de cada talla afectada (ver más abajo).
+  if (alertasEl) alertasEl.innerHTML = '';
 
   if (!ropaInventarioCache.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>No hay artículos en el inventario. Añade stock arriba.</div>'; return; }
 
@@ -4303,13 +4297,16 @@ function renderInventarioRopa() {
       ${mostrarTodoInventario ? `<div style="font-weight:700;font-size:15px;margin-bottom:0.6rem;">${art.label}</div>` : ''}
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:0.7rem;">
         ${items.map(item => {
-          const bajo = item.cantidad <= ROPA_STOCK_BAJO_UMBRAL;
-          const color = item.cantidad<=0?'var(--danger)':bajo?'var(--warning)':'var(--success)';
+          const agotado = item.cantidad <= 0;
+          const bajo = !agotado && item.cantidad <= ROPA_STOCK_BAJO_UMBRAL;
+          const color = agotado?'var(--danger)':bajo?'var(--warning)':'var(--success)';
           return `<div style="position:relative;background:var(--navy-light);border:2px solid ${color};border-radius:var(--radius-sm);padding:0.9rem 0.6rem 0.7rem;text-align:center;">
             <button class="btn-sm btn-sm-danger" onclick="eliminarStockRopa('${item.id}')" title="Eliminar" style="position:absolute;top:4px;right:4px;width:24px;height:24px;padding:0;font-size:12px;line-height:1;border-radius:50%;display:flex;align-items:center;justify-content:center;">✕</button>
             <div style="font-size:14px;color:var(--text-muted);font-weight:600;margin-bottom:6px;">Talla ${item.talla}</div>
             <div style="font-size:30px;font-weight:800;color:${color};line-height:1;">${item.cantidad}</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;margin-bottom:10px;">unidades</div>
+            ${(agotado||bajo)
+              ? `<div style="font-size:11px;font-weight:700;color:${color};margin-top:2px;margin-bottom:10px;">⚠️ ${agotado?'AGOTADO':'STOCK BAJO'}</div>`
+              : `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;margin-bottom:10px;">unidades</div>`}
             <button class="btn-sm" onclick="editarStockRopa('${item.id}')" style="width:100%;padding:7px 0;font-size:13px;">✏️ Editar</button>
           </div>`;
         }).join('')}
