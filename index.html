@@ -862,7 +862,7 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
             <div class="two-col">
-              <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="number" id="seg-veh-kilos" placeholder="Ej: 3500"></div>
+              <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="seg-veh-kilos" placeholder="Ej: 18.000"></div>
               <div class="form-group"><label class="form-label">Clasificación ITV</label><input class="form-input" type="text" id="seg-veh-clasitv" placeholder="Ej: N1"></div>
             </div>
             <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" type="text" id="seg-veh-compania" placeholder="Ej: Mapfre, Allianz..."></div>
@@ -4480,7 +4480,7 @@ async function guardarSeguroVehiculo() {
   const al = document.getElementById('seg-veh-alert');
   const matricula = document.getElementById('seg-veh-matricula').value.trim().toUpperCase();
   const modelo = document.getElementById('seg-veh-modelo').value.trim();
-  const kilosVal = document.getElementById('seg-veh-kilos').value.trim();
+  const kilosVal = document.getElementById('seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
   const clasificacionItv = document.getElementById('seg-veh-clasitv').value.trim();
   const compania = document.getElementById('seg-veh-compania').value.trim();
   const numeroPoliza = document.getElementById('seg-veh-numpoliza').value.trim();
@@ -4557,7 +4557,7 @@ function renderSegurosVehiculos() {
       </div>
       <div id="seg-veh-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
-          <div><strong>Kilos:</strong> ${v.kilos||'—'}</div>
+          <div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>
           <div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>
           <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
@@ -4636,7 +4636,7 @@ window.editarSeguroVehiculo = (id) => {
       </div>
       <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-veh-modelo" value="${v.modelo||''}"></div>
       <div class="two-col">
-        <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="number" id="edit-seg-veh-kilos" value="${v.kilos||''}"></div>
+        <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="edit-seg-veh-kilos" value="${v.kilos?v.kilos.toLocaleString('es-ES'):''}"></div>
         <div class="form-group"><label class="form-label">Clasificación ITV</label><input class="form-input" id="edit-seg-veh-clasitv" value="${v.clasificacionItv||''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" id="edit-seg-veh-compania" value="${v.compania||''}"></div>
@@ -4685,7 +4685,7 @@ window.editarSeguroVehiculo = (id) => {
     const fechaCaducidad = document.getElementById('edit-seg-veh-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
     const importeVal = parseFloat(document.getElementById('edit-seg-veh-importe').value);
-    const kilosVal = document.getElementById('edit-seg-veh-kilos').value;
+    const kilosVal = document.getElementById('edit-seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
     const cambios = {
       ...v,
       modelo: document.getElementById('edit-seg-veh-modelo').value.trim(),
