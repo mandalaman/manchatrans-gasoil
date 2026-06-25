@@ -304,6 +304,10 @@ input[type="number"] { -moz-appearance: textfield; }
           <span style="font-size:28px;">👔</span>
           <span style="font-size:16px;font-weight:700;">Ropa</span>
         </button>
+        <button class="modulo-home-btn" id="home-btn-adrcap">
+          <span style="font-size:28px;">🪪</span>
+          <span style="font-size:16px;font-weight:700;">ADR/CAP <span id="home-badge-adrcap" style="font-size:12px;"></span></span>
+        </button>
         <button class="modulo-home-btn" id="home-btn-gestion">
           <span style="font-size:28px;">⚙️</span>
           <span style="font-size:16px;font-weight:700;">Configuración</span>
@@ -526,7 +530,6 @@ input[type="number"] { -moz-appearance: textfield; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="ftab-btn-historial">Cambio/Reparación</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-mantenimiento">Mantenimiento</button>
-        <button class="btn btn-ghost atab-btn" id="ftab-btn-mant-conductores">👤 ADR/CAP</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-limpieza">🧹 Limpieza</button>
       </div>
 
@@ -591,109 +594,6 @@ input[type="number"] { -moz-appearance: textfield; }
           </select>
         </div>
         <div id="hist-mant-list"></div>
-      </div>
-
-      <!-- ADR/CAP POR CONDUCTOR -->
-      <div id="ftab-mant-conductores" class="tab-pane">
-        <div class="section-title">ADR y CAP por conductor</div>
-        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-          <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
-          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
-          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-creditos-formacion">💰 Créditos</button>
-        </div>
-        <div class="form-group">
-          <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
-            <option value="">— Selecciona conductor —</option>
-          </select>
-        </div>
-        <div id="mantcond-alertas"></div>
-        <div id="mantcond-list"></div>
-      </div>
-
-      <!-- HISTORIAL DE ADR/CAP -->
-      <div id="ftab-hist-mant-cond" class="tab-pane">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-          <div class="section-title" style="margin-bottom:0;">Historial de ADR/CAP</div>
-          <button class="btn-sm" id="btn-volver-mant-cond">← Volver</button>
-        </div>
-        <div class="form-group">
-          <select class="form-input" id="hist-mant-cond-filter-cod" style="font-size:14px;padding:0.6rem;">
-            <option value="">Todos los conductores</option>
-          </select>
-        </div>
-        <div id="hist-mant-cond-list"></div>
-      </div>
-
-      <!-- CRÉDITOS DE FORMACIÓN -->
-      <div id="ftab-creditos-formacion" class="tab-pane">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-          <div class="section-title" style="margin-bottom:0;">Créditos de formación</div>
-          <button class="btn-sm" id="btn-volver-creditos">← Volver</button>
-        </div>
-
-        <div class="two-col" style="margin-bottom:0.75rem;">
-          <select class="form-input" id="creditos-sel-empresa" style="font-size:14px;padding:0.6rem;">
-            <option value="">— Selecciona empresa —</option>
-          </select>
-          <select class="form-input" id="creditos-sel-anio" style="font-size:14px;padding:0.6rem;"></select>
-        </div>
-
-        <div id="creditos-resumen"></div>
-
-        <button class="btn btn-ghost" id="btn-toggle-asignar-credito" style="margin-bottom:1rem;width:100%;font-size:13px;">✏️ Asignar / cambiar crédito total</button>
-        <div id="asignar-credito-wrapper" style="display:none;margin-bottom:1rem;">
-          <div class="refuel-card">
-            <div class="form-group">
-              <label class="form-label">Crédito total asignado a esta empresa este año (€)</label>
-              <input class="form-input" type="number" id="credito-total-input" min="0" step="0.01" placeholder="Ej: 3000">
-            </div>
-            <button class="btn btn-primary" id="btn-guardar-credito-total">Guardar crédito total</button>
-            <div id="credito-total-alert" class="alert" style="margin-top:0.75rem;"></div>
-          </div>
-        </div>
-
-        <button class="btn btn-secondary" id="btn-toggle-add-curso" style="margin-bottom:1rem;width:100%;">➕ Registrar curso</button>
-        <div id="add-curso-wrapper" style="display:none;">
-          <div class="refuel-card" style="margin-bottom:1.25rem;">
-            <div class="form-group">
-              <label class="form-label">Conductor</label>
-              <select class="form-input" id="curso-sel-conductor"><option value="">— Selecciona conductor —</option></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Empresa</label>
-              <select class="form-input" id="curso-sel-empresa"><option value="">— Selecciona empresa —</option></select>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Centro de formación</label>
-              <input class="form-input" type="text" id="curso-centro" placeholder="Ej: Autoescuela XYZ">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Curso</label>
-              <select class="form-input" id="curso-nombre-select">
-                <option value="">— Selecciona curso —</option>
-                <option value="ADR">ADR</option>
-                <option value="ADR Inicial">ADR Inicial</option>
-                <option value="CAP">CAP</option>
-                <option value="CAP Inicial">CAP Inicial</option>
-                <option value="Otros">Otros</option>
-              </select>
-              <input class="form-input" type="text" id="curso-nombre-otro" placeholder="Escribe el curso" style="display:none;margin-top:0.5rem;">
-            </div>
-            <div class="two-col">
-              <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" id="curso-importe" min="0" step="0.01"></div>
-            </div>
-            <div class="two-col">
-              <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
-              <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="curso-fecha-factura"></div>
-            </div>
-            <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
-            <div id="curso-alert" class="alert" style="margin-top:0.75rem;"></div>
-          </div>
-        </div>
-
-        <div class="section-title">Cursos registrados</div>
-        <div id="cursos-formacion-list"></div>
       </div>
 
       <!-- LIMPIEZA -->
@@ -824,6 +724,114 @@ input[type="number"] { -moz-appearance: textfield; }
     </div>
     <!-- ═══════════ FIN MÓDULO FLEET ═══════════ -->
 
+    <!-- ═══════════ MÓDULO ADR/CAP (independiente) ═══════════ -->
+    <div id="module-adrcap" style="display:none;">
+
+      <!-- ADR/CAP POR CONDUCTOR -->
+      <div id="ftab-mant-conductores" class="tab-pane active">
+        <div class="section-title">ADR y CAP por conductor</div>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-creditos-formacion">💰 Créditos</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona conductor —</option>
+          </select>
+        </div>
+        <div id="mantcond-alertas"></div>
+        <div id="mantcond-list"></div>
+      </div>
+
+      <!-- HISTORIAL DE ADR/CAP -->
+      <div id="ftab-hist-mant-cond" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Historial de ADR/CAP</div>
+          <button class="btn-sm" id="btn-volver-mant-cond">← Volver</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="hist-mant-cond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">Todos los conductores</option>
+          </select>
+        </div>
+        <div id="hist-mant-cond-list"></div>
+      </div>
+
+      <!-- CRÉDITOS DE FORMACIÓN -->
+      <div id="ftab-creditos-formacion" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Créditos de formación</div>
+          <button class="btn-sm" id="btn-volver-creditos">← Volver</button>
+        </div>
+
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <select class="form-input" id="creditos-sel-empresa" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona empresa —</option>
+          </select>
+          <select class="form-input" id="creditos-sel-anio" style="font-size:14px;padding:0.6rem;"></select>
+        </div>
+
+        <div id="creditos-resumen"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-asignar-credito" style="margin-bottom:1rem;width:100%;font-size:13px;">✏️ Asignar / cambiar crédito total</button>
+        <div id="asignar-credito-wrapper" style="display:none;margin-bottom:1rem;">
+          <div class="refuel-card">
+            <div class="form-group">
+              <label class="form-label">Crédito total asignado a esta empresa este año (€)</label>
+              <input class="form-input" type="number" id="credito-total-input" min="0" step="0.01" placeholder="Ej: 3000">
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-credito-total">Guardar crédito total</button>
+            <div id="credito-total-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-toggle-add-curso" style="margin-bottom:1rem;width:100%;">➕ Registrar curso</button>
+        <div id="add-curso-wrapper" style="display:none;">
+          <div class="refuel-card" style="margin-bottom:1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Conductor</label>
+              <select class="form-input" id="curso-sel-conductor"><option value="">— Selecciona conductor —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Empresa</label>
+              <select class="form-input" id="curso-sel-empresa"><option value="">— Selecciona empresa —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Centro de formación</label>
+              <input class="form-input" type="text" id="curso-centro" placeholder="Ej: Autoescuela XYZ">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Curso</label>
+              <select class="form-input" id="curso-nombre-select">
+                <option value="">— Selecciona curso —</option>
+                <option value="ADR">ADR</option>
+                <option value="ADR Inicial">ADR Inicial</option>
+                <option value="CAP">CAP</option>
+                <option value="CAP Inicial">CAP Inicial</option>
+                <option value="Otros">Otros</option>
+              </select>
+              <input class="form-input" type="text" id="curso-nombre-otro" placeholder="Escribe el curso" style="display:none;margin-top:0.5rem;">
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" id="curso-importe" min="0" step="0.01"></div>
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
+              <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="curso-fecha-factura"></div>
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
+            <div id="curso-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Cursos registrados</div>
+        <div id="cursos-formacion-list"></div>
+      </div>
+    </div>
+    <!-- ═══════════ FIN MÓDULO ADR/CAP ═══════════ -->
+
     <!-- ═══════════ MÓDULO ROPA ═══════════ -->
     <div id="module-ropa" style="display:none;">
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
@@ -953,7 +961,8 @@ const SUPERADMIN_PASS = 'superadmin2026';
 let MODULO_CODIGOS = {
   gasoil: '1111',
   fleet: '2222',
-  ropa: '3333'
+  ropa: '3333',
+  adrcap: '4444'
 };
 const DEPOSITO_CAP = 10000;
 const ALERTA_MIN = 1000;
@@ -1256,6 +1265,11 @@ async function initApp() {
     const codigosDoc = codigosSnap.docs.find(d => d.id === 'moduloCodigos');
     if (codigosDoc) {
       MODULO_CODIGOS = codigosDoc.data();
+      if (!MODULO_CODIGOS.adrcap) {
+        // Bases de datos ya existentes (de antes de separar ADR/CAP) no tienen este código aún.
+        MODULO_CODIGOS.adrcap = '4444';
+        await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
+      }
     } else {
       await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
     }
@@ -1296,6 +1310,7 @@ async function initApp() {
   document.getElementById('home-btn-gasoil').addEventListener('click', ()=>switchModule('gasoil'));
   document.getElementById('home-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
   document.getElementById('home-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
+  document.getElementById('home-btn-adrcap').addEventListener('click', ()=>switchModule('adrcap'));
   document.getElementById('home-btn-gestion').addEventListener('click', ()=>switchModule('gestion'));
   document.getElementById('btn-cambiar-modulo').addEventListener('click', volverASeleccionModulo);
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
@@ -1360,32 +1375,31 @@ async function initApp() {
   populateMantMatriculas();
   document.getElementById('mant-filter-mat').addEventListener('change', (e)=>{ mantFiltroMat=e.target.value; renderMantenimiento(); });
 
-  // ADR/CAP de conductores (Flota)
-  document.getElementById('ftab-btn-mant-conductores').addEventListener('click', ()=>switchFleetTab('mant-conductores'));
+  // ADR/CAP de conductores (módulo independiente)
   document.getElementById('mantcond-filter-cod').addEventListener('change', (e)=>{ mantCondFiltroCod=e.target.value; renderMantenimientoConductores(); });
   document.getElementById('btn-ver-pendientes-cond').addEventListener('click', verPendientesMesCond);
   document.getElementById('btn-ver-hist-mant-cond').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-hist-mant-cond').classList.add('active');
     populateHistMantCondConductores();
     renderHistMantCond();
   });
   document.getElementById('btn-volver-mant-cond').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-mant-conductores').classList.add('active');
   });
   document.getElementById('hist-mant-cond-filter-cod').addEventListener('change', (e)=>{ histMantCondFiltroCod=e.target.value; renderHistMantCond(); });
 
-  // Créditos de formación (Flota)
+  // Créditos de formación (módulo ADR/CAP)
   document.getElementById('btn-ver-creditos-formacion').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-creditos-formacion').classList.add('active');
     populateCreditosSelects();
     renderCreditosResumen();
     renderCursosFormacionList();
   });
   document.getElementById('btn-volver-creditos').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-mant-conductores').classList.add('active');
   });
   document.getElementById('creditos-sel-empresa').addEventListener('change', (e)=>{ creditosFiltroEmpresa=e.target.value; renderCreditosResumen(); renderCursosFormacionList(); });
@@ -1632,25 +1646,28 @@ function activarListenersTiempoReal() {
   // ADR/CAP de conductores (Flota)
   onSnapshot(collection(dbFleet, 'mantenimientoConductores'), (snap) => {
     mantConductoresCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderMantenimientoConductores(); updateFleetBadge(); }
+    if (currentUser && currentUser.isAdmin) {
+      updateAdrCapBadge();
+      if (currentModule==='adrcap') renderMantenimientoConductores();
+    }
   });
 
-  // Historial de ADR/CAP de conductores (Flota)
+  // Historial de ADR/CAP de conductores (ahora módulo independiente ADR/CAP)
   onSnapshot(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')), (snap) => {
     historialMantCondCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistMantCond();
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') renderHistMantCond();
   });
 
-  // Créditos de formación por empresa/año (Flota)
+  // Créditos de formación por empresa/año (módulo ADR/CAP)
   onSnapshot(collection(dbFleet, 'creditosFormacion'), (snap) => {
     creditosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderCreditosResumen();
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') renderCreditosResumen();
   });
 
-  // Cursos de formación registrados (Flota)
+  // Cursos de formación registrados (módulo ADR/CAP)
   onSnapshot(query(collection(dbFleet, 'cursosFormacion'), orderBy('fechaCurso', 'desc')), (snap) => {
     cursosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderCreditosResumen(); renderCursosFormacionList(); }
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') { renderCreditosResumen(); renderCursosFormacionList(); }
   });
 
   // Limpieza de vehículos (Flota)
@@ -1868,6 +1885,10 @@ function mostrarPantallaSuperAdmin() {
           <label class="form-label">👔 Código de Ropa</label>
           <input class="form-input" type="text" id="codigo-ropa-input" value="${MODULO_CODIGOS.ropa}">
         </div>
+        <div class="form-group">
+          <label class="form-label">🪪 Código de ADR/CAP</label>
+          <input class="form-input" type="text" id="codigo-adrcap-input" value="${MODULO_CODIGOS.adrcap}">
+        </div>
         <button class="btn btn-primary" id="btn-guardar-codigos">💾 Guardar cambios</button>
       </div>
 
@@ -1899,9 +1920,10 @@ function mostrarPantallaSuperAdmin() {
     const g = document.getElementById('codigo-gasoil-input').value.trim();
     const f = document.getElementById('codigo-fleet-input').value.trim();
     const r = document.getElementById('codigo-ropa-input').value.trim();
-    if (!g || !f || !r) { showAlert(al,'Los tres campos son obligatorios',true); return; }
+    const a = document.getElementById('codigo-adrcap-input').value.trim();
+    if (!g || !f || !r || !a) { showAlert(al,'Los cuatro campos son obligatorios',true); return; }
     try {
-      const nuevos = { gasoil: g, fleet: f, ropa: r };
+      const nuevos = { gasoil: g, fleet: f, ropa: r, adrcap: a };
       await setDoc(doc(db, 'configuracion', 'moduloCodigos'), nuevos);
       MODULO_CODIGOS = nuevos;
       showAlert(al, '✓ Códigos actualizados correctamente', false);
@@ -2089,7 +2111,7 @@ window.submitRepostaje = async () => {
 // ══════════════════════════════
 // ADMIN
 // ══════════════════════════════
-function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); }
+function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); updateAdrCapBadge(); }
 
 function populateFilters() {
   // Conductores (todos, incluidos los de baja, para poder filtrar su histórico)
@@ -3250,12 +3272,20 @@ function switchModule(mod) {
   document.getElementById('module-gasoil').style.display = mod==='gasoil' ? 'block' : 'none';
   document.getElementById('module-fleet').style.display = mod==='fleet' ? 'block' : 'none';
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
+  document.getElementById('module-adrcap').style.display = mod==='adrcap' ? 'block' : 'none';
   document.getElementById('module-gestion').style.display = mod==='gestion' ? 'block' : 'none';
   document.getElementById('btn-cambiar-modulo').style.display = 'inline-block';
-  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', gestion:'⚙️ Configuración'};
+  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', adrcap:'🪪 ADR/CAP', gestion:'⚙️ Configuración'};
   document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); updatePendientesBadge(); }
+  if (mod==='adrcap') {
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-mant-conductores').classList.add('active');
+    populateMantCondConductores();
+    renderMantenimientoConductores();
+    updateAdrCapBadge();
+  }
   if (mod==='gestion') { switchGestionTab('conductores'); }
 }
 
@@ -3263,6 +3293,7 @@ function volverASeleccionModulo() {
   document.getElementById('module-gasoil').style.display = 'none';
   document.getElementById('module-fleet').style.display = 'none';
   document.getElementById('module-ropa').style.display = 'none';
+  document.getElementById('module-adrcap').style.display = 'none';
   document.getElementById('module-gestion').style.display = 'none';
   document.getElementById('modulo-home-screen').style.display = 'block';
   document.getElementById('btn-cambiar-modulo').style.display = 'none';
@@ -3270,7 +3301,7 @@ function volverASeleccionModulo() {
 }
 
 function pedirCodigoModulo(mod) {
-  const nombres = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
+  const nombres = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', adrcap:'🪪 ADR/CAP'};
   const modal = document.createElement('div');
   modal.id = 'codigo-modulo-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
@@ -3314,12 +3345,11 @@ function switchRopaTab(tab) {
 function switchFleetTab(tab) {
   document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('ftab-'+tab).classList.add('active');
-  ['historial','mantenimiento','mant-conductores','limpieza'].forEach(t=>{
+  ['historial','mantenimiento','limpieza'].forEach(t=>{
     document.getElementById('ftab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderHistorial();
   if (tab==='mantenimiento') renderMantenimiento();
-  if (tab==='mant-conductores') { populateMantCondConductores(); renderMantenimientoConductores(); }
   if (tab==='limpieza') {
     document.querySelectorAll('#ftab-limpieza .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('lim-sub-vehiculos').classList.add('active');
@@ -3344,11 +3374,13 @@ function updateFleetBadge() {
   const hoy=new Date(); let alertas=0;
   mantenimientoCache.forEach(m=>{ REVISIONES.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO) alertas++; } }); });
   document.getElementById('ftab-btn-mantenimiento').textContent=alertas>0?`Mantenimiento 🔴${alertas}`:'Mantenimiento';
+}
 
-  let alertasCond=0;
+function updateAdrCapBadge() {
+  const hoy=new Date(); let alertasCond=0;
   mantConductoresCache.forEach(m=>{ REVISIONES_CONDUCTOR.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_CONDUCTOR) alertasCond++; } }); });
-  const btnCond = document.getElementById('ftab-btn-mant-conductores');
-  if (btnCond) btnCond.textContent = alertasCond>0?`👤 ADR/CAP 🔴${alertasCond}`:'👤 ADR/CAP';
+  const badge = document.getElementById('home-badge-adrcap');
+  if (badge) badge.textContent = alertasCond>0 ? `🔴${alertasCond}` : '';
 }
 
 // ══════════════════════════════
@@ -3861,7 +3893,7 @@ window.editMantCond = (cod, rev) => {
       }
 
       document.getElementById('mant-cond-modal').remove();
-      renderMantenimientoConductores(); updateFleetBadge();
+      renderMantenimientoConductores(); updateAdrCapBadge();
     } catch(e) { showAlert(al,'Error: '+e.message,true); }
   });
   const btnDelete = document.getElementById('btn-delete-mant-cond');
@@ -3877,7 +3909,7 @@ window.editMantCond = (cod, rev) => {
           await setDoc(doc(dbFleet,'mantenimientoConductores',cod), mantConductoresCache[idx]);
         }
         document.getElementById('mant-cond-modal').remove();
-        renderMantenimientoConductores(); updateFleetBadge();
+        renderMantenimientoConductores(); updateAdrCapBadge();
       } catch(e) { showAlert(al,'Error: '+e.message,true); }
     });
   }
