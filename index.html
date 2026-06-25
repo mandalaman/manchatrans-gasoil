@@ -3747,9 +3747,11 @@ function renderMantenimientoConductores() {
         const key=revKey(rev);
         const keyUltima=key+'_ultima';
         const keyNoAplica=key+'_noaplica';
+        const keyEmpresa=key+'_empresa';
         const fechaStr=m[key];
         const fecha=fechaStr?new Date(fechaStr):null;
         const fechaUltimaStr=m[keyUltima];
+        const empresaRev=m[keyEmpresa];
         const noAplica=!fecha && !!m[keyNoAplica];
         const dias=fecha?Math.ceil((fecha-hoy)/(1000*60*60*24)):null;
         let color='var(--text-muted)';
@@ -3762,6 +3764,7 @@ function renderMantenimientoConductores() {
               <button class="btn-sm" onclick="editMantCond('${cod}','${rev}')">Editar</button>
             </div>
           </div>
+          ${empresaRev?`<div style="font-size:11px;color:var(--accent);">🏭 ${empresaRev}</div>`:''}
           ${dias!==null?`<div style="font-size:12px;color:${color};font-weight:600;">${dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`}</div>`:''}
           ${fechaUltimaStr?`<div style="font-size:11px;color:var(--text-muted);">Última vez: ${new Date(fechaUltimaStr).toLocaleDateString('es-ES')}</div>`:''}
           ${!fecha && !noAplica ? `<button class="btn-sm" onclick="marcarNoTieneCond('${cod}','${rev}')" style="font-size:11px;">🚫 No tiene ${rev}</button>` : ''}
@@ -3806,13 +3809,22 @@ window.editMantCond = (cod, rev) => {
   const m = mantConductoresCache.find(x=>x.id===cod) || {id:cod};
   const key=revKey(rev);
   const keyUltima=key+'_ultima';
+  const keyEmpresa=key+'_empresa';
   const tieneFecha = !!m[key];
+  const d = driversCache.find(x=>x.code===cod);
+  const empresaActual = m[keyEmpresa] || (d?d.empresa:'') || '';
   const modal=document.createElement('div');
   modal.id='mant-cond-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
   modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">👤 ${rev} — ${nombreConductorPorCodigo(cod)}</div>
+      <div class="form-group"><label class="form-label">Empresa</label>
+        <select class="form-input" id="mant-cond-empresa">
+          <option value="">— Selecciona empresa —</option>
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===empresaActual?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Última vez que se renovó</label>
       <input class="form-input" type="date" id="mant-cond-fecha-ultima" value="${m[keyUltima]||''}"></div>
       <div class="form-group"><label class="form-label">Próxima fecha de caducidad</label>
@@ -3828,12 +3840,13 @@ window.editMantCond = (cod, rev) => {
   document.getElementById('btn-save-mant-cond').addEventListener('click', async ()=>{
     const fecha=document.getElementById('mant-cond-fecha').value;
     const fechaUltima=document.getElementById('mant-cond-fecha-ultima').value;
+    const empresaSel=document.getElementById('mant-cond-empresa').value;
     const al=document.getElementById('mant-cond-modal-alert');
     if (!fecha) { showAlert(al,'Selecciona la próxima fecha',true); return; }
     try {
       const fechaAnterior = m[key];
       const idx=mantConductoresCache.findIndex(x=>x.id===cod);
-      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null, [key+'_noaplica']:false};
+      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null, [key+'_noaplica']:false, [keyEmpresa]:empresaSel||null};
       if(idx>=0) { Object.assign(mantConductoresCache[idx],updates); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),mantConductoresCache[idx]); }
       else { const nuevo={...updates}; mantConductoresCache.push({id:cod,...nuevo}); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),nuevo); }
 
