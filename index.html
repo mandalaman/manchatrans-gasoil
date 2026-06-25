@@ -783,7 +783,7 @@ input[type="number"] { -moz-appearance: textfield; }
           <div class="refuel-card">
             <div class="form-group">
               <label class="form-label">Crédito total asignado a esta empresa este año (€)</label>
-              <input class="form-input" type="number" id="credito-total-input" min="0" step="0.01" placeholder="Ej: 3000">
+              <input class="form-input" type="text" inputmode="decimal" id="credito-total-input" placeholder="Ej: 3.000,00">
             </div>
             <button class="btn btn-primary" id="btn-guardar-credito-total">Guardar crédito total</button>
             <div id="credito-total-alert" class="alert" style="margin-top:0.75rem;"></div>
@@ -819,7 +819,7 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" id="curso-importe" min="0" step="0.01"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="curso-importe" placeholder="Ej: 1.438,76"></div>
             </div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
@@ -872,7 +872,7 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="seg-veh-importe"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="seg-veh-importe" placeholder="Ej: 1.438,76"></div>
             </div>
             <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
             <div class="two-col">
@@ -921,7 +921,7 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-pol-corredor"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="seg-pol-importe"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="seg-pol-importe" placeholder="Ej: 1.438,76"></div>
             </div>
             <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
             <div id="seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
@@ -1534,7 +1534,7 @@ async function initApp() {
     wrapper.style.display = wrapper.style.display==='none' ? 'block' : 'none';
     if (wrapper.style.display==='block') {
       const actual = creditosFormacionCache.find(c=>c.empresa===creditosFiltroEmpresa && c.anio===creditosFiltroAnio);
-      document.getElementById('credito-total-input').value = actual ? actual.creditoTotal : '';
+      document.getElementById('credito-total-input').value = actual ? actual.creditoTotal.toLocaleString('es-ES') : '';
     }
   });
   document.getElementById('btn-guardar-credito-total').addEventListener('click', guardarCreditoTotal);
@@ -4179,6 +4179,14 @@ window.eliminarHistMantCond = async (id) => {
 
 function empresaSlug(empresa) { return (empresa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'_'); }
 
+// Convierte un importe escrito en formato español ("1.438,76") a número (1438.76).
+// También admite que lo escriban en formato sencillo ("1438.76" o "1438").
+function parseImporteEuropeo(texto) {
+  if (texto === null || texto === undefined) return NaN;
+  const limpio = String(texto).trim().replace(/[.\s]/g,'').replace(',', '.');
+  return parseFloat(limpio);
+}
+
 function populateCreditosSelects() {
   const selEmp = document.getElementById('creditos-sel-empresa');
   const selAnio = document.getElementById('creditos-sel-anio');
@@ -4242,7 +4250,7 @@ function renderCreditosResumen() {
 async function guardarCreditoTotal() {
   const al = document.getElementById('credito-total-alert');
   if (!creditosFiltroEmpresa) { showAlert(al,'Selecciona primero una empresa arriba',true); return; }
-  const valor = parseFloat(document.getElementById('credito-total-input').value);
+  const valor = parseImporteEuropeo(document.getElementById('credito-total-input').value);
   if (isNaN(valor) || valor < 0) { showAlert(al,'Indica un importe válido',true); return; }
   try {
     const docId = empresaSlug(creditosFiltroEmpresa) + '_' + creditosFiltroAnio;
@@ -4261,7 +4269,7 @@ async function guardarCurso() {
   const cursoSel = document.getElementById('curso-nombre-select').value;
   const curso = cursoSel === 'Otros' ? document.getElementById('curso-nombre-otro').value.trim() : cursoSel;
   const fechaCurso = document.getElementById('curso-fecha').value;
-  const importe = parseFloat(document.getElementById('curso-importe').value);
+  const importe = parseImporteEuropeo(document.getElementById('curso-importe').value);
   const numFactura = document.getElementById('curso-num-factura').value.trim();
   const fechaFactura = document.getElementById('curso-fecha-factura').value;
 
@@ -4369,7 +4377,7 @@ window.editarCurso = (id) => {
       </div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="edit-curso-fecha" value="${c.fechaCurso||''}"></div>
-        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="edit-curso-importe" value="${c.importe||''}"></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-curso-importe" value="${c.importe!=null?c.importe.toLocaleString('es-ES'):''}"></div>
       </div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" id="edit-curso-num-factura" value="${c.numFactura||''}"></div>
@@ -4389,7 +4397,7 @@ window.editarCurso = (id) => {
 
   document.getElementById('btn-save-curso-edit').addEventListener('click', async () => {
     const al = document.getElementById('edit-curso-alert');
-    const importe = parseFloat(document.getElementById('edit-curso-importe').value);
+    const importe = parseImporteEuropeo(document.getElementById('edit-curso-importe').value);
     if (isNaN(importe) || importe < 0) { showAlert(al,'Indica un importe válido',true); return; }
     const cursoSelEdit = document.getElementById('edit-curso-nombre-select').value;
     const cambios = {
@@ -4486,7 +4494,7 @@ async function guardarSeguroVehiculo() {
   const numeroPoliza = document.getElementById('seg-veh-numpoliza').value.trim();
   const fechaCaducidad = document.getElementById('seg-veh-fechacad').value;
   const corredor = document.getElementById('seg-veh-corredor').value.trim();
-  const importeVal = parseFloat(document.getElementById('seg-veh-importe').value);
+  const importeVal = parseImporteEuropeo(document.getElementById('seg-veh-importe').value);
   const ambito = document.getElementById('seg-veh-ambito').value.trim();
   const empresa = document.getElementById('seg-veh-empresa').value;
   const conductorCode = document.getElementById('seg-veh-conductor').value;
@@ -4577,7 +4585,7 @@ function renderSegurosVehiculos() {
           </div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>'}
         <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:0.75rem;">
           <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
-          <input class="form-input" type="number" step="0.01" placeholder="Importe €" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
+          <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
           <button class="btn-sm" onclick="anadirImpuestoAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
         </div>
 
@@ -4599,7 +4607,7 @@ window.toggleSeguroVeh = (safeId) => {
 
 window.anadirImpuestoAnio = async (matricula, safeId) => {
   const anio = document.getElementById('nuevo-anio-'+safeId).value.trim();
-  const importe = parseFloat(document.getElementById('nuevo-imp-'+safeId).value);
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-'+safeId).value);
   if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
   const v = segurosVehiculosCache.find(x=>x.id===matricula);
   if (!v) return;
@@ -4646,7 +4654,7 @@ window.editarSeguroVehiculo = (id) => {
       </div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
-        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="edit-seg-veh-importe" value="${v.importe||''}"></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-seg-veh-importe" value="${v.importe!=null?v.importe.toLocaleString('es-ES'):''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
       <div class="two-col">
@@ -4684,7 +4692,7 @@ window.editarSeguroVehiculo = (id) => {
     const al = document.getElementById('edit-seg-veh-alert');
     const fechaCaducidad = document.getElementById('edit-seg-veh-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
-    const importeVal = parseFloat(document.getElementById('edit-seg-veh-importe').value);
+    const importeVal = parseImporteEuropeo(document.getElementById('edit-seg-veh-importe').value);
     const kilosVal = document.getElementById('edit-seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
     const cambios = {
       ...v,
@@ -4728,7 +4736,7 @@ async function guardarSeguroPoliza() {
   const numeroPoliza = document.getElementById('seg-pol-numpoliza').value.trim();
   const fechaCaducidad = document.getElementById('seg-pol-fechacad').value;
   const corredor = document.getElementById('seg-pol-corredor').value.trim();
-  const importeVal = parseFloat(document.getElementById('seg-pol-importe').value);
+  const importeVal = parseImporteEuropeo(document.getElementById('seg-pol-importe').value);
 
   if (!tipoPoliza) { showAlert(al,'⚠️ Indica el tipo de póliza',true); return; }
   if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
@@ -4820,7 +4828,7 @@ window.editarSeguroPoliza = (id) => {
       </div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-pol-corredor" value="${p.corredor||''}"></div>
-        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="edit-seg-pol-importe" value="${p.importe||''}"></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-seg-pol-importe" value="${p.importe!=null?p.importe.toLocaleString('es-ES'):''}"></div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-seg-pol-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
@@ -4834,7 +4842,7 @@ window.editarSeguroPoliza = (id) => {
     const al = document.getElementById('edit-seg-pol-alert');
     const fechaCaducidad = document.getElementById('edit-seg-pol-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
-    const importeVal = parseFloat(document.getElementById('edit-seg-pol-importe').value);
+    const importeVal = parseImporteEuropeo(document.getElementById('edit-seg-pol-importe').value);
     const cambios = {
       modelo: document.getElementById('edit-seg-pol-modelo').value.trim(),
       tipoPoliza: document.getElementById('edit-seg-pol-tipo').value.trim(),
