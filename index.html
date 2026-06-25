@@ -669,7 +669,15 @@ input[type="number"] { -moz-appearance: textfield; }
             </div>
             <div class="form-group">
               <label class="form-label">Curso</label>
-              <input class="form-input" type="text" id="curso-nombre" placeholder="Ej: ADR Cisternas, CAP, Manipulador alimentos...">
+              <select class="form-input" id="curso-nombre-select">
+                <option value="">— Selecciona curso —</option>
+                <option value="ADR">ADR</option>
+                <option value="ADR Inicial">ADR Inicial</option>
+                <option value="CAP">CAP</option>
+                <option value="CAP Inicial">CAP Inicial</option>
+                <option value="Otros">Otros</option>
+              </select>
+              <input class="form-input" type="text" id="curso-nombre-otro" placeholder="Escribe el curso" style="display:none;margin-top:0.5rem;">
             </div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
@@ -1398,6 +1406,9 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Registrar curso'; }
   });
   document.getElementById('btn-guardar-curso').addEventListener('click', guardarCurso);
+  document.getElementById('curso-nombre-select').addEventListener('change', (e)=>{
+    document.getElementById('curso-nombre-otro').style.display = e.target.value==='Otros' ? 'block' : 'none';
+  });
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -4004,7 +4015,8 @@ async function guardarCurso() {
   const conductorCode = document.getElementById('curso-sel-conductor').value;
   const empresa = document.getElementById('curso-sel-empresa').value;
   const centro = document.getElementById('curso-centro').value.trim();
-  const curso = document.getElementById('curso-nombre').value.trim();
+  const cursoSel = document.getElementById('curso-nombre-select').value;
+  const curso = cursoSel === 'Otros' ? document.getElementById('curso-nombre-otro').value.trim() : cursoSel;
   const fechaCurso = document.getElementById('curso-fecha').value;
   const importe = parseFloat(document.getElementById('curso-importe').value);
   const numFactura = document.getElementById('curso-num-factura').value.trim();
@@ -4025,7 +4037,9 @@ async function guardarCurso() {
     document.getElementById('curso-sel-conductor').value='';
     document.getElementById('curso-sel-empresa').value='';
     document.getElementById('curso-centro').value='';
-    document.getElementById('curso-nombre').value='';
+    document.getElementById('curso-nombre-select').value='';
+    document.getElementById('curso-nombre-otro').value='';
+    document.getElementById('curso-nombre-otro').style.display='none';
     document.getElementById('curso-fecha').value='';
     document.getElementById('curso-importe').value='';
     document.getElementById('curso-num-factura').value='';
@@ -4100,7 +4114,16 @@ window.editarCurso = (id) => {
         </select>
       </div>
       <div class="form-group"><label class="form-label">Centro de formación</label><input class="form-input" id="edit-curso-centro" value="${c.centro||''}"></div>
-      <div class="form-group"><label class="form-label">Curso</label><input class="form-input" id="edit-curso-nombre" value="${c.curso||''}"></div>
+      <div class="form-group"><label class="form-label">Curso</label>
+        <select class="form-input" id="edit-curso-nombre-select">
+          <option value="ADR" ${c.curso==='ADR'?'selected':''}>ADR</option>
+          <option value="ADR Inicial" ${c.curso==='ADR Inicial'?'selected':''}>ADR Inicial</option>
+          <option value="CAP" ${c.curso==='CAP'?'selected':''}>CAP</option>
+          <option value="CAP Inicial" ${c.curso==='CAP Inicial'?'selected':''}>CAP Inicial</option>
+          <option value="Otros" ${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?'selected':''}>Otros</option>
+        </select>
+        <input class="form-input" type="text" id="edit-curso-nombre-otro" value="${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?(c.curso||''):''}" placeholder="Escribe el curso" style="margin-top:0.5rem;display:${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?'block':'none'};">
+      </div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="edit-curso-fecha" value="${c.fechaCurso||''}"></div>
         <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="edit-curso-importe" value="${c.importe||''}"></div>
@@ -4117,15 +4140,20 @@ window.editarCurso = (id) => {
     </div>`;
   document.body.appendChild(modal);
 
+  document.getElementById('edit-curso-nombre-select').addEventListener('change', (e)=>{
+    document.getElementById('edit-curso-nombre-otro').style.display = e.target.value==='Otros' ? 'block' : 'none';
+  });
+
   document.getElementById('btn-save-curso-edit').addEventListener('click', async () => {
     const al = document.getElementById('edit-curso-alert');
     const importe = parseFloat(document.getElementById('edit-curso-importe').value);
     if (isNaN(importe) || importe < 0) { showAlert(al,'Indica un importe válido',true); return; }
+    const cursoSelEdit = document.getElementById('edit-curso-nombre-select').value;
     const cambios = {
       conductorCode: document.getElementById('edit-curso-conductor').value,
       empresa: document.getElementById('edit-curso-empresa').value,
       centro: document.getElementById('edit-curso-centro').value.trim(),
-      curso: document.getElementById('edit-curso-nombre').value.trim(),
+      curso: cursoSelEdit==='Otros' ? document.getElementById('edit-curso-nombre-otro').value.trim() : cursoSelEdit,
       fechaCurso: document.getElementById('edit-curso-fecha').value,
       importe,
       numFactura: document.getElementById('edit-curso-num-factura').value.trim(),
