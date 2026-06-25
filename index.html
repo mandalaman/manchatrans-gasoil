@@ -3615,9 +3615,11 @@ function renderMantenimientoConductores() {
       ${REVISIONES_CONDUCTOR.map(rev=>{
         const key=revKey(rev);
         const keyUltima=key+'_ultima';
+        const keyNoAplica=key+'_noaplica';
         const fechaStr=m[key];
         const fecha=fechaStr?new Date(fechaStr):null;
         const fechaUltimaStr=m[keyUltima];
+        const noAplica=!fecha && !!m[keyNoAplica];
         const dias=fecha?Math.ceil((fecha-hoy)/(1000*60*60*24)):null;
         let color='var(--text-muted)';
         if(dias!==null){ if(dias<0) color='var(--danger)'; else if(dias<=DIAS_AVISO_CONDUCTOR) color='var(--warning)'; else color='var(--success)'; }
@@ -3625,17 +3627,42 @@ function renderMantenimientoConductores() {
           <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
             <span style="font-weight:500;">${rev} ${dias!==null && dias<=DIAS_AVISO_CONDUCTOR?`<span style="background:${color};color:#111;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px;">${dias<0?'VENCIDA':'PRÓXIMA'}</span>`:''}</span>
             <div style="display:flex;align-items:center;gap:0.5rem;">
-              <span style="color:${color};font-size:13px;">${fecha?fecha.toLocaleDateString('es-ES'):'Sin fecha'}</span>
+              <span style="color:${noAplica?'var(--text-muted)':color};font-size:13px;font-style:${noAplica?'italic':'normal'};">${fecha?fecha.toLocaleDateString('es-ES'):(noAplica?`No tiene ${rev}`:'Sin fecha')}</span>
               <button class="btn-sm" onclick="editMantCond('${cod}','${rev}')">Editar</button>
             </div>
           </div>
           ${dias!==null?`<div style="font-size:12px;color:${color};font-weight:600;">${dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`}</div>`:''}
           ${fechaUltimaStr?`<div style="font-size:11px;color:var(--text-muted);">Última vez: ${new Date(fechaUltimaStr).toLocaleDateString('es-ES')}</div>`:''}
+          ${!fecha && !noAplica ? `<button class="btn-sm" onclick="marcarNoTieneCond('${cod}','${rev}')" style="font-size:11px;">🚫 No tiene ${rev}</button>` : ''}
+          ${noAplica ? `<button class="btn-sm" onclick="quitarNoTieneCond('${cod}','${rev}')" style="font-size:11px;">↩️ Sí lo necesita</button>` : ''}
         </div>`;
       }).join('')}
     </div>
   </div>`;
 }
+
+window.marcarNoTieneCond = async (cod, rev) => {
+  const key = revKey(rev);
+  const m = mantConductoresCache.find(x=>x.id===cod) || {};
+  const datos = { ...m, [key+'_noaplica']: true };
+  delete datos.id;
+  try {
+    await setDoc(doc(dbFleet,'mantenimientoConductores',cod), datos);
+    // No tocamos mantConductoresCache a mano: el onSnapshot ya lo actualiza solo.
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.quitarNoTieneCond = async (cod, rev) => {
+  const key = revKey(rev);
+  const m = mantConductoresCache.find(x=>x.id===cod);
+  if (!m) return;
+  const datos = { ...m, [key+'_noaplica']: false };
+  delete datos.id;
+  try {
+    await setDoc(doc(dbFleet,'mantenimientoConductores',cod), datos);
+    // No tocamos mantConductoresCache a mano: el onSnapshot ya lo actualiza solo.
+  } catch(e) { alert('Error: '+e.message); }
+};
 
 window.toggleMantCond = (safeId) => {
   const body = document.getElementById('mantcond-body-'+safeId);
@@ -3675,7 +3702,7 @@ window.editMantCond = (cod, rev) => {
     try {
       const fechaAnterior = m[key];
       const idx=mantConductoresCache.findIndex(x=>x.id===cod);
-      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null};
+      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null, [key+'_noaplica']:false};
       if(idx>=0) { Object.assign(mantConductoresCache[idx],updates); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),mantConductoresCache[idx]); }
       else { const nuevo={...updates}; mantConductoresCache.push({id:cod,...nuevo}); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),nuevo); }
 
