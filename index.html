@@ -853,6 +853,12 @@ input[type="number"] { -moz-appearance: textfield; }
               <input class="form-input" type="text" id="seg-veh-matricula" list="seg-matriculas-existentes" placeholder="Ej: 1234-ABC, Carretilla 1, Toro elevador 2...">
               <datalist id="seg-matriculas-existentes"></datalist>
               <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No tiene que ser una matrícula real — vale para carretillas, máquinas u otros elementos asegurados.</div>
+              <button type="button" class="btn-sm" id="btn-toggle-seg-extra" style="margin-top:0.5rem;">✏️ Gestionar lista de carretillas/otros elementos</button>
+              <div id="seg-extra-wrapper" style="display:none;margin-top:0.5rem;">
+                <textarea class="form-input" id="seg-extra-textarea" placeholder="Uno por línea, ej:&#10;Carretilla 1&#10;Carretilla 2&#10;Toro elevador" style="min-height:120px;"></textarea>
+                <button type="button" class="btn-sm" id="btn-guardar-seg-extra" style="margin-top:0.5rem;width:100%;">💾 Guardar lista</button>
+                <div id="seg-extra-alert" class="alert" style="margin-top:0.5rem;"></div>
+              </div>
             </div>
             <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
             <div class="two-col">
@@ -1210,6 +1216,7 @@ let creditosFiltroEmpresa = '';
 let creditosFiltroAnio = new Date().getFullYear();
 let segurosVehiculosCache = [];
 let segurosPolizasCache = [];
+let segurosElementosExtraCache = [];
 const DIAS_AVISO_SEGUROS = 30;
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
@@ -1343,6 +1350,11 @@ async function initApp() {
     // Cargar pólizas de seguros (Fleet)
     const segPolSnap = await getDocs(collection(dbFleet, 'segurosPolizas'));
     segurosPolizasCache = segPolSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar lista adicional de elementos asegurables (carretillas, etc.) — solo para Seguros
+    const segExtraDoc = await getDocs(query(collection(dbFleet, 'segurosConfig')));
+    const segExtraFound = segExtraDoc.docs.find(d => d.id === 'elementosExtra');
+    segurosElementosExtraCache = segExtraFound ? (segExtraFound.data().items||[]) : [];
 
     // Cargar limpieza de vehículos (Fleet)
     const lvSnap = await getDocs(query(collection(dbFleet, 'limpiezaVehiculos'), orderBy('fecha', 'desc')));
@@ -1553,6 +1565,16 @@ async function initApp() {
   document.getElementById('btn-excel-seg-veh').addEventListener('click', exportarExcelSegurosVehiculos);
   document.getElementById('btn-pdf-seg-pol').addEventListener('click', exportarPdfSegurosPolizas);
   document.getElementById('btn-excel-seg-pol').addEventListener('click', exportarExcelSegurosPolizas);
+  document.getElementById('btn-toggle-seg-extra').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-extra-wrapper');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      document.getElementById('seg-extra-textarea').value = segurosElementosExtraCache.join('\n');
+    } else {
+      wrapper.style.display = 'none';
+    }
+  });
+  document.getElementById('btn-guardar-seg-extra').addEventListener('click', guardarSegurosElementosExtra);
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -1816,6 +1838,12 @@ function activarListenersTiempoReal() {
       updateSegurosBadge();
       if (currentModule==='seguros') renderSegurosPolizas();
     }
+  });
+
+  // Lista adicional de elementos asegurables (Seguros)
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'elementosExtra'), (snap) => {
+    segurosElementosExtraCache = snap.exists() ? (snap.data().items||[]) : [];
+    if (currentUser && currentUser.isAdmin && currentModule==='seguros') populateSegurosSelects();
   });
 
   // Limpieza de vehículos (Flota)
@@ -4394,6 +4422,17 @@ window.eliminarCurso = async (id) => {
 // SEGUROS — VEHÍCULOS Y PÓLIZAS
 // ══════════════════════════════
 
+async function guardarSegurosElementosExtra() {
+  const al = document.getElementById('seg-extra-alert');
+  const texto = document.getElementById('seg-extra-textarea').value;
+  const items = texto.split('\n').map(l=>l.trim()).filter(Boolean);
+  try {
+    await setDoc(doc(dbFleet,'segurosConfig','elementosExtra'), { items });
+    // No tocamos segurosElementosExtraCache a mano: el onSnapshot ya lo actualiza solo.
+    showAlert(al, `✓ Lista guardada (${items.length} elementos)`, false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+}
+
 function switchSegurosTab(tab) {
   document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('seg-tab-'+tab).classList.add('active');
@@ -4409,7 +4448,7 @@ function populateSegurosSelects() {
   const selEmpresa = document.getElementById('seg-veh-empresa');
   const selConductor = document.getElementById('seg-veh-conductor');
   if (datalistMat) {
-    const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(v=>v.activo!==false).map(v=>v.matricula)];
+    const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(v=>v.activo!==false).map(v=>v.matricula), ...segurosElementosExtraCache];
     datalistMat.innerHTML = todasMat.map(m=>`<option value="${m}">`).join('');
   }
   if (selEmpresa) {
@@ -7576,6 +7615,7 @@ async function descargarBackup() {
       cursosFormacion: cursosFormacionCache,
       segurosVehiculos: segurosVehiculosCache,
       segurosPolizas: segurosPolizasCache,
+      segurosElementosExtra: segurosElementosExtraCache,
       historialMantConductores: historialMantCondCache,
       ropaEmpleados: ropaEmpleadosCache,
       ropaHistorial: ropaHistorialCache,
@@ -7636,6 +7676,17 @@ window.importarBackup = async (file) => {
   btn.disabled = true; btn.textContent = 'Importando...';
   const resumen = [];
   try {
+    // Caso especial: la lista de elementos extra de Seguros es un array de texto simple,
+    // no de objetos con id — la fusionamos sin duplicar en vez de usar el bucle genérico.
+    if (Array.isArray(backup.segurosElementosExtra) && backup.segurosElementosExtra.length) {
+      const actuales = new Set(segurosElementosExtraCache);
+      const nuevos = backup.segurosElementosExtra.filter(x => x && !actuales.has(x));
+      if (nuevos.length) {
+        const fusion = [...segurosElementosExtraCache, ...nuevos];
+        await setDoc(doc(dbFleet,'segurosConfig','elementosExtra'), { items: fusion });
+        resumen.push(`segurosElementosExtra: ${nuevos.length} restaurados, ${segurosElementosExtraCache.length} ya existían`);
+      }
+    }
     for (const conf of BACKUP_COLECCIONES) {
       const items = backup[conf.key];
       if (!Array.isArray(items) || !items.length) continue;
