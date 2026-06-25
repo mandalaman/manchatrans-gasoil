@@ -888,6 +888,10 @@ input[type="number"] { -moz-appearance: textfield; }
                 <input type="checkbox" id="seg-veh-lunas" style="width:18px;height:18px;"> 🪟 Seguro de lunas
               </label>
             </div>
+            <div class="form-group">
+              <label class="form-label">Comentarios</label>
+              <textarea class="form-input" id="seg-veh-comentarios" placeholder="Cualquier dato adicional (asistencia, franquicia, coberturas extra...)"></textarea>
+            </div>
             <button class="btn btn-primary" id="btn-guardar-seg-veh">Guardar seguro de vehículo</button>
             <div id="seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
@@ -4486,6 +4490,7 @@ async function guardarSeguroVehiculo() {
   const empresa = document.getElementById('seg-veh-empresa').value;
   const conductorCode = document.getElementById('seg-veh-conductor').value;
   const seguroLunas = document.getElementById('seg-veh-lunas').checked;
+  const comentarios = document.getElementById('seg-veh-comentarios').value.trim();
 
   if (!matricula) { showAlert(al,'⚠️ Escribe la matrícula o identificador',true); return; }
   if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
@@ -4500,13 +4505,14 @@ async function guardarSeguroVehiculo() {
     const existente = segurosVehiculosCache.find(v=>v.id===docId);
     const datos = {
       matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
-      fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, ambito, empresa, conductorCode, seguroLunas,
+      fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, ambito, empresa, conductorCode, seguroLunas, comentarios,
       impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {}
     };
     await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
     // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
     ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-importe','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
     document.getElementById('seg-veh-lunas').checked = false;
+    document.getElementById('seg-veh-comentarios').value = '';
     showAlert(al, existente ? '✓ Seguro actualizado correctamente' : '✓ Seguro guardado correctamente', false);
     document.getElementById('add-seg-veh-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-veh').textContent='➕ Añadir seguro de vehículo';
@@ -4559,6 +4565,7 @@ function renderSegurosVehiculos() {
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
           <div><strong>Conductor:</strong> ${v.conductorCode?nombreConductorPorCodigo(v.conductorCode):'—'}</div>
           <div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>
+          ${v.comentarios?`<div style="margin-top:6px;"><strong>Comentarios:</strong> ${v.comentarios}</div>`:''}
         </div>
 
         <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">📅 Impuesto municipal por años</div>
@@ -4660,6 +4667,10 @@ window.editarSeguroVehiculo = (id) => {
           <input type="checkbox" id="edit-seg-veh-lunas" ${v.seguroLunas?'checked':''} style="width:18px;height:18px;"> 🪟 Seguro de lunas
         </label>
       </div>
+      <div class="form-group">
+        <label class="form-label">Comentarios</label>
+        <textarea class="form-input" id="edit-seg-veh-comentarios">${v.comentarios||''}</textarea>
+      </div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-seg-veh-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
         <button onclick="document.getElementById('edit-seg-veh-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
@@ -4688,6 +4699,7 @@ window.editarSeguroVehiculo = (id) => {
       empresa: document.getElementById('edit-seg-veh-empresa').value,
       conductorCode: document.getElementById('edit-seg-veh-conductor').value,
       seguroLunas: document.getElementById('edit-seg-veh-lunas').checked,
+      comentarios: document.getElementById('edit-seg-veh-comentarios').value.trim(),
     };
     delete cambios.id;
     try {
@@ -5018,7 +5030,7 @@ window.exportarExcelSegurosVehiculos = () => {
 };
 
 function _generarExcelSegurosVehiculos() {
-  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años'];
+  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Comentarios'];
   const rows = [header];
   [...segurosVehiculosCache].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
     const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
@@ -5026,12 +5038,12 @@ function _generarExcelSegurosVehiculos() {
       v.matricula||'', v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
       v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
       v.corredor||'', v.importe!=null?v.importe:'', v.ambito||'', v.empresa||'',
-      v.conductorCode ? nombreConductorPorCodigo(v.conductorCode) : '', v.seguroLunas?'Sí':'No', impTxt
+      v.conductorCode ? nombreConductorPorCodigo(v.conductorCode) : '', v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
     ]);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [16,16,8,12,16,14,14,16,12,12,28,22,12,30].map(w=>({wch:w}));
+  ws['!cols'] = [16,16,8,12,16,14,14,16,12,12,28,22,12,30,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, 'Seguros vehículos');
   XLSX.writeFile(wb, 'Manchatrans_Seguros_Vehiculos.xlsx');
 }
