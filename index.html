@@ -849,8 +849,10 @@ input[type="number"] { -moz-appearance: textfield; }
         <div id="add-seg-veh-wrapper" style="display:none;">
           <div class="refuel-card" style="margin-bottom:1.25rem;">
             <div class="form-group">
-              <label class="form-label">Matrícula</label>
-              <select class="form-input" id="seg-veh-matricula"><option value="">— Selecciona vehículo —</option></select>
+              <label class="form-label">Matrícula / Identificador</label>
+              <input class="form-input" type="text" id="seg-veh-matricula" list="seg-matriculas-existentes" placeholder="Ej: 1234-ABC, Carretilla 1, Toro elevador 2...">
+              <datalist id="seg-matriculas-existentes"></datalist>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No tiene que ser una matrícula real — vale para carretillas, máquinas u otros elementos asegurados.</div>
             </div>
             <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
             <div class="two-col">
@@ -887,6 +889,10 @@ input[type="number"] { -moz-appearance: textfield; }
 
         <div id="seg-veh-alertas"></div>
         <div class="section-title">Vehículos asegurados</div>
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <button class="btn btn-secondary" id="btn-pdf-seg-veh" style="font-size:13px;">📄 PDF</button>
+          <button class="btn btn-secondary" id="btn-excel-seg-veh" style="font-size:13px;">📊 Excel</button>
+        </div>
         <div id="seg-veh-list"></div>
       </div>
 
@@ -913,6 +919,10 @@ input[type="number"] { -moz-appearance: textfield; }
 
         <div id="seg-pol-alertas"></div>
         <div class="section-title">Pólizas registradas</div>
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <button class="btn btn-secondary" id="btn-pdf-seg-pol" style="font-size:13px;">📄 PDF</button>
+          <button class="btn btn-secondary" id="btn-excel-seg-pol" style="font-size:13px;">📊 Excel</button>
+        </div>
         <div id="seg-pol-list"></div>
       </div>
     </div>
@@ -1539,6 +1549,10 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir póliza'; }
   });
   document.getElementById('btn-guardar-seg-pol').addEventListener('click', guardarSeguroPoliza);
+  document.getElementById('btn-pdf-seg-veh').addEventListener('click', exportarPdfSegurosVehiculos);
+  document.getElementById('btn-excel-seg-veh').addEventListener('click', exportarExcelSegurosVehiculos);
+  document.getElementById('btn-pdf-seg-pol').addEventListener('click', exportarPdfSegurosPolizas);
+  document.getElementById('btn-excel-seg-pol').addEventListener('click', exportarExcelSegurosPolizas);
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -4391,13 +4405,12 @@ function switchSegurosTab(tab) {
 }
 
 function populateSegurosSelects() {
-  const selMat = document.getElementById('seg-veh-matricula');
+  const datalistMat = document.getElementById('seg-matriculas-existentes');
   const selEmpresa = document.getElementById('seg-veh-empresa');
   const selConductor = document.getElementById('seg-veh-conductor');
-  if (selMat) {
+  if (datalistMat) {
     const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(v=>v.activo!==false).map(v=>v.matricula)];
-    selMat.innerHTML = '<option value="">— Selecciona vehículo —</option>';
-    todasMat.forEach(m=>{ selMat.innerHTML += `<option value="${m}">${m}</option>`; });
+    datalistMat.innerHTML = todasMat.map(m=>`<option value="${m}">`).join('');
   }
   if (selEmpresa) {
     selEmpresa.innerHTML = '<option value="">— Selecciona empresa —</option>';
@@ -4421,7 +4434,7 @@ function updateSegurosBadge() {
 
 async function guardarSeguroVehiculo() {
   const al = document.getElementById('seg-veh-alert');
-  const matricula = document.getElementById('seg-veh-matricula').value;
+  const matricula = document.getElementById('seg-veh-matricula').value.trim().toUpperCase();
   const modelo = document.getElementById('seg-veh-modelo').value.trim();
   const kilosVal = document.getElementById('seg-veh-kilos').value.trim();
   const clasificacionItv = document.getElementById('seg-veh-clasitv').value.trim();
@@ -4435,19 +4448,23 @@ async function guardarSeguroVehiculo() {
   const conductorCode = document.getElementById('seg-veh-conductor').value;
   const seguroLunas = document.getElementById('seg-veh-lunas').checked;
 
-  if (!matricula) { showAlert(al,'⚠️ Selecciona el vehículo',true); return; }
+  if (!matricula) { showAlert(al,'⚠️ Escribe la matrícula o identificador',true); return; }
   if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
+
+  // El identificador puede ser cualquier texto (matrícula, "Carretilla 1", etc.), así que
+  // generamos un id de documento seguro a partir de él en vez de usarlo literalmente.
+  const docId = matricula.replace(/[^A-Z0-9]/g,'_');
 
   const btn = document.getElementById('btn-guardar-seg-veh');
   btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
   try {
-    const existente = segurosVehiculosCache.find(v=>v.id===matricula);
+    const existente = segurosVehiculosCache.find(v=>v.id===docId);
     const datos = {
       matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
       fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, ambito, empresa, conductorCode, seguroLunas,
       impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {}
     };
-    await setDoc(doc(dbFleet,'segurosVehiculos',matricula), datos);
+    await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
     // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
     ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-importe','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
     document.getElementById('seg-veh-lunas').checked = false;
@@ -4566,11 +4583,9 @@ window.editarSeguroVehiculo = (id) => {
   modal.innerHTML = `
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar seguro — ${v.matricula}</div>
-      <div class="form-group"><label class="form-label">Matrícula</label>
-        <select class="form-input" id="edit-seg-veh-matricula" disabled style="opacity:0.6;">
-          ${todasMat.map(m=>`<option value="${m}" ${m===v.matricula?'selected':''}>${m}</option>`).join('')}
-        </select>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">La matrícula no se puede cambiar; elimina y crea uno nuevo si es otro vehículo.</div>
+      <div class="form-group"><label class="form-label">Matrícula / Identificador</label>
+        <input class="form-input" id="edit-seg-veh-matricula" value="${v.matricula}" disabled style="opacity:0.6;">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No se puede cambiar; elimina y crea uno nuevo si es otro elemento.</div>
       </div>
       <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-veh-modelo" value="${v.modelo||''}"></div>
       <div class="two-col">
@@ -4796,6 +4811,218 @@ window.eliminarSeguroPoliza = async (id) => {
     updateSegurosBadge();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
+
+// ── Exportar PDF: Seguros de vehículos ──
+window.exportarPdfSegurosVehiculos = async () => {
+  if (!segurosVehiculosCache.length) { alert('No hay seguros de vehículos para exportar.'); return; }
+  const btn = document.getElementById('btn-pdf-seg-veh');
+  const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 30;
+    const pages = [];
+    const colX = { mat:M, mod:M+110, comp:M+230, pol:M+350, fecha:M+460, emp:M+560, imp:M+700 };
+
+    let page, y;
+    const nuevaPagina = () => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Seguros de vehículos · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'SEGUROS DE VEHÍCULOS';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('MATRÍCULA/ID', colX.mat+8); cab('MODELO', colX.mod+8); cab('COMPAÑÍA', colX.comp+8);
+      cab('Nº PÓLIZA', colX.pol+8); cab('CADUCIDAD', colX.fecha+8); cab('EMPRESA', colX.emp+8); cab('IMPORTE', colX.imp+8);
+      y -= 38;
+    };
+    nuevaPagina();
+
+    const hoy = new Date();
+    const ordenados = [...segurosVehiculosCache].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    ordenados.forEach((v,i) => {
+      if (y < 60) nuevaPagina();
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      const recortar = (txt, maxW, size, font) => { let t = txt||'—'; while (font.widthOfTextAtSize(t,size)>maxW && t.length>3) t=t.slice(0,-4)+'…'; return t; };
+      page.drawText(recortar(v.matricula,100,9.5,fontBold), { x:colX.mat+8, y, size:9.5, font:fontBold, color: navy });
+      page.drawText(recortar(v.modelo,110,9,fontReg), { x:colX.mod+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(recortar(v.compania,110,9,fontReg), { x:colX.comp+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(v.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
+      const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+      const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
+      page.drawText(v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
+      page.drawText(recortar(v.empresa,130,8.5,fontReg), { x:colX.emp+8, y, size:8.5, font:fontReg, color: gray });
+      page.drawText(v.importe!=null?v.importe.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      y -= rowH;
+    });
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total: ${ordenados.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Manchatrans_Seguros_Vehiculos.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Error al generar el PDF: '+e.message); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+};
+
+// ── Exportar PDF: Pólizas ──
+window.exportarPdfSegurosPolizas = async () => {
+  if (!segurosPolizasCache.length) { alert('No hay pólizas para exportar.'); return; }
+  const btn = document.getElementById('btn-pdf-seg-pol');
+  const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 30;
+    const pages = [];
+    const colX = { tipo:M, mod:M+150, comp:M+280, pol:M+420, fecha:M+540, cor:M+650, imp:M+700 };
+
+    let page, y;
+    const nuevaPagina = () => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Pólizas de seguros · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'PÓLIZAS';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('TIPO DE PÓLIZA', colX.tipo+8); cab('MODELO', colX.mod+8); cab('COMPAÑÍA', colX.comp+8);
+      cab('Nº PÓLIZA', colX.pol+8); cab('CADUCIDAD', colX.fecha+8); cab('CORREDOR', colX.cor+8); cab('IMPORTE', colX.imp+8);
+      y -= 38;
+    };
+    nuevaPagina();
+
+    const hoy = new Date();
+    const ordenadas = [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+    ordenadas.forEach((p,i) => {
+      if (y < 60) nuevaPagina();
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      const recortar = (txt, maxW, size, font) => { let t = txt||'—'; while (font.widthOfTextAtSize(t,size)>maxW && t.length>3) t=t.slice(0,-4)+'…'; return t; };
+      page.drawText(recortar(p.tipoPoliza,135,9.5,fontBold), { x:colX.tipo+8, y, size:9.5, font:fontBold, color: navy });
+      page.drawText(recortar(p.modelo,125,9,fontReg), { x:colX.mod+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(recortar(p.compania,115,9,fontReg), { x:colX.comp+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(p.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
+      const dias = p.fechaCaducidad ? Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+      const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
+      page.drawText(p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
+      page.drawText(recortar(p.corredor,95,9,fontReg), { x:colX.cor+8, y, size:9, font:fontReg, color: gray });
+      page.drawText(p.importe!=null?p.importe.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      y -= rowH;
+    });
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total: ${ordenadas.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Manchatrans_Polizas.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Error al generar el PDF: '+e.message); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+};
+
+// ── Exportar Excel: Seguros de vehículos ──
+window.exportarExcelSegurosVehiculos = () => {
+  if (!segurosVehiculosCache.length) { alert('No hay seguros de vehículos para exportar.'); return; }
+  if (typeof XLSX==='undefined') {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>_generarExcelSegurosVehiculos(); document.head.appendChild(s);
+  } else { _generarExcelSegurosVehiculos(); }
+};
+
+function _generarExcelSegurosVehiculos() {
+  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años'];
+  const rows = [header];
+  [...segurosVehiculosCache].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
+    const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
+    rows.push([
+      v.matricula||'', v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
+      v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
+      v.corredor||'', v.importe!=null?v.importe:'', v.ambito||'', v.empresa||'',
+      v.conductorCode ? nombreConductorPorCodigo(v.conductorCode) : '', v.seguroLunas?'Sí':'No', impTxt
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [16,16,8,12,16,14,14,16,12,12,28,22,12,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Seguros vehículos');
+  XLSX.writeFile(wb, 'Manchatrans_Seguros_Vehiculos.xlsx');
+}
+
+// ── Exportar Excel: Pólizas ──
+window.exportarExcelSegurosPolizas = () => {
+  if (!segurosPolizasCache.length) { alert('No hay pólizas para exportar.'); return; }
+  if (typeof XLSX==='undefined') {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>_generarExcelSegurosPolizas(); document.head.appendChild(s);
+  } else { _generarExcelSegurosPolizas(); }
+};
+
+function _generarExcelSegurosPolizas() {
+  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)'];
+  const rows = [header];
+  [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
+    rows.push([
+      p.modelo||'', p.tipoPoliza||'', p.compania||'', p.numeroPoliza||'',
+      p.fechaCaducidad ? new Date(p.fechaCaducidad).toLocaleDateString('es-ES') : '',
+      p.corredor||'', p.importe!=null?p.importe:''
+    ]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [16,18,16,14,14,16,12].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Pólizas');
+  XLSX.writeFile(wb, 'Manchatrans_Polizas.xlsx');
+}
 
 window.verPendientesMesCond = () => {
   const hoy = new Date();
