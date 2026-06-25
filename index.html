@@ -1222,6 +1222,7 @@ let creditosFiltroAnio = new Date().getFullYear();
 let segurosVehiculosCache = [];
 let segurosPolizasCache = [];
 let segurosElementosExtraCache = [];
+let segVehFichasAbiertas = new Set();
 const DIAS_AVISO_SEGUROS = 30;
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
@@ -4525,8 +4526,23 @@ async function guardarSeguroVehiculo() {
     showAlert(al, existente ? '✓ Seguro actualizado correctamente' : '✓ Seguro guardado correctamente', false);
     document.getElementById('add-seg-veh-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-veh').textContent='➕ Añadir seguro de vehículo';
+    // Abrimos directamente su ficha para añadir el impuesto municipal sin tener que buscarla en la lista.
+    setTimeout(()=>abrirFichaSeguroVeh(docId), 350);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = textoOriginal;
+}
+
+function abrirFichaSeguroVeh(docId) {
+  const safeId = docId.replace(/[^a-zA-Z0-9]/g,'_');
+  segVehFichasAbiertas.add(safeId);
+  const body = document.getElementById('seg-veh-body-'+safeId);
+  const arrow = document.getElementById('seg-veh-arrow-'+safeId);
+  if (!body) return;
+  body.style.display = 'block';
+  if (arrow) arrow.textContent = '▲';
+  body.scrollIntoView({behavior:'smooth', block:'center'});
+  const inputAnio = document.getElementById('nuevo-anio-'+safeId);
+  if (inputAnio) setTimeout(()=>inputAnio.focus(), 400);
 }
 
 function renderSegurosVehiculos() {
@@ -4555,15 +4571,16 @@ function renderSegurosVehiculos() {
     let color = 'var(--text-muted)';
     if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
     const aniosImpuesto = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>b[0]-a[0]);
+    const abierta = segVehFichasAbiertas.has(safeId);
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
           <div style="font-weight:600;font-size:14px;">🚗 ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
         </div>
-        <span id="seg-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
+        <span id="seg-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
       </div>
-      <div id="seg-veh-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+      <div id="seg-veh-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
           <div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>
           <div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>
@@ -4601,8 +4618,8 @@ function renderSegurosVehiculos() {
 window.toggleSeguroVeh = (safeId) => {
   const body = document.getElementById('seg-veh-body-'+safeId);
   const arrow = document.getElementById('seg-veh-arrow-'+safeId);
-  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
-  else { body.style.display = 'none'; arrow.textContent = '▼'; }
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; segVehFichasAbiertas.add(safeId); }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; segVehFichasAbiertas.delete(safeId); }
 };
 
 window.anadirImpuestoAnio = async (matricula, safeId) => {
