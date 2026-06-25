@@ -599,6 +599,7 @@ input[type="number"] { -moz-appearance: textfield; }
         <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
           <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
           <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-creditos-formacion">💰 Créditos</button>
         </div>
         <div class="form-group">
           <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
@@ -621,6 +622,70 @@ input[type="number"] { -moz-appearance: textfield; }
           </select>
         </div>
         <div id="hist-mant-cond-list"></div>
+      </div>
+
+      <!-- CRÉDITOS DE FORMACIÓN -->
+      <div id="ftab-creditos-formacion" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Créditos de formación</div>
+          <button class="btn-sm" id="btn-volver-creditos">← Volver</button>
+        </div>
+
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <select class="form-input" id="creditos-sel-empresa" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona empresa —</option>
+          </select>
+          <select class="form-input" id="creditos-sel-anio" style="font-size:14px;padding:0.6rem;"></select>
+        </div>
+
+        <div id="creditos-resumen"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-asignar-credito" style="margin-bottom:1rem;width:100%;font-size:13px;">✏️ Asignar / cambiar crédito total</button>
+        <div id="asignar-credito-wrapper" style="display:none;margin-bottom:1rem;">
+          <div class="refuel-card">
+            <div class="form-group">
+              <label class="form-label">Crédito total asignado a esta empresa este año (€)</label>
+              <input class="form-input" type="number" id="credito-total-input" min="0" step="0.01" placeholder="Ej: 3000">
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-credito-total">Guardar crédito total</button>
+            <div id="credito-total-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-toggle-add-curso" style="margin-bottom:1rem;width:100%;">➕ Registrar curso</button>
+        <div id="add-curso-wrapper" style="display:none;">
+          <div class="refuel-card" style="margin-bottom:1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Conductor</label>
+              <select class="form-input" id="curso-sel-conductor"><option value="">— Selecciona conductor —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Empresa</label>
+              <select class="form-input" id="curso-sel-empresa"><option value="">— Selecciona empresa —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Centro de formación</label>
+              <input class="form-input" type="text" id="curso-centro" placeholder="Ej: Autoescuela XYZ">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Curso</label>
+              <input class="form-input" type="text" id="curso-nombre" placeholder="Ej: ADR Cisternas, CAP, Manipulador alimentos...">
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" id="curso-importe" min="0" step="0.01"></div>
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
+              <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="curso-fecha-factura"></div>
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
+            <div id="curso-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Cursos registrados</div>
+        <div id="cursos-formacion-list"></div>
       </div>
 
       <!-- LIMPIEZA -->
@@ -1025,6 +1090,10 @@ let mantenimientoCache = [];
 let historialMantCache = [];
 let mantConductoresCache = [];
 let historialMantCondCache = [];
+let creditosFormacionCache = [];
+let cursosFormacionCache = [];
+let creditosFiltroEmpresa = '';
+let creditosFiltroAnio = new Date().getFullYear();
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
 let empleadoFiltroCategoria = '';
@@ -1141,6 +1210,14 @@ async function initApp() {
     // Cargar historial de ADR/CAP de conductores (Fleet)
     const hmcSnap = await getDocs(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')));
     historialMantCondCache = hmcSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar créditos de formación por empresa/año (Fleet)
+    const credSnap = await getDocs(collection(dbFleet, 'creditosFormacion'));
+    creditosFormacionCache = credSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar cursos de formación registrados (Fleet)
+    const cursosSnap = await getDocs(query(collection(dbFleet, 'cursosFormacion'), orderBy('fechaCurso', 'desc')));
+    cursosFormacionCache = cursosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Cargar limpieza de vehículos (Fleet)
     const lvSnap = await getDocs(query(collection(dbFleet, 'limpiezaVehiculos'), orderBy('fecha', 'desc')));
@@ -1290,6 +1367,37 @@ async function initApp() {
     document.getElementById('ftab-mant-conductores').classList.add('active');
   });
   document.getElementById('hist-mant-cond-filter-cod').addEventListener('change', (e)=>{ histMantCondFiltroCod=e.target.value; renderHistMantCond(); });
+
+  // Créditos de formación (Flota)
+  document.getElementById('btn-ver-creditos-formacion').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-creditos-formacion').classList.add('active');
+    populateCreditosSelects();
+    renderCreditosResumen();
+    renderCursosFormacionList();
+  });
+  document.getElementById('btn-volver-creditos').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-mant-conductores').classList.add('active');
+  });
+  document.getElementById('creditos-sel-empresa').addEventListener('change', (e)=>{ creditosFiltroEmpresa=e.target.value; renderCreditosResumen(); renderCursosFormacionList(); });
+  document.getElementById('creditos-sel-anio').addEventListener('change', (e)=>{ creditosFiltroAnio=+e.target.value; renderCreditosResumen(); renderCursosFormacionList(); });
+  document.getElementById('btn-toggle-asignar-credito').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('asignar-credito-wrapper');
+    wrapper.style.display = wrapper.style.display==='none' ? 'block' : 'none';
+    if (wrapper.style.display==='block') {
+      const actual = creditosFormacionCache.find(c=>c.empresa===creditosFiltroEmpresa && c.anio===creditosFiltroAnio);
+      document.getElementById('credito-total-input').value = actual ? actual.creditoTotal : '';
+    }
+  });
+  document.getElementById('btn-guardar-credito-total').addEventListener('click', guardarCreditoTotal);
+  document.getElementById('btn-toggle-add-curso').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('add-curso-wrapper');
+    const btn = document.getElementById('btn-toggle-add-curso');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.textContent = '➖ Ocultar formulario'; }
+    else { wrapper.style.display = 'none'; btn.textContent = '➕ Registrar curso'; }
+  });
+  document.getElementById('btn-guardar-curso').addEventListener('click', guardarCurso);
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -1520,6 +1628,18 @@ function activarListenersTiempoReal() {
   onSnapshot(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')), (snap) => {
     historialMantCondCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistMantCond();
+  });
+
+  // Créditos de formación por empresa/año (Flota)
+  onSnapshot(collection(dbFleet, 'creditosFormacion'), (snap) => {
+    creditosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderCreditosResumen();
+  });
+
+  // Cursos de formación registrados (Flota)
+  onSnapshot(query(collection(dbFleet, 'cursosFormacion'), orderBy('fechaCurso', 'desc')), (snap) => {
+    cursosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderCreditosResumen(); renderCursosFormacionList(); }
   });
 
   // Limpieza de vehículos (Flota)
@@ -3796,6 +3916,239 @@ window.eliminarHistMantCond = async (id) => {
     await deleteDoc(doc(dbFleet,'historialMantConductores',id));
     historialMantCondCache = historialMantCondCache.filter(h=>h.id!==id);
     renderHistMantCond();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+// ══════════════════════════════
+// CRÉDITOS DE FORMACIÓN (FLEET)
+// ══════════════════════════════
+
+function empresaSlug(empresa) { return (empresa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'_'); }
+
+function populateCreditosSelects() {
+  const selEmp = document.getElementById('creditos-sel-empresa');
+  const selAnio = document.getElementById('creditos-sel-anio');
+  const selCursoConductor = document.getElementById('curso-sel-conductor');
+  const selCursoEmpresa = document.getElementById('curso-sel-empresa');
+  const anioActual = new Date().getFullYear();
+  const anios = [anioActual-2, anioActual-1, anioActual, anioActual+1];
+
+  if (selEmp) {
+    selEmp.innerHTML = '<option value="">— Selecciona empresa —</option>';
+    EMPRESAS_EMPLEADO.forEach(e=>{ selEmp.innerHTML += `<option value="${e}" ${e===creditosFiltroEmpresa?'selected':''}>${e}</option>`; });
+  }
+  if (selAnio) {
+    selAnio.innerHTML = anios.map(a=>`<option value="${a}" ${a===creditosFiltroAnio?'selected':''}>${a}</option>`).join('');
+  }
+  if (selCursoConductor) {
+    const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+    selCursoConductor.innerHTML = '<option value="">— Selecciona conductor —</option>';
+    activos.forEach(d=>{ selCursoConductor.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+  }
+  if (selCursoEmpresa) {
+    selCursoEmpresa.innerHTML = '<option value="">— Selecciona empresa —</option>';
+    EMPRESAS_EMPLEADO.forEach(e=>{ selCursoEmpresa.innerHTML += `<option value="${e}">${e}</option>`; });
+  }
+}
+
+function renderCreditosResumen() {
+  const el = document.getElementById('creditos-resumen');
+  if (!el) return;
+  if (!creditosFiltroEmpresa) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">💰</div>Selecciona una empresa y un año arriba</div>';
+    return;
+  }
+  const credito = creditosFormacionCache.find(c=>c.empresa===creditosFiltroEmpresa && c.anio===creditosFiltroAnio);
+  const total = credito ? credito.creditoTotal : 0;
+  const gastado = cursosFormacionCache
+    .filter(c => c.empresa===creditosFiltroEmpresa && c.fechaCurso && new Date(c.fechaCurso).getFullYear()===creditosFiltroAnio)
+    .reduce((sum,c) => sum + (parseFloat(c.importe)||0), 0);
+  const restante = total - gastado;
+  const pct = total > 0 ? Math.min(100, (gastado/total)*100) : 0;
+  const color = restante < 0 ? 'var(--danger)' : pct >= 90 ? 'var(--warning)' : 'var(--success)';
+  el.innerHTML = `
+    <div class="refuel-card" style="margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">${creditosFiltroEmpresa} · ${creditosFiltroAnio}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:14px;">
+        <span>Crédito asignado</span><strong>${total.toFixed(2)} €</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:14px;">
+        <span>Gastado</span><strong>${gastado.toFixed(2)} €</strong>
+      </div>
+      <div style="height:8px;background:var(--navy-light);border-radius:4px;overflow:hidden;margin-bottom:0.75rem;">
+        <div style="height:100%;width:${pct}%;background:${color};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;">
+        <span>Restante</span><span style="color:${color};">${restante.toFixed(2)} €</span>
+      </div>
+      ${restante < 0 ? `<div style="font-size:12px;color:var(--danger);font-weight:600;margin-top:0.5rem;">⚠️ Se ha superado el crédito asignado</div>` : ''}
+    </div>`;
+}
+
+async function guardarCreditoTotal() {
+  const al = document.getElementById('credito-total-alert');
+  if (!creditosFiltroEmpresa) { showAlert(al,'Selecciona primero una empresa arriba',true); return; }
+  const valor = parseFloat(document.getElementById('credito-total-input').value);
+  if (isNaN(valor) || valor < 0) { showAlert(al,'Indica un importe válido',true); return; }
+  try {
+    const docId = empresaSlug(creditosFiltroEmpresa) + '_' + creditosFiltroAnio;
+    await setDoc(doc(dbFleet,'creditosFormacion',docId), { empresa: creditosFiltroEmpresa, anio: creditosFiltroAnio, creditoTotal: valor });
+    // No tocamos creditosFormacionCache a mano: el onSnapshot ya lo actualiza solo.
+    document.getElementById('asignar-credito-wrapper').style.display = 'none';
+    showAlert(al,'✓ Crédito actualizado',false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+}
+
+async function guardarCurso() {
+  const al = document.getElementById('curso-alert');
+  const conductorCode = document.getElementById('curso-sel-conductor').value;
+  const empresa = document.getElementById('curso-sel-empresa').value;
+  const centro = document.getElementById('curso-centro').value.trim();
+  const curso = document.getElementById('curso-nombre').value.trim();
+  const fechaCurso = document.getElementById('curso-fecha').value;
+  const importe = parseFloat(document.getElementById('curso-importe').value);
+  const numFactura = document.getElementById('curso-num-factura').value.trim();
+  const fechaFactura = document.getElementById('curso-fecha-factura').value;
+
+  if (!conductorCode) { showAlert(al,'⚠️ Selecciona el conductor',true); return; }
+  if (!empresa) { showAlert(al,'⚠️ Selecciona la empresa',true); return; }
+  if (!curso) { showAlert(al,'⚠️ Escribe el curso',true); return; }
+  if (!fechaCurso) { showAlert(al,'⚠️ Indica la fecha del curso',true); return; }
+  if (isNaN(importe) || importe < 0) { showAlert(al,'⚠️ Indica un importe válido',true); return; }
+
+  const btn = document.getElementById('btn-guardar-curso');
+  btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
+  try {
+    const registro = { conductorCode, empresa, centro, curso, fechaCurso, importe, numFactura, fechaFactura };
+    await addDoc(collection(dbFleet,'cursosFormacion'), registro);
+    // No tocamos cursosFormacionCache a mano: el onSnapshot ya lo actualiza solo.
+    document.getElementById('curso-sel-conductor').value='';
+    document.getElementById('curso-sel-empresa').value='';
+    document.getElementById('curso-centro').value='';
+    document.getElementById('curso-nombre').value='';
+    document.getElementById('curso-fecha').value='';
+    document.getElementById('curso-importe').value='';
+    document.getElementById('curso-num-factura').value='';
+    document.getElementById('curso-fecha-factura').value='';
+    showAlert(al,'✓ Curso registrado correctamente',false);
+    document.getElementById('add-curso-wrapper').style.display = 'none';
+    document.getElementById('btn-toggle-add-curso').textContent = '➕ Registrar curso';
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+}
+
+function renderCursosFormacionList() {
+  const list = document.getElementById('cursos-formacion-list');
+  if (!list) return;
+  const f = cursosFormacionCache.filter(c => {
+    if (creditosFiltroEmpresa && c.empresa !== creditosFiltroEmpresa) return false;
+    if (creditosFiltroAnio && (!c.fechaCurso || new Date(c.fechaCurso).getFullYear() !== creditosFiltroAnio)) return false;
+    return true;
+  });
+  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div>No hay cursos registrados para ese filtro</div>'; return; }
+  list.innerHTML = f.map(c=>{
+    const safeId = c.id.replace(/[^a-zA-Z0-9]/g,'_');
+    return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+      <div onclick="toggleCursoFormacion('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">📚 ${nombreConductorPorCodigo(c.conductorCode)} — ${c.curso}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${c.fechaCurso?new Date(c.fechaCurso).toLocaleDateString('es-ES'):'—'} · ${(parseFloat(c.importe)||0).toFixed(2)} €</div>
+        </div>
+        <span id="curso-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
+      </div>
+      <div id="curso-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+        <div style="font-size:13px;line-height:1.6;margin:0.75rem 0;">
+          <div><strong>Empresa:</strong> ${c.empresa||'—'}</div>
+          <div><strong>Centro de formación:</strong> ${c.centro||'—'}</div>
+          <div><strong>Nº de factura:</strong> ${c.numFactura||'—'}</div>
+          <div><strong>Fecha de factura:</strong> ${c.fechaFactura?new Date(c.fechaFactura).toLocaleDateString('es-ES'):'—'}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn-sm" style="flex:1;" onclick="editarCurso('${c.id}')">✏️ Editar</button>
+          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarCurso('${c.id}')">🗑 Eliminar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleCursoFormacion = (safeId) => {
+  const body = document.getElementById('curso-body-'+safeId);
+  const arrow = document.getElementById('curso-arrow-'+safeId);
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; }
+};
+
+window.editarCurso = (id) => {
+  const c = cursosFormacionCache.find(x=>x.id===id);
+  if (!c) return;
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const modal = document.createElement('div');
+  modal.id = 'edit-curso-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar curso</div>
+      <div class="form-group"><label class="form-label">Conductor</label>
+        <select class="form-input" id="edit-curso-conductor">
+          ${activos.map(d=>`<option value="${d.code}" ${d.code===c.conductorCode?'selected':''}>${d.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Empresa</label>
+        <select class="form-input" id="edit-curso-empresa">
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===c.empresa?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Centro de formación</label><input class="form-input" id="edit-curso-centro" value="${c.centro||''}"></div>
+      <div class="form-group"><label class="form-label">Curso</label><input class="form-input" id="edit-curso-nombre" value="${c.curso||''}"></div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="edit-curso-fecha" value="${c.fechaCurso||''}"></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="number" step="0.01" id="edit-curso-importe" value="${c.importe||''}"></div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" id="edit-curso-num-factura" value="${c.numFactura||''}"></div>
+        <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="edit-curso-fecha-factura" value="${c.fechaFactura||''}"></div>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+        <button id="btn-save-curso-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-curso-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-curso-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('btn-save-curso-edit').addEventListener('click', async () => {
+    const al = document.getElementById('edit-curso-alert');
+    const importe = parseFloat(document.getElementById('edit-curso-importe').value);
+    if (isNaN(importe) || importe < 0) { showAlert(al,'Indica un importe válido',true); return; }
+    const cambios = {
+      conductorCode: document.getElementById('edit-curso-conductor').value,
+      empresa: document.getElementById('edit-curso-empresa').value,
+      centro: document.getElementById('edit-curso-centro').value.trim(),
+      curso: document.getElementById('edit-curso-nombre').value.trim(),
+      fechaCurso: document.getElementById('edit-curso-fecha').value,
+      importe,
+      numFactura: document.getElementById('edit-curso-num-factura').value.trim(),
+      fechaFactura: document.getElementById('edit-curso-fecha-factura').value,
+    };
+    try {
+      await updateDoc(doc(dbFleet,'cursosFormacion',id), cambios);
+      const idx = cursosFormacionCache.findIndex(x=>x.id===id);
+      if (idx>=0) Object.assign(cursosFormacionCache[idx], cambios);
+      document.getElementById('edit-curso-modal').remove();
+      renderCreditosResumen();
+      renderCursosFormacionList();
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+};
+
+window.eliminarCurso = async (id) => {
+  if (!(await confirmarAccion('¿Eliminar este curso del registro? Esto liberará su importe del crédito gastado.'))) return;
+  try {
+    await deleteDoc(doc(dbFleet,'cursosFormacion',id));
+    cursosFormacionCache = cursosFormacionCache.filter(c=>c.id!==id);
+    renderCreditosResumen();
+    renderCursosFormacionList();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
@@ -6347,6 +6700,8 @@ async function descargarBackup() {
       mantenimiento: mantenimientoCache,
       historialMantenimiento: historialMantCache,
       mantenimientoConductores: mantConductoresCache,
+      creditosFormacion: creditosFormacionCache,
+      cursosFormacion: cursosFormacionCache,
       historialMantConductores: historialMantCondCache,
       ropaEmpleados: ropaEmpleadosCache,
       ropaHistorial: ropaHistorialCache,
@@ -6379,6 +6734,8 @@ const BACKUP_COLECCIONES = [
   { key:'mantenimiento', db:'dbFleet', col:'mantenimiento', cache:()=>mantenimientoCache, idField:'id' },
   { key:'historialMantenimiento', db:'dbFleet', col:'historialMantenimiento', cache:()=>historialMantCache, idField:'id' },
   { key:'mantenimientoConductores', db:'dbFleet', col:'mantenimientoConductores', cache:()=>mantConductoresCache, idField:'id' },
+  { key:'creditosFormacion', db:'dbFleet', col:'creditosFormacion', cache:()=>creditosFormacionCache, idField:'id' },
+  { key:'cursosFormacion', db:'dbFleet', col:'cursosFormacion', cache:()=>cursosFormacionCache, idField:'id' },
   { key:'historialMantConductores', db:'dbFleet', col:'historialMantConductores', cache:()=>historialMantCondCache, idField:'id' },
   { key:'ropaEmpleados', db:'db', col:'ropaEmpleados', cache:()=>ropaEmpleadosCache, idField:'id' },
   { key:'ropaHistorial', db:'db', col:'ropaHistorial', cache:()=>ropaHistorialCache, idField:'id' },
