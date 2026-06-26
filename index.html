@@ -3533,6 +3533,7 @@ function switchModule(mod) {
     updateAdrCapBadge();
   }
   if (mod==='seguros') {
+    segVehFichasAbiertas.clear();
     document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('seg-tab-vehiculos').classList.add('active');
     document.getElementById('seg-tab-btn-vehiculos').className='btn btn-secondary atab-btn';
@@ -3546,6 +3547,7 @@ function switchModule(mod) {
 }
 
 function volverASeleccionModulo() {
+  segVehFichasAbiertas.clear();
   document.getElementById('module-gasoil').style.display = 'none';
   document.getElementById('module-fleet').style.display = 'none';
   document.getElementById('module-ropa').style.display = 'none';
@@ -4506,6 +4508,7 @@ async function guardarSegurosElementosExtra() {
 }
 
 function switchSegurosTab(tab) {
+  segVehFichasAbiertas.clear();
   document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('seg-tab-'+tab).classList.add('active');
   ['vehiculos','polizas','comparativa'].forEach(t=>{
