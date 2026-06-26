@@ -840,7 +840,7 @@ input[type="number"] { -moz-appearance: textfield; }
     <div id="module-seguros" style="display:none;">
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="seg-tab-btn-vehiculos">🚗 Vehículos</button>
-        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-carretillas">🚜 Carretillas</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-carretillas">🚜 Carretillas/Transpaleta</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-polizas">📄 Pólizas</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-comparativa">📊 Comparativa</button>
       </div>
@@ -866,13 +866,13 @@ input[type="number"] { -moz-appearance: textfield; }
               <label class="form-label">Tipo</label>
               <select class="form-input" id="seg-veh-tipo">
                 <option value="vehiculo">🚗 Vehículo</option>
-                <option value="carretilla">🚜 Carretilla</option>
+                <option value="carretilla">🚜 Carretilla/Transpaleta</option>
               </select>
             </div>
             <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="seg-veh-kilos" placeholder="Ej: 18.000"></div>
-              <div class="form-group"><label class="form-label">Clasificación ITV</label><input class="form-input" type="text" id="seg-veh-clasitv" placeholder="Ej: N1"></div>
+              <div class="form-group" id="seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" type="text" id="seg-veh-clasitv" placeholder="Ej: N1"></div>
             </div>
             <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" type="text" id="seg-veh-compania" placeholder="Ej: Mapfre, Allianz..."></div>
             <div class="two-col">
@@ -880,7 +880,7 @@ input[type="number"] { -moz-appearance: textfield; }
               <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-veh-fechacad"></div>
             </div>
             <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
-            <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
+            <div class="form-group"><label class="form-label" id="seg-veh-ambito-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Empresa</label>
                 <select class="form-input" id="seg-veh-empresa"><option value="">— Selecciona empresa —</option></select>
@@ -935,6 +935,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <div class="two-col">
               <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-pol-corredor"></div>
               <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="seg-pol-importe" placeholder="Ej: 1.438,76"></div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas</label>
+              <textarea class="form-input" id="seg-pol-notas" placeholder="Cualquier anotación que necesites"></textarea>
             </div>
             <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
             <div id="seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
@@ -1616,6 +1620,7 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir seguro de vehículo'; }
   });
   document.getElementById('btn-guardar-seg-veh').addEventListener('click', guardarSeguroVehiculo);
+  document.getElementById('seg-veh-tipo').addEventListener('change', ()=>actualizarCamposSegunTipo('seg-veh'));
   document.getElementById('btn-toggle-add-seg-pol').addEventListener('click', ()=>{
     const wrapper = document.getElementById('add-seg-pol-wrapper');
     const btn = document.getElementById('btn-toggle-add-seg-pol');
@@ -4529,13 +4534,30 @@ function switchSegurosTab(tab) {
     document.getElementById('seg-tab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='vehiculos' || tab==='carretillas') {
-    document.getElementById('seg-veh-list-titulo').textContent = tab==='carretillas' ? 'Carretillas aseguradas' : 'Vehículos asegurados';
-    document.getElementById('btn-toggle-add-seg-veh').textContent = tab==='carretillas' ? '➕ Añadir seguro de carretilla' : '➕ Añadir seguro de vehículo';
+    document.getElementById('seg-veh-list-titulo').textContent = tab==='carretillas' ? 'Carretillas/Transpaleta aseguradas' : 'Vehículos asegurados';
+    document.getElementById('btn-toggle-add-seg-veh').textContent = tab==='carretillas' ? '➕ Añadir seguro de carretilla/transpaleta' : '➕ Añadir seguro de vehículo';
     document.getElementById('seg-veh-tipo').value = segVehFiltroTipo;
+    actualizarCamposSegunTipo('seg-veh');
     renderSegurosVehiculos();
   }
   if (tab==='polizas') renderSegurosPolizas();
   if (tab==='comparativa') renderComparativaSeguros();
+}
+
+// Adapta el formulario de seguro de vehículo según el tipo elegido: las carretillas no
+// llevan Clasificación ITV, y el campo "Ámbito" pasa a ser un "Número" para ellas.
+function actualizarCamposSegunTipo(prefix) {
+  const tipo = document.getElementById(prefix+'-tipo').value;
+  const esCarretilla = tipo === 'carretilla';
+  const wrapperItv = document.getElementById(prefix+'-clasitv-wrapper');
+  const labelAmbito = document.getElementById(prefix+'-ambito-label');
+  const inputAmbito = document.getElementById(prefix+'-ambito');
+  if (wrapperItv) wrapperItv.style.display = esCarretilla ? 'none' : 'block';
+  if (labelAmbito) labelAmbito.textContent = esCarretilla ? 'Número' : 'Ámbito';
+  if (inputAmbito) {
+    inputAmbito.type = esCarretilla ? 'number' : 'text';
+    inputAmbito.placeholder = esCarretilla ? 'Ej: 3' : 'Ej: Nacional, Europa...';
+  }
 }
 
 function populateSegurosSelects() {
@@ -4570,7 +4592,7 @@ function renderComparativaSeguros() {
     const conDatos = activos.filter(v=>Object.keys(v[campo]||{}).length>0).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
     const totalesPorAnio = {};
     anios.forEach(a=>totalesPorAnio[a]=0);
-    conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=parseFloat(v[campo][a]); }); });
+    conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=extraerValorYNota(v[campo][a]).valor; }); });
 
     // Tabla sencilla: Año | Total | Diferencia. Solo se ven los 3 años más recientes de
     // entrada; el resto queda detrás de un botón para no acumular filas con el tiempo.
@@ -4628,7 +4650,7 @@ function renderComparativaSeguros() {
           ${conDatos.map(v=>`<tr style="border-bottom:1px solid var(--card-border);">
             <td style="padding:5px 7px;font-weight:600;">${v.matricula}</td>
             ${anios.map(a=>{
-              const val = v[campo] && v[campo][a]!=null ? parseFloat(v[campo][a]) : null;
+              const val = v[campo] && v[campo][a]!=null ? extraerValorYNota(v[campo][a]).valor : null;
               return `<td style="padding:5px 8px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
             }).join('')}
           </tr>`).join('')}
@@ -4777,6 +4799,9 @@ function renderSegurosVehiculos() {
           <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
             <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
             <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
             <button class="btn-sm" onclick="anadirImporteSeguroAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
           </div>
         </div>
@@ -4787,6 +4812,9 @@ function renderSegurosVehiculos() {
           <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
             <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
             <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-${safeId}" style="font-size:13px;padding:0.5rem;">
             <button class="btn-sm" onclick="anadirImpuestoAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
           </div>
         </div>
@@ -4846,11 +4874,12 @@ window.toggleSeguroVeh = (safeId) => {
 window.anadirImpuestoAnio = async (matricula, safeId) => {
   const anio = document.getElementById('nuevo-anio-'+safeId).value.trim();
   const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-'+safeId).value.trim();
   if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
   const v = segurosVehiculosCache.find(x=>x.id===matricula);
   if (!v) return;
   try {
-    const nuevoMapa = { ...(v.impuestoMunicipal||{}), [anio]: importe };
+    const nuevoMapa = { ...(v.impuestoMunicipal||{}), [anio]: { importe, nota } };
     await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { impuestoMunicipal: nuevoMapa });
   } catch(e) { alert('Error: '+e.message); }
 };
@@ -4868,11 +4897,12 @@ window.eliminarImpuestoAnio = async (matricula, anio) => {
 window.anadirImporteSeguroAnio = async (matricula, safeId) => {
   const anio = document.getElementById('nuevo-anio-seg-'+safeId).value.trim();
   const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-seg-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-seg-'+safeId).value.trim();
   if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
   const v = segurosVehiculosCache.find(x=>x.id===matricula);
   if (!v) return;
   try {
-    const nuevoMapa = { ...(v.importePorAnio||{}), [anio]: importe };
+    const nuevoMapa = { ...(v.importePorAnio||{}), [anio]: { importe, nota } };
     await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { importePorAnio: nuevoMapa });
   } catch(e) { alert('Error: '+e.message); }
 };
@@ -4895,20 +4925,32 @@ function nombreConductorSeguro(v) {
   return v.conductor || '';
 }
 
+// Cada año puede guardarse como número simple (formato antiguo) o como {importe, nota}
+// (formato actual, con anotación de texto opcional). Esta función siempre devuelve los dos.
+function extraerValorYNota(entry) {
+  if (entry !== null && typeof entry === 'object') {
+    return { valor: parseFloat(entry.importe), nota: entry.nota || '' };
+  }
+  return { valor: parseFloat(entry), nota: '' };
+}
+
 function ultimoValorAnio(mapa) {
   if (!mapa) return null;
   const anios = Object.keys(mapa).sort((a,b)=>b-a);
-  return anios.length ? parseFloat(mapa[anios[0]]) : null;
+  return anios.length ? extraerValorYNota(mapa[anios[0]]).valor : null;
 }
 
 // Pinta la lista de años de un mapa {año: importe}, con la diferencia en € y % respecto
 // al año anterior justo al lado de cada valor. Solo se ve el año más reciente por
 // defecto; el resto se despliega con un botón, para no saturar la pantalla con muchos años.
 function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId, tipo) {
-  const entradas = Object.entries(mapa||{}).map(([a,v])=>[a, parseFloat(v)]).sort((a,b)=>a[0]-b[0]);
+  const entradas = Object.entries(mapa||{}).map(([a,v])=>{
+    const {valor, nota} = extraerValorYNota(v);
+    return [a, valor, nota];
+  }).sort((a,b)=>a[0]-b[0]);
   if (!entradas.length) return '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>';
 
-  const filaHtml = (anio, valor, idx) => {
+  const filaHtml = (anio, valor, nota, idx) => {
     let diffHtml = '';
     if (idx > 0) {
       const anterior = entradas[idx-1][1];
@@ -4917,19 +4959,22 @@ function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId,
       const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
       diffHtml = `<span style="font-size:11px;color:${color};margin-left:6px;">(${diff>=0?'+':''}${diff.toFixed(2)}€${pct!=null?' / '+(pct>=0?'+':'')+pct.toFixed(1)+'%':''} vs ${entradas[idx-1][0]})</span>`;
     }
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;">
-      <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
-      <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+    return `<div style="padding:4px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+        <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
+        <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+      </div>
+      ${nota?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">📝 ${nota}</div>`:''}
     </div>`;
   };
 
   const ultimoIdx = entradas.length - 1;
-  let html = filaHtml(entradas[ultimoIdx][0], entradas[ultimoIdx][1], ultimoIdx);
+  let html = filaHtml(entradas[ultimoIdx][0], entradas[ultimoIdx][1], entradas[ultimoIdx][2], ultimoIdx);
 
   if (entradas.length > 1) {
     const contId = `lista-anios-${tipo}-${safeId}`;
     const resto = entradas.slice(0, ultimoIdx).reverse();
-    html += `<div id="${contId}" style="display:none;">${resto.map(([anio,valor])=>filaHtml(anio, valor, entradas.findIndex(e=>e[0]===anio))).join('')}</div>`;
+    html += `<div id="${contId}" style="display:none;">${resto.map(([anio,valor,nota])=>filaHtml(anio, valor, nota, entradas.findIndex(e=>e[0]===anio))).join('')}</div>`;
     html += `<button class="btn-sm" data-texto="▼ Ver ${resto.length} año${resto.length>1?'s':''} más" onclick="toggleListaAnios('${contId}', this)" style="font-size:11px;margin-top:4px;">▼ Ver ${resto.length} año${resto.length>1?'s':''} más</button>`;
   }
   return html;
@@ -4966,13 +5011,13 @@ window.editarSeguroVehiculo = (id) => {
         <label class="form-label">Tipo</label>
         <select class="form-input" id="edit-seg-veh-tipo">
           <option value="vehiculo" ${(v.tipo||'vehiculo')==='vehiculo'?'selected':''}>🚗 Vehículo</option>
-          <option value="carretilla" ${v.tipo==='carretilla'?'selected':''}>🚜 Carretilla</option>
+          <option value="carretilla" ${v.tipo==='carretilla'?'selected':''}>🚜 Carretilla/Transpaleta</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-veh-modelo" value="${v.modelo||''}"></div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="edit-seg-veh-kilos" value="${v.kilos?v.kilos.toLocaleString('es-ES'):''}"></div>
-        <div class="form-group"><label class="form-label">Clasificación ITV</label><input class="form-input" id="edit-seg-veh-clasitv" value="${v.clasificacionItv||''}"></div>
+        <div class="form-group" id="edit-seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" id="edit-seg-veh-clasitv" value="${v.clasificacionItv||''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" id="edit-seg-veh-compania" value="${v.compania||''}"></div>
       <div class="two-col">
@@ -4980,7 +5025,7 @@ window.editarSeguroVehiculo = (id) => {
         <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-veh-fechacad" value="${v.fechaCaducidad||''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
-      <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
+      <div class="form-group"><label class="form-label" id="edit-seg-veh-ambito-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Empresa</label>
           <select class="form-input" id="edit-seg-veh-empresa">
@@ -5008,6 +5053,8 @@ window.editarSeguroVehiculo = (id) => {
       <div id="edit-seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
     </div>`;
   document.body.appendChild(modal);
+  actualizarCamposSegunTipo('edit-seg-veh');
+  document.getElementById('edit-seg-veh-tipo').addEventListener('change', ()=>actualizarCamposSegunTipo('edit-seg-veh'));
 
   document.getElementById('btn-save-seg-veh-edit').addEventListener('click', async () => {
     const al = document.getElementById('edit-seg-veh-alert');
@@ -5062,6 +5109,7 @@ async function guardarSeguroPoliza() {
   const fechaCaducidad = document.getElementById('seg-pol-fechacad').value;
   const corredor = document.getElementById('seg-pol-corredor').value.trim();
   const importeVal = parseImporteEuropeo(document.getElementById('seg-pol-importe').value);
+  const notas = document.getElementById('seg-pol-notas').value.trim();
 
   if (!tipoPoliza) { showAlert(al,'⚠️ Indica el tipo de póliza',true); return; }
   if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
@@ -5069,10 +5117,10 @@ async function guardarSeguroPoliza() {
   const btn = document.getElementById('btn-guardar-seg-pol');
   btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
   try {
-    const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal };
+    const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, notas };
     await addDoc(collection(dbFleet,'segurosPolizas'), registro);
     // No tocamos segurosPolizasCache a mano: el onSnapshot ya lo actualiza solo.
-    ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-importe'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
+    ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-importe','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
     showAlert(al,'✓ Póliza guardada correctamente',false);
     document.getElementById('add-seg-pol-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-pol').textContent='➕ Añadir póliza';
@@ -5118,6 +5166,7 @@ function renderSegurosPolizas() {
           <div><strong>Nº de póliza:</strong> ${p.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${p.corredor||'—'}</div>
           <div><strong>Importe:</strong> ${p.importe!=null?p.importe.toFixed(2)+' €':'—'}</div>
+          ${p.notas?`<div style="margin-top:6px;"><strong>Notas:</strong> ${p.notas}</div>`:''}
         </div>
         <div style="display:flex;gap:0.5rem;">
           <button class="btn-sm" style="flex:1;" onclick="editarSeguroPoliza('${p.id}')">✏️ Editar</button>
@@ -5155,6 +5204,10 @@ window.editarSeguroPoliza = (id) => {
         <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-pol-corredor" value="${p.corredor||''}"></div>
         <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-seg-pol-importe" value="${p.importe!=null?p.importe.toLocaleString('es-ES'):''}"></div>
       </div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="edit-seg-pol-notas">${p.notas||''}</textarea>
+      </div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-seg-pol-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
         <button onclick="document.getElementById('edit-seg-pol-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
@@ -5176,6 +5229,7 @@ window.editarSeguroPoliza = (id) => {
       fechaCaducidad,
       corredor: document.getElementById('edit-seg-pol-corredor').value.trim(),
       importe: isNaN(importeVal)?null:importeVal,
+      notas: document.getElementById('edit-seg-pol-notas').value.trim(),
     };
     try {
       await updateDoc(doc(dbFleet,'segurosPolizas',id), cambios);
@@ -5369,8 +5423,8 @@ function _generarExcelSegurosVehiculos() {
   const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Comentarios'];
   const rows = [header];
   segurosVehiculosCache.filter(v=>(v.tipo||'vehiculo')===segVehFiltroTipo).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
-    const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
-    const seguroTxt = Object.entries(v.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
+    const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
+    const seguroTxt = Object.entries(v.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
     rows.push([
       v.matricula||'', v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
       v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
@@ -5396,18 +5450,18 @@ window.exportarExcelSegurosPolizas = () => {
 };
 
 function _generarExcelSegurosPolizas() {
-  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)'];
+  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Notas'];
   const rows = [header];
   [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
     rows.push([
       p.modelo||'', p.tipoPoliza||'', p.compania||'', p.numeroPoliza||'',
       p.fechaCaducidad ? new Date(p.fechaCaducidad).toLocaleDateString('es-ES') : '',
-      p.corredor||'', p.importe!=null?p.importe:''
+      p.corredor||'', p.importe!=null?p.importe:'', p.notas||''
     ]);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [16,18,16,14,14,16,12].map(w=>({wch:w}));
+  ws['!cols'] = [16,18,16,14,14,16,12,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, 'Pólizas');
   XLSX.writeFile(wb, 'Manchatrans_Polizas.xlsx');
 }
