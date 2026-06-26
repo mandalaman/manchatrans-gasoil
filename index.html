@@ -840,6 +840,7 @@ input[type="number"] { -moz-appearance: textfield; }
     <div id="module-seguros" style="display:none;">
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="seg-tab-btn-vehiculos">🚗 Vehículos</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-tractor">🚛 Tractor</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-carretillas">🚜 Carretillas/Transpaletas</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-polizas">📄 Pólizas</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-comparativa">📊 Comparativa</button>
@@ -866,13 +867,14 @@ input[type="number"] { -moz-appearance: textfield; }
               <label class="form-label">Tipo</label>
               <select class="form-input" id="seg-veh-tipo">
                 <option value="vehiculo">🚗 Vehículo</option>
+                <option value="tractor">🚛 Tractor</option>
                 <option value="carretilla">🚜 Carretilla</option>
                 <option value="transpaleta">🔌 Transpaleta eléctrica</option>
               </select>
             </div>
             <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
             <div class="two-col">
-              <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="seg-veh-kilos" placeholder="Ej: 18.000"></div>
+              <div class="form-group" id="seg-veh-kilos-wrapper"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="seg-veh-kilos" placeholder="Ej: 18.000"></div>
               <div class="form-group" id="seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" type="text" id="seg-veh-clasitv" placeholder="Ej: N1"></div>
             </div>
             <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" type="text" id="seg-veh-compania" placeholder="Ej: Mapfre, Allianz..."></div>
@@ -1637,6 +1639,7 @@ async function initApp() {
   // Seguros (módulo independiente)
   document.getElementById('seg-tab-btn-vehiculos').addEventListener('click', ()=>switchSegurosTab('vehiculos'));
   document.getElementById('seg-tab-btn-carretillas').addEventListener('click', ()=>switchSegurosTab('carretillas'));
+  document.getElementById('seg-tab-btn-tractor').addEventListener('click', ()=>switchSegurosTab('tractor'));
   document.getElementById('seg-tab-btn-polizas').addEventListener('click', ()=>switchSegurosTab('polizas'));
   document.getElementById('seg-tab-btn-comparativa').addEventListener('click', ()=>switchSegurosTab('comparativa'));
   document.getElementById('btn-toggle-add-seg-veh').addEventListener('click', ()=>{
@@ -4583,19 +4586,21 @@ function switchSegurosTab(tab) {
   segVehBusqueda = '';
   const elBuscador = document.getElementById('seg-veh-buscador');
   if (elBuscador) elBuscador.value = '';
-  // "carretillas" reutiliza el mismo panel que "vehiculos" (mismo formulario, misma
-  // lista, mismas funciones de PDF/Excel/comparativa) pero filtrado por tipo, para no
-  // duplicar todo el código — la única diferencia real es qué se ve en la lista.
-  const panelReal = tab==='carretillas' ? 'vehiculos' : tab;
-  segVehFiltroTipo = tab==='carretillas' ? 'carretilla' : (tab==='vehiculos' ? 'vehiculo' : '');
+  // "carretillas" y "tractor" reutilizan el mismo panel que "vehiculos" (mismo formulario,
+  // misma lista, mismas funciones de PDF/Excel/comparativa) pero filtrado por tipo, para
+  // no duplicar todo el código — la única diferencia real es qué se ve en la lista.
+  const panelReal = (tab==='carretillas' || tab==='tractor') ? 'vehiculos' : tab;
+  segVehFiltroTipo = tab==='carretillas' ? 'carretilla' : (tab==='tractor' ? 'tractor' : (tab==='vehiculos' ? 'vehiculo' : ''));
   document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('seg-tab-'+panelReal).classList.add('active');
-  ['vehiculos','carretillas','polizas','comparativa'].forEach(t=>{
+  ['vehiculos','tractor','carretillas','polizas','comparativa'].forEach(t=>{
     document.getElementById('seg-tab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
-  if (tab==='vehiculos' || tab==='carretillas') {
-    document.getElementById('seg-veh-list-titulo').textContent = tab==='carretillas' ? 'Carretillas/Transpaletas aseguradas' : 'Vehículos asegurados';
-    document.getElementById('btn-toggle-add-seg-veh').textContent = tab==='carretillas' ? '➕ Añadir seguro de carretilla/transpaleta' : '➕ Añadir seguro de vehículo';
+  if (tab==='vehiculos' || tab==='carretillas' || tab==='tractor') {
+    const titulos = {carretillas:'Carretillas/Transpaletas aseguradas', tractor:'Tractores asegurados', vehiculos:'Vehículos asegurados'};
+    const botones = {carretillas:'➕ Añadir seguro de carretilla/transpaleta', tractor:'➕ Añadir seguro de tractor', vehiculos:'➕ Añadir seguro de vehículo'};
+    document.getElementById('seg-veh-list-titulo').textContent = titulos[tab];
+    document.getElementById('btn-toggle-add-seg-veh').textContent = botones[tab];
     document.getElementById('seg-veh-tipo').value = segVehFiltroTipo;
     actualizarCamposSegunTipo('seg-veh');
     renderSegurosVehiculos();
@@ -4608,19 +4613,25 @@ function switchSegurosTab(tab) {
 // llevan Clasificación ITV, y el campo "Ámbito" pasa a ser un "Número" para ellas.
 function actualizarCamposSegunTipo(prefix) {
   const tipo = document.getElementById(prefix+'-tipo').value;
-  const esVehiculo = tipo === 'vehiculo';
+  // "Reducido" = carretilla o transpaleta: sin ITV, conductor, lunas, impuesto municipal,
+  // y el campo Ámbito pasa a ser un Número. El Tractor es como un Vehículo normal, solo
+  // que sin el campo Kilos.
+  const esReducido = tipo === 'carretilla' || tipo === 'transpaleta';
+  const esTractor = tipo === 'tractor';
+  const wrapperKilos = document.getElementById(prefix+'-kilos-wrapper');
   const wrapperItv = document.getElementById(prefix+'-clasitv-wrapper');
   const wrapperConductor = document.getElementById(prefix+'-conductor-wrapper');
   const wrapperLunas = document.getElementById(prefix+'-lunas-wrapper');
   const labelAmbito = document.getElementById(prefix+'-ambito-label');
   const inputAmbito = document.getElementById(prefix+'-ambito');
-  if (wrapperItv) wrapperItv.style.display = esVehiculo ? 'block' : 'none';
-  if (wrapperConductor) wrapperConductor.style.display = esVehiculo ? 'block' : 'none';
-  if (wrapperLunas) wrapperLunas.style.display = esVehiculo ? 'block' : 'none';
-  if (labelAmbito) labelAmbito.textContent = esVehiculo ? 'Ámbito' : 'Número';
+  if (wrapperKilos) wrapperKilos.style.display = esTractor ? 'none' : 'block';
+  if (wrapperItv) wrapperItv.style.display = esReducido ? 'none' : 'block';
+  if (wrapperConductor) wrapperConductor.style.display = esReducido ? 'none' : 'block';
+  if (wrapperLunas) wrapperLunas.style.display = esReducido ? 'none' : 'block';
+  if (labelAmbito) labelAmbito.textContent = esReducido ? 'Número' : 'Ámbito';
   if (inputAmbito) {
-    inputAmbito.type = esVehiculo ? 'text' : 'number';
-    inputAmbito.placeholder = esVehiculo ? 'Ej: Nacional, Europa...' : 'Ej: 3';
+    inputAmbito.type = esReducido ? 'number' : 'text';
+    inputAmbito.placeholder = esReducido ? 'Ej: 3' : 'Ej: Nacional, Europa...';
   }
 }
 
@@ -4824,7 +4835,7 @@ function renderSegurosVehiculos() {
   alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
   document.getElementById('seg-veh-baja-count').textContent = segurosVehiculosCache.filter(v=>v.activo===false && coincideTipoSeguro(v)).length;
 
-  if (!activos.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de vehículos activos registrados</div>'; return; }
+  if (!activos.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de ${etiquetasGrupoSeguro().nombre} activos registrados</div>`; return; }
 
   const filtrados = segVehBusqueda ? activos.filter(v=>(v.matricula||'').toLowerCase().startsWith(segVehBusqueda)) : activos;
   if (segVehBusqueda && !filtrados.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>Ningún vehículo coincide con esa búsqueda</div>'; return; }
@@ -4835,26 +4846,27 @@ function renderSegurosVehiculos() {
     let color = 'var(--text-muted)';
     if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
     const abierta = segVehFichasAbiertas.has(safeId);
-    const esVehiculoCard = (v.tipo||'vehiculo') === 'vehiculo';
+    const esReducidoCard = v.tipo==='carretilla' || v.tipo==='transpaleta';
+    const esTractorCard = v.tipo==='tractor';
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
-          <div style="font-weight:600;font-size:14px;">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':''}${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
+          <div style="font-weight:600;font-size:14px;">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':v.tipo==='tractor'?'🚛':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':v.tipo==='tractor'?'🚛 Tractor · ':''}${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
         </div>
         <span id="seg-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
       </div>
       <div id="seg-veh-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
-          <div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>
-          ${esVehiculoCard?`<div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>`:''}
+          ${!esTractorCard?`<div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>`:''}
+          ${!esReducidoCard?`<div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>`:''}
           <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
           <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
           <div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
-          ${esVehiculoCard?`<div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>`:''}
-          ${esVehiculoCard?`<div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>`:''}
+          ${!esReducidoCard?`<div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>`:''}
+          ${!esReducidoCard?`<div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>`:''}
           ${v.comentarios?`<div style="margin-top:6px;"><strong>Notas:</strong> ${v.comentarios}</div>`:''}
         </div>
 
@@ -4871,7 +4883,7 @@ function renderSegurosVehiculos() {
           </div>
         </div>
 
-        ${esVehiculoCard?`
+        ${!esReducidoCard?`
         <button class="btn-sm" data-texto="📅 Ver historial del impuesto municipal" onclick="toggleSeccionAnios('seg-anios-imp-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">📅 Ver historial del impuesto municipal</button>
         <div id="seg-anios-imp-${safeId}" style="display:none;margin-bottom:0.75rem;">
           ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio', safeId, 'imp')}
@@ -4902,8 +4914,8 @@ function renderSegurosVehiculosBaja() {
   list.innerHTML = bajas.map(v=>`
     <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
-        <div class="driver-info">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':''}${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+        <div class="driver-info">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':v.tipo==='tractor'?'🚛':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':v.tipo==='tractor'?'🚛 Tractor · ':''}${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="reactivarSeguroVehiculo('${v.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
@@ -5002,9 +5014,19 @@ function extraerValorYNota(entry) {
 
 // La pestaña "Vehículos" muestra solo tipo=vehiculo; la pestaña "Carretillas/Transpaletas"
 // agrupa cualquier otro tipo (carretilla, transpaleta...), aunque sean tipos distintos.
+// Textos de título/nombre de archivo según la pestaña activa (Vehículos, Tractor o
+// Carretillas/Transpaletas), para no repetir la misma lista de ternarios por todos lados.
+function etiquetasGrupoSeguro() {
+  if (segVehFiltroTipo === 'tractor') return { nombre: 'tractores', tag: 'SEGUROS DE TRACTORES', archivo: 'Manchatrans_Seguros_Tractores', hoja: 'Seguros tractores' };
+  if (segVehFiltroTipo === 'carretilla') return { nombre: 'carretillas/transpaletas', tag: 'SEGUROS DE CARRETILLAS/TRANSPALETAS', archivo: 'Manchatrans_Seguros_Carretillas_Transpaletas', hoja: 'Carretillas-transpaletas' };
+  return { nombre: 'vehículos', tag: 'SEGUROS DE VEHÍCULOS', archivo: 'Manchatrans_Seguros_Vehiculos', hoja: 'Seguros vehículos' };
+}
+
 function coincideTipoSeguro(v) {
   const tipo = v.tipo || 'vehiculo';
-  return segVehFiltroTipo === 'vehiculo' ? tipo === 'vehiculo' : tipo !== 'vehiculo';
+  if (segVehFiltroTipo === 'vehiculo') return tipo === 'vehiculo';
+  if (segVehFiltroTipo === 'tractor') return tipo === 'tractor';
+  return tipo === 'carretilla' || tipo === 'transpaleta'; // pestaña Carretillas/Transpaletas
 }
 
 function ultimoValorAnio(mapa) {
@@ -5100,13 +5122,14 @@ window.editarSeguroVehiculo = (id) => {
         <label class="form-label">Tipo</label>
         <select class="form-input" id="edit-seg-veh-tipo">
           <option value="vehiculo" ${(v.tipo||'vehiculo')==='vehiculo'?'selected':''}>🚗 Vehículo</option>
+          <option value="tractor" ${v.tipo==='tractor'?'selected':''}>🚛 Tractor</option>
           <option value="carretilla" ${v.tipo==='carretilla'?'selected':''}>🚜 Carretilla</option>
           <option value="transpaleta" ${v.tipo==='transpaleta'?'selected':''}>🔌 Transpaleta eléctrica</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-veh-modelo" value="${v.modelo||''}"></div>
       <div class="two-col">
-        <div class="form-group"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="edit-seg-veh-kilos" value="${v.kilos?v.kilos.toLocaleString('es-ES'):''}"></div>
+        <div class="form-group" id="edit-seg-veh-kilos-wrapper"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="edit-seg-veh-kilos" value="${v.kilos?v.kilos.toLocaleString('es-ES'):''}"></div>
         <div class="form-group" id="edit-seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" id="edit-seg-veh-clasitv" value="${v.clasificacionItv||''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" id="edit-seg-veh-compania" value="${v.compania||''}"></div>
@@ -5342,7 +5365,7 @@ window.eliminarSeguroPoliza = async (id) => {
 // ── Exportar PDF: Seguros de vehículos ──
 window.exportarPdfSegurosVehiculos = async () => {
   const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
-  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas/transpaletas activos para exportar.' : 'No hay seguros de vehículos activos para exportar.'); return; }
+  if (!datosFiltrados.length) { alert(`No hay seguros de ${etiquetasGrupoSeguro().nombre} activos para exportar.`); return; }
   const btn = document.getElementById('btn-pdf-seg-veh');
   const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
   try {
@@ -5367,8 +5390,8 @@ window.exportarPdfSegurosVehiculos = async () => {
       page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
       page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
       page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
-      page.drawText(segVehFiltroTipo==='carretilla' ? 'Seguros de carretillas/transpaletas (activos) · NexoFlota' : 'Seguros de vehículos (activos) · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
-      const tagTxt = segVehFiltroTipo==='carretilla' ? 'SEGUROS DE CARRETILLAS/TRANSPALETAS' : 'SEGUROS DE VEHÍCULOS';
+      page.drawText(`Seguros de ${etiquetasGrupoSeguro().nombre} (activos) · NexoFlota`, { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = etiquetasGrupoSeguro().tag;
       const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
       page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
       y = H - 95;
@@ -5431,7 +5454,7 @@ window.exportarPdfSegurosVehiculos = async () => {
     const blob = new Blob([pdfBytes], {type:'application/pdf'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = segVehFiltroTipo==='carretilla' ? 'Manchatrans_Seguros_Carretillas_Transpaletas.pdf' : 'Manchatrans_Seguros_Vehiculos.pdf';
+    a.href = url; a.download = etiquetasGrupoSeguro().archivo + '.pdf';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
   } catch(e) { alert('Error al generar el PDF: '+e.message); }
@@ -5537,7 +5560,7 @@ window.exportarPdfSegurosPolizas = async () => {
 // ── Exportar Excel: Seguros de vehículos ──
 window.exportarExcelSegurosVehiculos = () => {
   const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
-  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas/transpaletas activos para exportar.' : 'No hay seguros de vehículos activos para exportar.'); return; }
+  if (!datosFiltrados.length) { alert(`No hay seguros de ${etiquetasGrupoSeguro().nombre} activos para exportar.`); return; }
   if (typeof XLSX==='undefined') {
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
@@ -5546,7 +5569,7 @@ window.exportarExcelSegurosVehiculos = () => {
 };
 
 function _generarExcelSegurosVehiculos() {
-  const etiquetasTipo = {vehiculo:'Vehículo', carretilla:'Carretilla', transpaleta:'Transpaleta eléctrica'};
+  const etiquetasTipo = {vehiculo:'Vehículo', tractor:'Tractor', carretilla:'Carretilla', transpaleta:'Transpaleta eléctrica'};
   const header = ['Matrícula/Identificador','Tipo','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Notas'];
   const rows = [header];
   let totalImporte = 0;
@@ -5566,8 +5589,8 @@ function _generarExcelSegurosVehiculos() {
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [16,16,16,8,12,16,14,14,16,14,30,12,28,22,12,30,30].map(w=>({wch:w}));
-  XLSX.utils.book_append_sheet(wb, ws, segVehFiltroTipo==='carretilla' ? 'Carretillas-transpaletas' : 'Seguros vehículos');
-  XLSX.writeFile(wb, segVehFiltroTipo==='carretilla' ? 'Manchatrans_Seguros_Carretillas_Transpaletas.xlsx' : 'Manchatrans_Seguros_Vehiculos.xlsx');
+  XLSX.utils.book_append_sheet(wb, ws, etiquetasGrupoSeguro().hoja);
+  XLSX.writeFile(wb, etiquetasGrupoSeguro().archivo + '.xlsx');
 }
 
 // ── Exportar Excel: Pólizas ──
