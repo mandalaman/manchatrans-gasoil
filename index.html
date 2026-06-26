@@ -5023,7 +5023,10 @@ function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId,
     return `<div style="padding:4px 0;">
       <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
         <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
-        <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn-sm" onclick="editarAnioEnLista('${tipo}','${safeId}','${anio}',${valor},'${(nota||'').replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;">✏️</button>
+          <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+        </div>
       </div>
       ${nota?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">📝 ${nota}</div>`:''}
     </div>`;
@@ -5045,6 +5048,19 @@ window.toggleSeccionAnios = (contId, btn) => {
   const cont = document.getElementById(contId);
   if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
   else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
+
+// Rellena el mini-formulario de año/importe/nota con los datos de un año ya existente,
+// para poder corregirlo (al volver a pulsar ➕ con el mismo año, se sobrescribe solo).
+window.editarAnioEnLista = (tipo, safeId, anio, valor, nota) => {
+  const sufijo = tipo === 'seg' ? 'seg-'+safeId : safeId;
+  const inputAnio = document.getElementById('nuevo-anio-'+sufijo);
+  const inputImp = document.getElementById('nuevo-imp-'+sufijo);
+  const inputNota = document.getElementById('nuevo-nota-'+sufijo);
+  if (inputAnio) inputAnio.value = anio;
+  if (inputImp) inputImp.value = valor.toString().replace('.',',');
+  if (inputNota) inputNota.value = nota || '';
+  if (inputAnio) { inputAnio.scrollIntoView({behavior:'smooth', block:'center'}); inputAnio.focus(); }
 };
 
 window.toggleListaAnios = (contId, btn) => {
