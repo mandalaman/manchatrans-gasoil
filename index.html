@@ -4845,7 +4845,7 @@ function renderSegurosVehiculos() {
       <div id="seg-veh-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
           <div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>
-          <div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>
+          ${esVehiculoCard?`<div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>`:''}
           <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
           <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
