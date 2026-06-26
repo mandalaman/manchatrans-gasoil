@@ -906,6 +906,16 @@ input[type="number"] { -moz-appearance: textfield; }
         </div>
 
         <div id="seg-veh-alertas"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-notas-seg-veh" style="margin-bottom:0.75rem;width:100%;font-size:13px;">📝 Notas generales</button>
+        <div id="notas-seg-veh-wrapper" style="display:none;margin-bottom:1.25rem;">
+          <div class="refuel-card">
+            <textarea class="form-input" id="notas-seg-veh-textarea" placeholder="Ej: teléfonos de aseguradoras, contactos de siniestros, cualquier apunte general..." style="min-height:120px;"></textarea>
+            <button class="btn btn-primary" id="btn-guardar-notas-seg-veh" style="margin-top:0.5rem;width:100%;">💾 Guardar notas</button>
+            <div id="notas-seg-veh-alert" class="alert" style="margin-top:0.5rem;"></div>
+          </div>
+        </div>
+
         <div class="section-title" id="seg-veh-list-titulo">Vehículos asegurados</div>
         <input class="form-input" type="text" id="seg-veh-buscador" placeholder="🔍 Buscar por matrícula..." style="margin-bottom:0.75rem;">
         <div class="two-col" style="margin-bottom:0.75rem;">
@@ -946,6 +956,15 @@ input[type="number"] { -moz-appearance: textfield; }
         </div>
 
         <div id="seg-pol-alertas"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-notas-seg-pol" style="margin-bottom:0.75rem;width:100%;font-size:13px;">📝 Notas generales</button>
+        <div id="notas-seg-pol-wrapper" style="display:none;margin-bottom:1.25rem;">
+          <div class="refuel-card">
+            <textarea class="form-input" id="notas-seg-pol-textarea" placeholder="Ej: teléfonos de aseguradoras, contactos de siniestros, cualquier apunte general..." style="min-height:120px;"></textarea>
+            <button class="btn btn-primary" id="btn-guardar-notas-seg-pol" style="margin-top:0.5rem;width:100%;">💾 Guardar notas</button>
+            <div id="notas-seg-pol-alert" class="alert" style="margin-top:0.5rem;"></div>
+          </div>
+        </div>
         <div class="section-title">Pólizas registradas</div>
         <div class="two-col" style="margin-bottom:0.75rem;">
           <button class="btn btn-secondary" id="btn-pdf-seg-pol" style="font-size:13px;">📄 PDF</button>
@@ -1246,6 +1265,8 @@ let creditosFiltroAnio = new Date().getFullYear();
 let segurosVehiculosCache = [];
 let segurosPolizasCache = [];
 let segurosElementosExtraCache = [];
+let segurosNotasVehCache = '';
+let segurosNotasPolCache = '';
 let segVehFichasAbiertas = new Set();
 let segVehBusqueda = '';
 let segVehFiltroTipo = 'vehiculo';
@@ -1419,6 +1440,12 @@ async function initApp() {
     const segExtraDoc = await getDocs(query(collection(dbFleet, 'segurosConfig')));
     const segExtraFound = segExtraDoc.docs.find(d => d.id === 'elementosExtra');
     segurosElementosExtraCache = segExtraFound ? (segExtraFound.data().items||[]) : [];
+
+    // Cargar notas generales de Vehículos/Carretillas y de Pólizas
+    const segNotasVehFound = segExtraDoc.docs.find(d => d.id === 'notasVehiculos');
+    segurosNotasVehCache = segNotasVehFound ? (segNotasVehFound.data().texto||'') : '';
+    const segNotasPolFound = segExtraDoc.docs.find(d => d.id === 'notasPolizas');
+    segurosNotasPolCache = segNotasPolFound ? (segNotasPolFound.data().texto||'') : '';
 
     // Cargar limpieza de vehículos (Fleet)
     const lvSnap = await getDocs(query(collection(dbFleet, 'limpiezaVehiculos'), orderBy('fecha', 'desc')));
@@ -1642,6 +1669,32 @@ async function initApp() {
     }
   });
   document.getElementById('btn-guardar-seg-extra').addEventListener('click', guardarSegurosElementosExtra);
+  document.getElementById('btn-toggle-notas-seg-veh').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('notas-seg-veh-wrapper');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; document.getElementById('notas-seg-veh-textarea').value = segurosNotasVehCache; }
+    else { wrapper.style.display = 'none'; }
+  });
+  document.getElementById('btn-guardar-notas-seg-veh').addEventListener('click', async () => {
+    const al = document.getElementById('notas-seg-veh-alert');
+    const texto = document.getElementById('notas-seg-veh-textarea').value;
+    try {
+      await setDoc(doc(dbFleet,'segurosConfig','notasVehiculos'), { texto });
+      showAlert(al, '✓ Notas guardadas', false);
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+  document.getElementById('btn-toggle-notas-seg-pol').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('notas-seg-pol-wrapper');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; document.getElementById('notas-seg-pol-textarea').value = segurosNotasPolCache; }
+    else { wrapper.style.display = 'none'; }
+  });
+  document.getElementById('btn-guardar-notas-seg-pol').addEventListener('click', async () => {
+    const al = document.getElementById('notas-seg-pol-alert');
+    const texto = document.getElementById('notas-seg-pol-textarea').value;
+    try {
+      await setDoc(doc(dbFleet,'segurosConfig','notasPolizas'), { texto });
+      showAlert(al, '✓ Notas guardadas', false);
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
   document.getElementById('btn-toggle-baja-seg-veh').addEventListener('click', ()=>{
     const wrapper = document.getElementById('seg-veh-baja-wrapper');
     const btn = document.getElementById('btn-toggle-baja-seg-veh');
@@ -1923,6 +1976,14 @@ function activarListenersTiempoReal() {
   onSnapshot(doc(dbFleet, 'segurosConfig', 'elementosExtra'), (snap) => {
     segurosElementosExtraCache = snap.exists() ? (snap.data().items||[]) : [];
     if (currentUser && currentUser.isAdmin && currentModule==='seguros') populateSegurosSelects();
+  });
+
+  // Notas generales de Vehículos/Carretillas y de Pólizas (Seguros)
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'notasVehiculos'), (snap) => {
+    segurosNotasVehCache = snap.exists() ? (snap.data().texto||'') : '';
+  });
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'notasPolizas'), (snap) => {
+    segurosNotasPolCache = snap.exists() ? (snap.data().texto||'') : '';
   });
 
   // Limpieza de vehículos (Flota)
@@ -8019,6 +8080,8 @@ async function descargarBackup() {
       segurosVehiculos: segurosVehiculosCache,
       segurosPolizas: segurosPolizasCache,
       segurosElementosExtra: segurosElementosExtraCache,
+      segurosNotasVehiculos: segurosNotasVehCache,
+      segurosNotasPolizas: segurosNotasPolCache,
       historialMantConductores: historialMantCondCache,
       ropaEmpleados: ropaEmpleadosCache,
       ropaHistorial: ropaHistorialCache,
@@ -8089,6 +8152,16 @@ window.importarBackup = async (file) => {
         await setDoc(doc(dbFleet,'segurosConfig','elementosExtra'), { items: fusion });
         resumen.push(`segurosElementosExtra: ${nuevos.length} restaurados, ${segurosElementosExtraCache.length} ya existían`);
       }
+    }
+    // Las notas generales solo se restauran si ahora mismo están vacías, para no
+    // sobreescribir algo que ya se hubiera escrito después de la copia.
+    if (backup.segurosNotasVehiculos && !segurosNotasVehCache) {
+      await setDoc(doc(dbFleet,'segurosConfig','notasVehiculos'), { texto: backup.segurosNotasVehiculos });
+      resumen.push('segurosNotasVehiculos: restauradas');
+    }
+    if (backup.segurosNotasPolizas && !segurosNotasPolCache) {
+      await setDoc(doc(dbFleet,'segurosConfig','notasPolizas'), { texto: backup.segurosNotasPolizas });
+      resumen.push('segurosNotasPolizas: restauradas');
     }
     for (const conf of BACKUP_COLECCIONES) {
       const items = backup[conf.key];
