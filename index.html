@@ -454,7 +454,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
           </label>
         </div>
-        <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
+        <div class="two-col">
+          <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
+          <button class="btn btn-ghost" id="btn-borrar-driver" type="button">🗑 Borrar</button>
+        </div>
       </div>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver empleados activos (<span id="driver-count">0</span>)</button>
@@ -498,7 +501,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <input type="checkbox" id="new-mat-flota" checked style="width:18px;height:18px;"> 🚛 Flota
           </label>
         </div>
-        <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
+        <div class="two-col">
+          <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
+          <button class="btn btn-ghost" id="btn-borrar-mat" type="button">🗑 Borrar</button>
+        </div>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-mat" style="margin-bottom:1rem;">📋 Ver vehículos activos (<span class="mat-count">0</span>)</button>
       <div id="mat-list-wrapper" style="display:none;">
@@ -552,7 +558,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <label class="form-label">Comentarios <span style="color:var(--danger)">*</span></label>
             <textarea class="form-input" id="hist-comentarios" placeholder="Describe el cambio o reparación realizada..."></textarea>
           </div>
+          <div class="two-col">
           <button class="btn btn-primary" id="btn-guardar-hist">Guardar registro</button>
+          <button class="btn btn-ghost" id="btn-borrar-hist" type="button">🗑 Borrar</button>
+        </div>
         </div>
         <div class="section-title">Historial de Cambio/Reparación</div>
         <button class="btn btn-secondary" id="btn-toggle-hist-cambios" style="margin-bottom:1rem;">📋 Ver historial de cambios</button>
@@ -648,7 +657,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <canvas id="firma-limpieza-veh-canvas" width="500" height="180" style="border:2px dashed var(--accent);border-radius:var(--radius-sm);background:#fff;touch-action:none;width:100%;max-width:500px;height:180px;display:block;margin:0 auto;"></canvas>
               <button type="button" class="btn-sm" id="btn-limpiar-firma-limpieza-veh" style="margin-top:0.5rem;display:block;margin-left:auto;margin-right:auto;">🧹 Borrar firma</button>
             </div>
-            <button class="btn btn-primary" id="btn-guardar-limpieza-veh">Guardar registro</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-limpieza-veh">Guardar registro</button>
+              <button class="btn btn-ghost" id="btn-borrar-limpieza-veh" type="button">🗑 Borrar</button>
+            </div>
           </div>
           <div class="section-title">Historial de limpieza de vehículos</div>
           <button class="btn btn-secondary" id="btn-toggle-hist-limpieza-veh" style="margin-bottom:1rem;">📋 Ver historial</button>
@@ -706,7 +718,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <canvas id="firma-limpieza-inst-canvas" width="500" height="180" style="border:2px dashed var(--accent);border-radius:var(--radius-sm);background:#fff;touch-action:none;width:100%;max-width:500px;height:180px;display:block;margin:0 auto;"></canvas>
               <button type="button" class="btn-sm" id="btn-limpiar-firma-limpieza-inst" style="margin-top:0.5rem;display:block;margin-left:auto;margin-right:auto;">🧹 Borrar firma</button>
             </div>
-            <button class="btn btn-primary" id="btn-guardar-limpieza-inst">Guardar registro</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-limpieza-inst">Guardar registro</button>
+              <button class="btn btn-ghost" id="btn-borrar-limpieza-inst" type="button">🗑 Borrar</button>
+            </div>
           </div>
           <div class="section-title">Historial de limpieza de instalaciones</div>
           <button class="btn btn-secondary" id="btn-toggle-hist-limpieza-inst" style="margin-bottom:1rem;">📋 Ver historial</button>
@@ -825,7 +840,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
               <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="curso-fecha-factura"></div>
             </div>
-            <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
+              <button class="btn btn-ghost" id="btn-borrar-curso" type="button">🗑 Borrar</button>
+            </div>
             <div id="curso-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
         </div>
@@ -901,7 +919,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <textarea class="form-input" id="seg-veh-comentarios" placeholder="Cualquier dato adicional (asistencia, franquicia, coberturas extra...)"></textarea>
             </div>
             <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe del seguro y el impuesto municipal se añaden año a año después de guardar: despliega la ficha del vehículo en la lista de abajo.</div>
-            <button class="btn btn-primary" id="btn-guardar-seg-veh">Guardar seguro de vehículo</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-seg-veh">Guardar seguro de vehículo</button>
+              <button class="btn btn-ghost" id="btn-borrar-seg-veh" type="button">🗑 Borrar</button>
+            </div>
             <div id="seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
         </div>
@@ -949,7 +970,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <textarea class="form-input" id="seg-pol-notas" placeholder="Cualquier anotación que necesites"></textarea>
             </div>
             <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe se añade año a año después de guardar: despliega la ficha de la póliza en la lista de abajo.</div>
-            <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
+              <button class="btn btn-ghost" id="btn-borrar-seg-pol" type="button">🗑 Borrar</button>
+            </div>
             <div id="seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
         </div>
@@ -1052,7 +1076,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <div><label class="form-label">Talla</label><div id="inv-talla-wrapper"><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div></div>
             <div><label class="form-label">Cantidad a añadir</label><input class="form-input" type="number" id="inv-cantidad" min="0" placeholder="Ej: 10"></div>
           </div>
-          <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
+          <div class="two-col">
+            <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
+            <button class="btn btn-ghost" id="btn-borrar-stock" type="button">🗑 Borrar</button>
+          </div>
         </div>
 
         <div id="inv-alertas-bajo"></div>
@@ -1553,6 +1580,7 @@ async function initApp() {
   document.getElementById('rtab-btn-pendientes').addEventListener('click', ()=>switchRopaTab('pendientes'));
   document.getElementById('rtab-btn-inventario').addEventListener('click', ()=>switchRopaTab('inventario'));
   document.getElementById('btn-add-stock').addEventListener('click', ()=>window.addStockRopa());
+  document.getElementById('btn-borrar-stock').addEventListener('click', limpiarFormularioStockRopa);
   populateInventarioSelect();
   document.getElementById('ropa-sel-empleado').addEventListener('change', (e)=>seleccionarEmpleadoRopa(e.target.value));
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
@@ -1568,6 +1596,7 @@ async function initApp() {
   document.getElementById('ftab-btn-historial').addEventListener('click', ()=>switchFleetTab('historial'));
   document.getElementById('ftab-btn-mantenimiento').addEventListener('click', ()=>switchFleetTab('mantenimiento'));
   document.getElementById('btn-guardar-hist').addEventListener('click', guardarHistorial);
+  document.getElementById('btn-borrar-hist').addEventListener('click', limpiarFormularioHistorial);
   document.getElementById('hist-filter-mat').addEventListener('change', (e)=>{ histFiltroMat=e.target.value; renderHistorial(); });
   document.getElementById('btn-toggle-hist-cambios').addEventListener('click', ()=>{
     const wrapper = document.getElementById('hist-cambios-wrapper');
@@ -1655,6 +1684,7 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Registrar curso'; }
   });
   document.getElementById('btn-guardar-curso').addEventListener('click', guardarCurso);
+  document.getElementById('btn-borrar-curso').addEventListener('click', limpiarFormularioCurso);
   document.getElementById('curso-nombre-select').addEventListener('change', (e)=>{
     document.getElementById('curso-nombre-otro').style.display = e.target.value==='Otros' ? 'block' : 'none';
   });
@@ -1672,6 +1702,7 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir seguro de vehículo'; }
   });
   document.getElementById('btn-guardar-seg-veh').addEventListener('click', guardarSeguroVehiculo);
+  document.getElementById('btn-borrar-seg-veh').addEventListener('click', limpiarFormularioSegVeh);
   document.getElementById('seg-veh-tipo').addEventListener('change', ()=>actualizarCamposSegunTipo('seg-veh'));
   document.getElementById('btn-toggle-add-seg-pol').addEventListener('click', ()=>{
     const wrapper = document.getElementById('add-seg-pol-wrapper');
@@ -1680,6 +1711,7 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir póliza'; }
   });
   document.getElementById('btn-guardar-seg-pol').addEventListener('click', guardarSeguroPoliza);
+  document.getElementById('btn-borrar-seg-pol').addEventListener('click', limpiarFormularioSegPol);
   document.getElementById('btn-pdf-seg-veh').addEventListener('click', exportarPdfSegurosVehiculos);
   document.getElementById('btn-excel-seg-veh').addEventListener('click', exportarExcelSegurosVehiculos);
   document.getElementById('btn-pdf-seg-pol').addEventListener('click', exportarPdfSegurosPolizas);
@@ -1741,8 +1773,10 @@ async function initApp() {
   document.getElementById('lim-subtab-btn-vehiculos').addEventListener('click', ()=>switchLimpiezaSubtab('vehiculos'));
   document.getElementById('lim-subtab-btn-instalaciones').addEventListener('click', ()=>switchLimpiezaSubtab('instalaciones'));
   document.getElementById('btn-guardar-limpieza-veh').addEventListener('click', guardarLimpiezaVehiculo);
+  document.getElementById('btn-borrar-limpieza-veh').addEventListener('click', limpiarFormularioLimpiezaVeh);
   document.getElementById('btn-borrar-fecha-limpieza-veh').addEventListener('click', ()=>{ document.getElementById('lim-veh-fecha').value=''; });
   document.getElementById('btn-guardar-limpieza-inst').addEventListener('click', guardarLimpiezaInstalacion);
+  document.getElementById('btn-borrar-limpieza-inst').addEventListener('click', limpiarFormularioLimpiezaInst);
   document.getElementById('btn-limpiar-firma-limpieza-veh').addEventListener('click', ()=>{ if(firmaLimpiezaVeh) firmaLimpiezaVeh.clear(); });
   document.getElementById('btn-limpiar-firma-limpieza-inst').addEventListener('click', ()=>{ if(firmaLimpiezaInst) firmaLimpiezaInst.clear(); });
   document.getElementById('hist-limpieza-veh-filter-mat').addEventListener('change', (e)=>{ limpiezaVehFiltroMat=e.target.value; renderHistorialLimpiezaVeh(); });
@@ -1787,6 +1821,7 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+  document.getElementById('btn-borrar-driver').addEventListener('click', limpiarFormularioEmpleado);
   document.getElementById('empleado-filter-categoria').addEventListener('change', (e)=>{ empleadoFiltroCategoria=e.target.value; renderDriverList(); });
   document.getElementById('empleado-filter-empresa').addEventListener('change', (e)=>{ empleadoFiltroEmpresa=e.target.value; renderDriverList(); });
   document.getElementById('btn-exportar-pdf-empleados').addEventListener('click', exportarPdfEmpleados);
@@ -1830,6 +1865,7 @@ async function initApp() {
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchGestionTab('vehiculos'));
   document.getElementById('atab-btn-backup').addEventListener('click', ()=>switchGestionTab('backup'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
+  document.getElementById('btn-borrar-mat').addEventListener('click', limpiarFormularioVehiculo);
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
   document.getElementById('btn-importar-backup').addEventListener('click', ()=>document.getElementById('input-importar-backup').click());
   document.getElementById('input-importar-backup').addEventListener('change', (e)=>{ if(e.target.files[0]) importarBackup(e.target.files[0]); });
@@ -3134,6 +3170,19 @@ async function guardarTallasParaEmpleado(code, categoria, prefix) {
   else ropaEmpleadosCache.push({id: docId, ...datos});
 }
 
+function limpiarFormularioEmpleado() {
+  document.getElementById('new-driver-name').value='';
+  document.getElementById('new-driver-code').value='';
+  document.getElementById('new-driver-dni').value='';
+  document.getElementById('new-driver-categoria').value='';
+  document.getElementById('new-driver-empresa').value='';
+  document.getElementById('new-driver-tel-particular').value='';
+  document.getElementById('new-driver-tel-empresa').value='';
+  document.getElementById('new-driver-extension').value='';
+  document.getElementById('new-driver-permiso-gasoil').checked=true;
+  document.getElementById('new-driver-limpieza').checked=false;
+}
+
 window.addDriver = async () => {
   const btnAdd = document.getElementById('btn-add-driver');
   if (btnAdd.disabled) return; // evita crear dos veces el mismo empleado por doble clic
@@ -3161,16 +3210,7 @@ window.addDriver = async () => {
     await setDoc(doc(db,'conductores',code),nuevo);
     // No tocamos driversCache a mano: el listener onSnapshot de conductores ya lo
     // actualiza solo. Si lo hacemos aquí también, el empleado aparece duplicado.
-    document.getElementById('new-driver-name').value='';
-    document.getElementById('new-driver-code').value='';
-    document.getElementById('new-driver-dni').value='';
-    document.getElementById('new-driver-categoria').value='';
-    document.getElementById('new-driver-empresa').value='';
-    document.getElementById('new-driver-tel-particular').value='';
-    document.getElementById('new-driver-tel-empresa').value='';
-    document.getElementById('new-driver-extension').value='';
-    document.getElementById('new-driver-permiso-gasoil').checked=true;
-    document.getElementById('new-driver-limpieza').checked=false;
+    limpiarFormularioEmpleado();
     renderDriverList();
     showAlert(al,`✓ Empleado "${name}" añadido`,false);
     document.getElementById('add-driver-wrapper').style.display = 'none';
@@ -3520,6 +3560,12 @@ function actualizarCachesVehiculos() {
   populateHistMantMatriculas();
 }
 
+function limpiarFormularioVehiculo() {
+  document.getElementById('new-mat').value='';
+  document.getElementById('new-mat-gasoil').checked = true;
+  document.getElementById('new-mat-flota').checked = true;
+}
+
 window.addMat = async () => {
   const btnAddMat = document.getElementById('btn-add-mat');
   if (btnAddMat.disabled) return; // evita crear el vehículo dos veces por doble clic
@@ -3536,9 +3582,7 @@ window.addMat = async () => {
     const nuevo = {matricula:mat, gasoil, flota, activo:true};
     await setDoc(doc(db,'vehiculos',mat),nuevo);
     // No tocamos vehiculosCache a mano: el onSnapshot de vehículos ya lo actualiza solo.
-    matInput.value='';
-    document.getElementById('new-mat-gasoil').checked = true;
-    document.getElementById('new-mat-flota').checked = true;
+    limpiarFormularioVehiculo();
     renderMatList();
     actualizarCachesVehiculos();
     showAlert(al,`✓ Vehículo "${mat}" añadido`,false);
@@ -3761,6 +3805,11 @@ function populateHistMatriculas() {
   if (selFilter) { selFilter.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selFilter.innerHTML+=`<option value="${m}">${m}</option>`; }); }
 }
 
+function limpiarFormularioHistorial() {
+  document.getElementById('hist-matricula').value='';
+  document.getElementById('hist-comentarios').value='';
+}
+
 async function guardarHistorial() {
   const mat = document.getElementById('hist-matricula').value;
   const comentarios = document.getElementById('hist-comentarios').value.trim();
@@ -3773,8 +3822,7 @@ async function guardarHistorial() {
     await addDoc(collection(dbFleet,'historial'), registro);
     // No tocamos historialCache a mano: el onSnapshot ya lo actualiza (si lo
     // hacemos también aquí, el registro se duplica en la lista).
-    document.getElementById('hist-matricula').value='';
-    document.getElementById('hist-comentarios').value='';
+    limpiarFormularioHistorial();
     showAlert(al,'✓ Registro guardado correctamente',false);
     renderHistorial();
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
@@ -4430,6 +4478,19 @@ async function guardarCreditoTotal() {
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
 }
 
+function limpiarFormularioCurso() {
+  document.getElementById('curso-sel-conductor').value='';
+  document.getElementById('curso-sel-empresa').value='';
+  document.getElementById('curso-centro').value='';
+  document.getElementById('curso-nombre-select').value='';
+  document.getElementById('curso-nombre-otro').value='';
+  document.getElementById('curso-nombre-otro').style.display='none';
+  document.getElementById('curso-fecha').value='';
+  document.getElementById('curso-importe').value='';
+  document.getElementById('curso-num-factura').value='';
+  document.getElementById('curso-fecha-factura').value='';
+}
+
 async function guardarCurso() {
   const al = document.getElementById('curso-alert');
   const conductorCode = document.getElementById('curso-sel-conductor').value;
@@ -4454,16 +4515,7 @@ async function guardarCurso() {
     const registro = { conductorCode, empresa, centro, curso, fechaCurso, importe, numFactura, fechaFactura };
     await addDoc(collection(dbFleet,'cursosFormacion'), registro);
     // No tocamos cursosFormacionCache a mano: el onSnapshot ya lo actualiza solo.
-    document.getElementById('curso-sel-conductor').value='';
-    document.getElementById('curso-sel-empresa').value='';
-    document.getElementById('curso-centro').value='';
-    document.getElementById('curso-nombre-select').value='';
-    document.getElementById('curso-nombre-otro').value='';
-    document.getElementById('curso-nombre-otro').style.display='none';
-    document.getElementById('curso-fecha').value='';
-    document.getElementById('curso-importe').value='';
-    document.getElementById('curso-num-factura').value='';
-    document.getElementById('curso-fecha-factura').value='';
+    limpiarFormularioCurso();
     showAlert(al,'✓ Curso registrado correctamente',false);
     document.getElementById('add-curso-wrapper').style.display = 'none';
     document.getElementById('btn-toggle-add-curso').textContent = '➕ Registrar curso';
@@ -4799,6 +4851,12 @@ function updateSegurosBadge() {
   if (badge) badge.textContent = alertas>0 ? `🔴${alertas}` : '';
 }
 
+function limpiarFormularioSegVeh() {
+  ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('seg-veh-lunas').checked = false;
+  document.getElementById('seg-veh-comentarios').value = '';
+}
+
 async function guardarSeguroVehiculo() {
   const al = document.getElementById('seg-veh-alert');
   const matricula = document.getElementById('seg-veh-matricula').value.trim().toUpperCase();
@@ -4845,9 +4903,7 @@ async function guardarSeguroVehiculo() {
     };
     await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
     // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
-    ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
-    document.getElementById('seg-veh-lunas').checked = false;
-    document.getElementById('seg-veh-comentarios').value = '';
+    limpiarFormularioSegVeh();
     showAlert(al, existente ? '✓ Seguro actualizado correctamente' : '✓ Seguro guardado correctamente', false);
     document.getElementById('add-seg-veh-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-veh').textContent='➕ Añadir seguro de vehículo';
@@ -5270,6 +5326,10 @@ window.eliminarSeguroVehiculo = async (id) => {
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
 
+function limpiarFormularioSegPol() {
+  ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
+}
+
 async function guardarSeguroPoliza() {
   const al = document.getElementById('seg-pol-alert');
   const modelo = document.getElementById('seg-pol-modelo').value.trim();
@@ -5289,7 +5349,7 @@ async function guardarSeguroPoliza() {
     const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, notas, importePorAnio: {}, activo: true };
     const ref = await addDoc(collection(dbFleet,'segurosPolizas'), registro);
     // No tocamos segurosPolizasCache a mano: el onSnapshot ya lo actualiza solo.
-    ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
+    limpiarFormularioSegPol();
     showAlert(al,'✓ Póliza guardada correctamente',false);
     document.getElementById('add-seg-pol-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-pol').textContent='➕ Añadir póliza';
@@ -5962,6 +6022,16 @@ function initFirmaLimpiezaInstSiNecesario() {
   if (!firmaLimpiezaInst) firmaLimpiezaInst = crearFirmaTactil('firma-limpieza-inst-canvas');
 }
 
+function limpiarFormularioLimpiezaVeh() {
+  document.getElementById('lim-veh-matricula').value='';
+  document.getElementById('lim-veh-operario').value='';
+  document.getElementById('lim-veh-interior').checked=false;
+  document.getElementById('lim-veh-exterior').checked=false;
+  document.getElementById('lim-veh-desinfeccion').checked=false;
+  document.getElementById('lim-veh-obs').value='LEJIA DILUCION 1:50';
+  if (firmaLimpiezaVeh) firmaLimpiezaVeh.clear();
+}
+
 async function guardarLimpiezaVehiculo() {
   const al = document.getElementById('lim-veh-alert');
   const fecha = document.getElementById('lim-veh-fecha').value;
@@ -5991,16 +6061,18 @@ async function guardarLimpiezaVehiculo() {
     // No tocamos limpiezaVehCache a mano: el listener onSnapshot de arriba ya
     // añade este registro automáticamente. Si lo añadiéramos aquí también,
     // se duplicaría en la lista (esto es lo que estaba pasando).
-    document.getElementById('lim-veh-matricula').value='';
-    document.getElementById('lim-veh-operario').value='';
-    document.getElementById('lim-veh-interior').checked=false;
-    document.getElementById('lim-veh-exterior').checked=false;
-    document.getElementById('lim-veh-desinfeccion').checked=false;
-    document.getElementById('lim-veh-obs').value='LEJIA DILUCION 1:50';
-    firmaLimpiezaVeh.clear();
+    limpiarFormularioLimpiezaVeh();
     showAlert(al,'✓ Registro guardado correctamente',false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = 'Guardar registro';
+}
+
+function limpiarFormularioLimpiezaInst() {
+  document.getElementById('lim-inst-area').value='';
+  document.getElementById('lim-inst-operario').value='';
+  document.getElementById('lim-inst-material').value='';
+  document.getElementById('lim-inst-obs').value='';
+  if (firmaLimpiezaInst) firmaLimpiezaInst.clear();
 }
 
 async function guardarLimpiezaInstalacion() {
@@ -6027,11 +6099,7 @@ async function guardarLimpiezaInstalacion() {
   try {
     await addDoc(collection(dbFleet,'limpiezaInstalaciones'), registro);
     // Igual que en vehículos: no tocamos la caché a mano, el onSnapshot ya la actualiza.
-    document.getElementById('lim-inst-area').value='';
-    document.getElementById('lim-inst-operario').value='';
-    document.getElementById('lim-inst-material').value='';
-    document.getElementById('lim-inst-obs').value='';
-    firmaLimpiezaInst.clear();
+    limpiarFormularioLimpiezaInst();
     showAlert(al,'✓ Registro guardado correctamente',false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = 'Guardar registro';
@@ -7001,6 +7069,11 @@ function marcarArticuloSeleccionadoInventario() {
   });
 }
 
+function limpiarFormularioStockRopa() {
+  document.getElementById('inv-talla').value = '';
+  document.getElementById('inv-cantidad').value = '';
+}
+
 window.addStockRopa = async () => {
   const articuloId = inventarioArticuloSeleccionado;
   const talla = document.getElementById('inv-talla').value.trim();
@@ -7018,8 +7091,7 @@ window.addStockRopa = async () => {
     // ya se encarga de mantenerlo sincronizado en tiempo real con Firestore.
     // Si lo modificamos aquí también, se duplica el artículo en la lista.
     await setDoc(doc(db,'ropaInventario',key), {articuloId, talla, cantidad:nuevaCantidad});
-    document.getElementById('inv-talla').value = '';
-    document.getElementById('inv-cantidad').value = '';
+    limpiarFormularioStockRopa();
     renderInventarioRopa();
     showAlert(al, `✓ Stock actualizado`, false);
   } catch(e) { showAlert(al,'Error: '+e.message,true); }
