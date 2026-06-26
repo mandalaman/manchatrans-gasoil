@@ -896,7 +896,7 @@ input[type="number"] { -moz-appearance: textfield; }
               </label>
             </div>
             <div class="form-group">
-              <label class="form-label">Comentarios</label>
+              <label class="form-label">Notas</label>
               <textarea class="form-input" id="seg-veh-comentarios" placeholder="Cualquier dato adicional (asistencia, franquicia, coberturas extra...)"></textarea>
             </div>
             <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe del seguro y el impuesto municipal se añaden año a año después de guardar: despliega la ficha del vehículo en la lista de abajo.</div>
@@ -4790,7 +4790,7 @@ function renderSegurosVehiculos() {
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
           <div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>
           <div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>
-          ${v.comentarios?`<div style="margin-top:6px;"><strong>Comentarios:</strong> ${v.comentarios}</div>`:''}
+          ${v.comentarios?`<div style="margin-top:6px;"><strong>Notas:</strong> ${v.comentarios}</div>`:''}
         </div>
 
         <button class="btn-sm" data-texto="💶 Ver historial del importe del seguro" onclick="toggleSeccionAnios('seg-anios-seg-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">💶 Ver historial del importe del seguro</button>
@@ -5043,7 +5043,7 @@ window.editarSeguroVehiculo = (id) => {
         </label>
       </div>
       <div class="form-group">
-        <label class="form-label">Comentarios</label>
+        <label class="form-label">Notas</label>
         <textarea class="form-input" id="edit-seg-veh-comentarios">${v.comentarios||''}</textarea>
       </div>
       <div style="display:flex;gap:0.5rem;">
@@ -5420,7 +5420,7 @@ window.exportarExcelSegurosVehiculos = () => {
 };
 
 function _generarExcelSegurosVehiculos() {
-  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Comentarios'];
+  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Notas'];
   const rows = [header];
   segurosVehiculosCache.filter(v=>(v.tipo||'vehiculo')===segVehFiltroTipo).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
     const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
