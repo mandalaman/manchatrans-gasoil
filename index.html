@@ -905,6 +905,11 @@ input[type="number"] { -moz-appearance: textfield; }
           <button class="btn btn-secondary" id="btn-excel-seg-veh" style="font-size:13px;">📊 Excel</button>
         </div>
         <div id="seg-veh-list"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-baja-seg-veh" style="margin-top:1.25rem;font-size:13px;">👤 Ver seguros de baja (<span id="seg-veh-baja-count">0</span>)</button>
+        <div id="seg-veh-baja-wrapper" style="display:none;margin-top:0.75rem;">
+          <div id="seg-veh-baja-list"></div>
+        </div>
       </div>
 
       <!-- PÓLIZAS -->
@@ -1581,6 +1586,13 @@ async function initApp() {
     }
   });
   document.getElementById('btn-guardar-seg-extra').addEventListener('click', guardarSegurosElementosExtra);
+  document.getElementById('btn-toggle-baja-seg-veh').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-veh-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-seg-veh');
+    const count = segurosVehiculosCache.filter(v=>v.activo===false).length;
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.innerHTML = `👤 Ocultar seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; renderSegurosVehiculosBaja(); }
+    else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; }
+  });
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -1833,7 +1845,10 @@ function activarListenersTiempoReal() {
     segurosVehiculosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (currentUser && currentUser.isAdmin) {
       updateSegurosBadge();
-      if (currentModule==='seguros') renderSegurosVehiculos();
+      if (currentModule==='seguros') {
+        renderSegurosVehiculos();
+        if (document.getElementById('seg-veh-baja-wrapper').style.display!=='none') renderSegurosVehiculosBaja();
+      }
     }
   });
 
@@ -4479,7 +4494,7 @@ function populateSegurosSelects() {
 function updateSegurosBadge() {
   const hoy = new Date();
   let alertas = 0;
-  segurosVehiculosCache.forEach(v=>{ if(v.fechaCaducidad){ const dias=Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
+  segurosVehiculosCache.forEach(v=>{ if(v.activo!==false && v.fechaCaducidad){ const dias=Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
   segurosPolizasCache.forEach(p=>{ if(p.fechaCaducidad){ const dias=Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
   const badge = document.getElementById('home-badge-seguros');
   if (badge) badge.textContent = alertas>0 ? `🔴${alertas}` : '';
@@ -4516,7 +4531,8 @@ async function guardarSeguroVehiculo() {
     const datos = {
       matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
       fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, ambito, empresa, conductorCode, seguroLunas, comentarios,
-      impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {}
+      impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {},
+      activo: existente ? (existente.activo!==false) : true
     };
     await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
     // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
@@ -4550,8 +4566,9 @@ function renderSegurosVehiculos() {
   const alertasEl = document.getElementById('seg-veh-alertas');
   if (!list) return;
   const hoy = new Date();
+  const activos = segurosVehiculosCache.filter(v=>v.activo!==false);
   let alertasHtml = '';
-  segurosVehiculosCache.forEach(v=>{
+  activos.forEach(v=>{
     if (!v.fechaCaducidad) return;
     const dias = Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24));
     if (dias<=DIAS_AVISO_SEGUROS) {
@@ -4561,10 +4578,11 @@ function renderSegurosVehiculos() {
     }
   });
   alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
+  document.getElementById('seg-veh-baja-count').textContent = segurosVehiculosCache.filter(v=>v.activo===false).length;
 
-  if (!segurosVehiculosCache.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de vehículos registrados</div>'; return; }
+  if (!activos.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de vehículos activos registrados</div>'; return; }
 
-  const ordenados = [...segurosVehiculosCache].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+  const ordenados = [...activos].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
   list.innerHTML = ordenados.map(v=>{
     const safeId = v.id.replace(/[^a-zA-Z0-9]/g,'_');
     const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
@@ -4608,12 +4626,48 @@ function renderSegurosVehiculos() {
 
         <div style="display:flex;gap:0.5rem;">
           <button class="btn-sm" style="flex:1;" onclick="editarSeguroVehiculo('${v.id}')">✏️ Editar</button>
-          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarSeguroVehiculo('${v.id}')">🗑 Eliminar</button>
+          <button class="btn-del" style="flex:1;" onclick="bajaSeguroVehiculo('${v.id}')">📤 Dar de baja</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
+
+function renderSegurosVehiculosBaja() {
+  const list = document.getElementById('seg-veh-baja-list');
+  if (!list) return;
+  const bajas = segurosVehiculosCache.filter(v=>v.activo===false).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+  if (!bajas.length) { list.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay seguros de baja</div>'; return; }
+  list.innerHTML = bajas.map(v=>`
+    <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">🚗 ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="reactivarSeguroVehiculo('${v.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
+        <button class="btn-del" onclick="eliminarSeguroVehiculo('${v.id}')">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+window.bajaSeguroVehiculo = async (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  if (!v) return;
+  if (!(await confirmarAccion(`¿Dar de baja el seguro de "${v.matricula}"? No se borra nada, solo se oculta de la lista activa y puedes reactivarlo cuando quieras.`))) return;
+  try {
+    await setDoc(doc(dbFleet,'segurosVehiculos',id), { ...v, activo: false });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarSeguroVehiculo = async (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  if (!v) return;
+  try {
+    await setDoc(doc(dbFleet,'segurosVehiculos',id), { ...v, activo: true });
+    renderSegurosVehiculosBaja();
+  } catch(e) { alert('Error: '+e.message); }
+};
 
 window.toggleSeguroVeh = (safeId) => {
   const body = document.getElementById('seg-veh-body-'+safeId);
@@ -4736,11 +4790,15 @@ window.editarSeguroVehiculo = (id) => {
 };
 
 window.eliminarSeguroVehiculo = async (id) => {
-  if (!(await confirmarAccion(`¿Eliminar el seguro de "${id}"? Esta acción no se puede deshacer.`))) return;
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  const nombreVisible = v ? v.matricula : id;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará el seguro de "${nombreVisible}" PARA SIEMPRE, incluido el impuesto municipal guardado.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(dbFleet,'segurosVehiculos',id));
-    segurosVehiculosCache = segurosVehiculosCache.filter(v=>v.id!==id);
+    segurosVehiculosCache = segurosVehiculosCache.filter(x=>x.id!==id);
     renderSegurosVehiculos();
+    renderSegurosVehiculosBaja();
     updateSegurosBadge();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
