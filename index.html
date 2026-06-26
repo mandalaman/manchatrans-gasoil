@@ -841,6 +841,7 @@ input[type="number"] { -moz-appearance: textfield; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="seg-tab-btn-vehiculos">🚗 Vehículos</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-polizas">📄 Pólizas</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-comparativa">📊 Comparativa</button>
       </div>
 
       <!-- SEGUROS DE VEHÍCULOS -->
@@ -870,10 +871,7 @@ input[type="number"] { -moz-appearance: textfield; }
               <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" type="text" id="seg-veh-numpoliza"></div>
               <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-veh-fechacad"></div>
             </div>
-            <div class="two-col">
-              <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="seg-veh-importe" placeholder="Ej: 1.438,76"></div>
-            </div>
+            <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
             <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
             <div class="two-col">
               <div class="form-group"><label class="form-label">Empresa</label>
@@ -892,7 +890,7 @@ input[type="number"] { -moz-appearance: textfield; }
               <label class="form-label">Comentarios</label>
               <textarea class="form-input" id="seg-veh-comentarios" placeholder="Cualquier dato adicional (asistencia, franquicia, coberturas extra...)"></textarea>
             </div>
-            <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El impuesto municipal por años se añade después de guardar: despliega la ficha del vehículo en la lista de abajo.</div>
+            <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe del seguro y el impuesto municipal se añaden año a año después de guardar: despliega la ficha del vehículo en la lista de abajo.</div>
             <button class="btn btn-primary" id="btn-guardar-seg-veh">Guardar seguro de vehículo</button>
             <div id="seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
@@ -900,6 +898,7 @@ input[type="number"] { -moz-appearance: textfield; }
 
         <div id="seg-veh-alertas"></div>
         <div class="section-title">Vehículos asegurados</div>
+        <input class="form-input" type="text" id="seg-veh-buscador" placeholder="🔍 Buscar por matrícula..." style="margin-bottom:0.75rem;">
         <div class="two-col" style="margin-bottom:0.75rem;">
           <button class="btn btn-secondary" id="btn-pdf-seg-veh" style="font-size:13px;">📄 PDF</button>
           <button class="btn btn-secondary" id="btn-excel-seg-veh" style="font-size:13px;">📊 Excel</button>
@@ -940,6 +939,13 @@ input[type="number"] { -moz-appearance: textfield; }
           <button class="btn btn-secondary" id="btn-excel-seg-pol" style="font-size:13px;">📊 Excel</button>
         </div>
         <div id="seg-pol-list"></div>
+      </div>
+
+      <!-- COMPARATIVA ANUAL -->
+      <div id="seg-tab-comparativa" class="tab-pane">
+        <div class="section-title">Comparativa de gastos por año</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Suma de todos los vehículos activos, por año. La diferencia se calcula frente al año anterior con datos.</div>
+        <div id="seg-comparativa-content"></div>
       </div>
     </div>
     <!-- ═══════════ FIN MÓDULO SEGUROS ═══════════ -->
@@ -1228,6 +1234,7 @@ let segurosVehiculosCache = [];
 let segurosPolizasCache = [];
 let segurosElementosExtraCache = [];
 let segVehFichasAbiertas = new Set();
+let segVehBusqueda = '';
 const DIAS_AVISO_SEGUROS = 30;
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
@@ -1558,6 +1565,7 @@ async function initApp() {
   // Seguros (módulo independiente)
   document.getElementById('seg-tab-btn-vehiculos').addEventListener('click', ()=>switchSegurosTab('vehiculos'));
   document.getElementById('seg-tab-btn-polizas').addEventListener('click', ()=>switchSegurosTab('polizas'));
+  document.getElementById('seg-tab-btn-comparativa').addEventListener('click', ()=>switchSegurosTab('comparativa'));
   document.getElementById('btn-toggle-add-seg-veh').addEventListener('click', ()=>{
     const wrapper = document.getElementById('add-seg-veh-wrapper');
     const btn = document.getElementById('btn-toggle-add-seg-veh');
@@ -1593,6 +1601,7 @@ async function initApp() {
     if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.innerHTML = `👤 Ocultar seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; renderSegurosVehiculosBaja(); }
     else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; }
   });
+  document.getElementById('seg-veh-buscador').addEventListener('input', (e)=>{ segVehBusqueda = e.target.value.trim().toLowerCase(); renderSegurosVehiculos(); });
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -1848,6 +1857,7 @@ function activarListenersTiempoReal() {
       if (currentModule==='seguros') {
         renderSegurosVehiculos();
         if (document.getElementById('seg-veh-baja-wrapper').style.display!=='none') renderSegurosVehiculosBaja();
+        if (document.getElementById('seg-tab-comparativa').classList.contains('active')) renderComparativaSeguros();
       }
     }
   });
@@ -4465,11 +4475,12 @@ async function guardarSegurosElementosExtra() {
 function switchSegurosTab(tab) {
   document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('seg-tab-'+tab).classList.add('active');
-  ['vehiculos','polizas'].forEach(t=>{
+  ['vehiculos','polizas','comparativa'].forEach(t=>{
     document.getElementById('seg-tab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='vehiculos') renderSegurosVehiculos();
   if (tab==='polizas') renderSegurosPolizas();
+  if (tab==='comparativa') renderComparativaSeguros();
 }
 
 function populateSegurosSelects() {
@@ -4491,6 +4502,63 @@ function populateSegurosSelects() {
   }
 }
 
+function renderComparativaSeguros() {
+  const cont = document.getElementById('seg-comparativa-content');
+  if (!cont) return;
+  const activos = segurosVehiculosCache.filter(v=>v.activo!==false);
+
+  const tabla = (campo, titulo, icono) => {
+    const aniosSet = new Set();
+    activos.forEach(v=>Object.keys(v[campo]||{}).forEach(a=>aniosSet.add(a)));
+    const anios = [...aniosSet].sort();
+    if (!anios.length) return `<div class="refuel-card" style="margin-bottom:1.25rem;"><div class="section-title">${icono} ${titulo}</div><div style="font-size:13px;color:var(--text-muted);">Todavía no hay ningún año registrado.</div></div>`;
+
+    const conDatos = activos.filter(v=>Object.keys(v[campo]||{}).length>0).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    const totalesPorAnio = {};
+    anios.forEach(a=>totalesPorAnio[a]=0);
+    conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=parseFloat(v[campo][a]); }); });
+
+    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;overflow-x:auto;">
+      <div class="section-title">${icono} ${titulo}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap;">
+        <tr style="background:var(--navy-light);">
+          <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:var(--navy-light);">Vehículo</th>
+          ${anios.map(a=>`<th style="padding:6px 10px;text-align:right;">${a}</th>`).join('')}
+        </tr>`;
+    conDatos.forEach(v=>{
+      html += `<tr style="border-bottom:1px solid var(--card-border);">
+        <td style="padding:6px 8px;font-weight:600;">${v.matricula}</td>
+        ${anios.map(a=>{
+          const val = v[campo] && v[campo][a]!=null ? parseFloat(v[campo][a]) : null;
+          return `<td style="padding:6px 10px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
+        }).join('')}
+      </tr>`;
+    });
+    html += `<tr style="font-weight:700;background:var(--navy-light);">
+      <td style="padding:6px 8px;position:sticky;left:0;background:var(--navy-light);">TOTAL</td>
+      ${anios.map((a,i)=>{
+        const valor = totalesPorAnio[a];
+        let diffHtml = '';
+        if (i>0) {
+          const anterior = totalesPorAnio[anios[i-1]];
+          if (anterior>0) {
+            const diff = valor-anterior;
+            const pct = diff/anterior*100;
+            const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
+            diffHtml = `<div style="font-size:10.5px;color:${color};font-weight:600;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</div>`;
+          }
+        }
+        return `<td style="padding:6px 10px;text-align:right;">${valor.toFixed(2)} €${diffHtml}</td>`;
+      }).join('')}
+    </tr>
+      </table>
+    </div>`;
+    return html;
+  };
+
+  cont.innerHTML = tabla('importePorAnio', 'Seguros', '💶') + tabla('impuestoMunicipal', 'Impuesto municipal', '📅');
+}
+
 function updateSegurosBadge() {
   const hoy = new Date();
   let alertas = 0;
@@ -4510,7 +4578,6 @@ async function guardarSeguroVehiculo() {
   const numeroPoliza = document.getElementById('seg-veh-numpoliza').value.trim();
   const fechaCaducidad = document.getElementById('seg-veh-fechacad').value;
   const corredor = document.getElementById('seg-veh-corredor').value.trim();
-  const importeVal = parseImporteEuropeo(document.getElementById('seg-veh-importe').value);
   const ambito = document.getElementById('seg-veh-ambito').value.trim();
   const empresa = document.getElementById('seg-veh-empresa').value;
   const conductorCode = document.getElementById('seg-veh-conductor').value;
@@ -4530,13 +4597,14 @@ async function guardarSeguroVehiculo() {
     const existente = segurosVehiculosCache.find(v=>v.id===docId);
     const datos = {
       matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
-      fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, ambito, empresa, conductorCode, seguroLunas, comentarios,
+      fechaCaducidad, corredor, ambito, empresa, conductorCode, seguroLunas, comentarios,
       impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {},
+      importePorAnio: existente ? (existente.importePorAnio||{}) : {},
       activo: existente ? (existente.activo!==false) : true
     };
     await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
     // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
-    ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-importe','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
+    ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
     document.getElementById('seg-veh-lunas').checked = false;
     document.getElementById('seg-veh-comentarios').value = '';
     showAlert(al, existente ? '✓ Seguro actualizado correctamente' : '✓ Seguro guardado correctamente', false);
@@ -4582,13 +4650,14 @@ function renderSegurosVehiculos() {
 
   if (!activos.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de vehículos activos registrados</div>'; return; }
 
-  const ordenados = [...activos].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+  const filtrados = segVehBusqueda ? activos.filter(v=>(v.matricula||'').toLowerCase().includes(segVehBusqueda)) : activos;
+  if (segVehBusqueda && !filtrados.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>Ningún vehículo coincide con esa búsqueda</div>'; return; }
+  const ordenados = [...filtrados].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
   list.innerHTML = ordenados.map(v=>{
     const safeId = v.id.replace(/[^a-zA-Z0-9]/g,'_');
     const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
     let color = 'var(--text-muted)';
     if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
-    const aniosImpuesto = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>b[0]-a[0]);
     const abierta = segVehFichasAbiertas.has(safeId);
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
@@ -4604,7 +4673,7 @@ function renderSegurosVehiculos() {
           <div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>
           <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
-          <div><strong>Importe:</strong> ${v.importe!=null?v.importe.toFixed(2)+' €':'—'}</div>
+          <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
           <div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
           <div><strong>Conductor:</strong> ${v.conductorCode?nombreConductorPorCodigo(v.conductorCode):'—'}</div>
@@ -4612,12 +4681,16 @@ function renderSegurosVehiculos() {
           ${v.comentarios?`<div style="margin-top:6px;"><strong>Comentarios:</strong> ${v.comentarios}</div>`:''}
         </div>
 
+        <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">💶 Importe del seguro por años</div>
+        ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio')}
+        <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:1rem;">
+          <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+          <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+          <button class="btn-sm" onclick="anadirImporteSeguroAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+        </div>
+
         <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">📅 Impuesto municipal por años</div>
-        ${aniosImpuesto.length ? aniosImpuesto.map(([anio,imp])=>`
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;">
-            <span>${anio}: ${parseFloat(imp).toFixed(2)} €</span>
-            <button class="btn-sm btn-sm-danger" onclick="eliminarImpuestoAnio('${v.id}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
-          </div>`).join('') : '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>'}
+        ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio')}
         <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:0.75rem;">
           <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
           <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
@@ -4698,6 +4771,57 @@ window.eliminarImpuestoAnio = async (matricula, anio) => {
   } catch(e) { alert('Error: '+e.message); }
 };
 
+window.anadirImporteSeguroAnio = async (matricula, safeId) => {
+  const anio = document.getElementById('nuevo-anio-seg-'+safeId).value.trim();
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-seg-'+safeId).value);
+  if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  try {
+    const nuevoMapa = { ...(v.importePorAnio||{}), [anio]: importe };
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.eliminarImporteSeguroAnio = async (matricula, anio) => {
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  const nuevoMapa = { ...(v.importePorAnio||{}) };
+  delete nuevoMapa[anio];
+  try {
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+// Devuelve el valor del año más reciente de un mapa {año: importe}, o null si está vacío.
+function ultimoValorAnio(mapa) {
+  if (!mapa) return null;
+  const anios = Object.keys(mapa).sort((a,b)=>b-a);
+  return anios.length ? parseFloat(mapa[anios[0]]) : null;
+}
+
+// Pinta la lista de años de un mapa {año: importe}, con la diferencia en € y % respecto
+// al año anterior justo al lado de cada valor (el más reciente arriba).
+function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar) {
+  const entradas = Object.entries(mapa||{}).map(([a,v])=>[a, parseFloat(v)]).sort((a,b)=>a[0]-b[0]);
+  if (!entradas.length) return '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>';
+  return entradas.slice().reverse().map(([anio,valor])=>{
+    const idx = entradas.findIndex(e=>e[0]===anio);
+    let diffHtml = '';
+    if (idx > 0) {
+      const anterior = entradas[idx-1][1];
+      const diff = valor - anterior;
+      const pct = anterior !== 0 ? (diff/anterior*100) : null;
+      const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
+      diffHtml = `<span style="font-size:11px;color:${color};margin-left:6px;">(${diff>=0?'+':''}${diff.toFixed(2)}€${pct!=null?' / '+(pct>=0?'+':'')+pct.toFixed(1)+'%':''} vs ${entradas[idx-1][0]})</span>`;
+    }
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;">
+      <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
+      <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+    </div>`;
+  }).join('');
+}
+
 window.editarSeguroVehiculo = (id) => {
   const v = segurosVehiculosCache.find(x=>x.id===id);
   if (!v) return;
@@ -4723,10 +4847,7 @@ window.editarSeguroVehiculo = (id) => {
         <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" id="edit-seg-veh-numpoliza" value="${v.numeroPoliza||''}"></div>
         <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-veh-fechacad" value="${v.fechaCaducidad||''}"></div>
       </div>
-      <div class="two-col">
-        <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
-        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-seg-veh-importe" value="${v.importe!=null?v.importe.toLocaleString('es-ES'):''}"></div>
-      </div>
+      <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
       <div class="form-group"><label class="form-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
       <div class="two-col">
         <div class="form-group"><label class="form-label">Empresa</label>
@@ -4763,7 +4884,6 @@ window.editarSeguroVehiculo = (id) => {
     const al = document.getElementById('edit-seg-veh-alert');
     const fechaCaducidad = document.getElementById('edit-seg-veh-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
-    const importeVal = parseImporteEuropeo(document.getElementById('edit-seg-veh-importe').value);
     const kilosVal = document.getElementById('edit-seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
     const cambios = {
       ...v,
@@ -4774,7 +4894,6 @@ window.editarSeguroVehiculo = (id) => {
       numeroPoliza: document.getElementById('edit-seg-veh-numpoliza').value.trim(),
       fechaCaducidad,
       corredor: document.getElementById('edit-seg-veh-corredor').value.trim(),
-      importe: isNaN(importeVal)?null:importeVal,
       ambito: document.getElementById('edit-seg-veh-ambito').value.trim(),
       empresa: document.getElementById('edit-seg-veh-empresa').value,
       conductorCode: document.getElementById('edit-seg-veh-conductor').value,
@@ -5001,7 +5120,7 @@ window.exportarPdfSegurosVehiculos = async () => {
       const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
       page.drawText(v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
       page.drawText(recortar(v.empresa,130,8.5,fontReg), { x:colX.emp+8, y, size:8.5, font:fontReg, color: gray });
-      page.drawText(v.importe!=null?v.importe.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      page.drawText(ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
       y -= rowH;
     });
 
@@ -5114,20 +5233,21 @@ window.exportarExcelSegurosVehiculos = () => {
 };
 
 function _generarExcelSegurosVehiculos() {
-  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Comentarios'];
+  const header = ['Matrícula/Identificador','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Comentarios'];
   const rows = [header];
   [...segurosVehiculosCache].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
     const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
+    const seguroTxt = Object.entries(v.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>`${anio}: ${parseFloat(imp).toFixed(2)}€`).join(' / ');
     rows.push([
       v.matricula||'', v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
       v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
-      v.corredor||'', v.importe!=null?v.importe:'', v.ambito||'', v.empresa||'',
+      v.corredor||'', ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio):'', seguroTxt, v.ambito||'', v.empresa||'',
       v.conductorCode ? nombreConductorPorCodigo(v.conductorCode) : '', v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
     ]);
   });
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [16,16,8,12,16,14,14,16,12,12,28,22,12,30,30].map(w=>({wch:w}));
+  ws['!cols'] = [16,16,8,12,16,14,14,16,14,30,12,28,22,12,30,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, 'Seguros vehículos');
   XLSX.writeFile(wb, 'Manchatrans_Seguros_Vehiculos.xlsx');
 }
