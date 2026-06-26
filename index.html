@@ -4539,7 +4539,7 @@ function renderComparativaSeguros() {
   if (!cont) return;
   const activos = segurosVehiculosCache.filter(v=>v.activo!==false);
 
-  const tabla = (campo, titulo, icono) => {
+  const bloque = (campo, titulo, icono, tipo) => {
     const aniosSet = new Set();
     activos.forEach(v=>Object.keys(v[campo]||{}).forEach(a=>aniosSet.add(a)));
     const anios = [...aniosSet].sort();
@@ -4550,46 +4550,57 @@ function renderComparativaSeguros() {
     anios.forEach(a=>totalesPorAnio[a]=0);
     conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=parseFloat(v[campo][a]); }); });
 
-    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;overflow-x:auto;">
-      <div class="section-title">${icono} ${titulo}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:12.5px;white-space:nowrap;">
-        <tr style="background:var(--navy-light);">
-          <th style="text-align:left;padding:6px 8px;position:sticky;left:0;background:var(--navy-light);">Vehículo</th>
-          ${anios.map(a=>`<th style="padding:6px 10px;text-align:right;">${a}</th>`).join('')}
-        </tr>`;
-    conDatos.forEach(v=>{
-      html += `<tr style="border-bottom:1px solid var(--card-border);">
-        <td style="padding:6px 8px;font-weight:600;">${v.matricula}</td>
-        ${anios.map(a=>{
-          const val = v[campo] && v[campo][a]!=null ? parseFloat(v[campo][a]) : null;
-          return `<td style="padding:6px 10px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
-        }).join('')}
-      </tr>`;
-    });
-    html += `<tr style="font-weight:700;background:var(--navy-light);">
-      <td style="padding:6px 8px;position:sticky;left:0;background:var(--navy-light);">TOTAL</td>
-      ${anios.map((a,i)=>{
-        const valor = totalesPorAnio[a];
-        let diffHtml = '';
-        if (i>0) {
-          const anterior = totalesPorAnio[anios[i-1]];
-          if (anterior>0) {
-            const diff = valor-anterior;
-            const pct = diff/anterior*100;
-            const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
-            diffHtml = `<div style="font-size:10.5px;color:${color};font-weight:600;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</div>`;
-          }
+    // Solo el resumen de totales por año, compacto, con la diferencia justo debajo.
+    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;">
+      <div class="section-title">${icono} ${titulo}</div>`;
+    [...anios].reverse().forEach((a,iRev) => {
+      const i = anios.length - 1 - iRev;
+      const valor = totalesPorAnio[a];
+      let diffHtml = '';
+      if (i>0) {
+        const anterior = totalesPorAnio[anios[i-1]];
+        if (anterior>0) {
+          const diff = valor-anterior;
+          const pct = diff/anterior*100;
+          const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
+          diffHtml = `<span style="font-size:11.5px;color:${color};font-weight:600;margin-left:8px;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>`;
         }
-        return `<td style="padding:6px 10px;text-align:right;">${valor.toFixed(2)} €${diffHtml}</td>`;
-      }).join('')}
-    </tr>
-      </table>
+      }
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${iRev<anios.length-1?'border-bottom:1px solid var(--card-border);':''}">
+        <span style="font-size:14px;font-weight:600;">${a}</span>
+        <span style="font-size:15px;font-weight:700;">${valor.toFixed(2)} €${diffHtml}</span>
+      </div>`;
+    });
+
+    const contId = `seg-comp-detalle-${tipo}`;
+    html += `<button class="btn-sm" onclick="toggleComparativaDetalle('${contId}', this)" style="width:100%;margin-top:0.75rem;font-size:12px;" data-texto="📋 Ver desglose por vehículo">📋 Ver desglose por vehículo</button>
+      <div id="${contId}" style="display:none;margin-top:0.75rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;">
+          <tr style="background:var(--navy-light);">
+            <th style="text-align:left;padding:5px 7px;position:sticky;left:0;background:var(--navy-light);">Vehículo</th>
+            ${anios.map(a=>`<th style="padding:5px 8px;text-align:right;">${a}</th>`).join('')}
+          </tr>
+          ${conDatos.map(v=>`<tr style="border-bottom:1px solid var(--card-border);">
+            <td style="padding:5px 7px;font-weight:600;">${v.matricula}</td>
+            ${anios.map(a=>{
+              const val = v[campo] && v[campo][a]!=null ? parseFloat(v[campo][a]) : null;
+              return `<td style="padding:5px 8px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+        </table>
+      </div>
     </div>`;
     return html;
   };
 
-  cont.innerHTML = tabla('importePorAnio', 'Seguros', '💶') + tabla('impuestoMunicipal', 'Impuesto municipal', '📅');
+  cont.innerHTML = bloque('importePorAnio', 'Seguros', '💶', 'seg') + bloque('impuestoMunicipal', 'Impuesto municipal', '📅', 'imp');
 }
+
+window.toggleComparativaDetalle = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = '🔼 Ocultar desglose'; }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
 
 function updateSegurosBadge() {
   const hoy = new Date();
