@@ -5341,8 +5341,8 @@ window.eliminarSeguroPoliza = async (id) => {
 
 // ── Exportar PDF: Seguros de vehículos ──
 window.exportarPdfSegurosVehiculos = async () => {
-  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v));
-  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas para exportar.' : 'No hay seguros de vehículos para exportar.'); return; }
+  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
+  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas/transpaletas activos para exportar.' : 'No hay seguros de vehículos activos para exportar.'); return; }
   const btn = document.getElementById('btn-pdf-seg-veh');
   const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
   try {
@@ -5358,6 +5358,7 @@ window.exportarPdfSegurosVehiculos = async () => {
     const W = 841.89, H = 595.28, M = 30;
     const pages = [];
     const colX = { mat:M, mod:M+110, comp:M+230, pol:M+350, fecha:M+460, emp:M+560, imp:M+700 };
+    const colW = { mat:100, mod:110, comp:110, emp:130 };
 
     let page, y;
     const nuevaPagina = () => {
@@ -5366,7 +5367,7 @@ window.exportarPdfSegurosVehiculos = async () => {
       page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
       page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
       page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
-      page.drawText(segVehFiltroTipo==='carretilla' ? 'Seguros de carretillas/transpaletas · NexoFlota' : 'Seguros de vehículos · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      page.drawText(segVehFiltroTipo==='carretilla' ? 'Seguros de carretillas/transpaletas (activos) · NexoFlota' : 'Seguros de vehículos (activos) · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
       const tagTxt = segVehFiltroTipo==='carretilla' ? 'SEGUROS DE CARRETILLAS/TRANSPALETAS' : 'SEGUROS DE VEHÍCULOS';
       const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
       page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
@@ -5379,29 +5380,48 @@ window.exportarPdfSegurosVehiculos = async () => {
     };
     nuevaPagina();
 
+    // En vez de recortar el texto con "…", reducimos el tamaño de letra progresivamente
+    // hasta que quepa entero — así nunca se pierde parte del nombre (mismo criterio que
+    // ya usamos en los PDF de Ropa/Limpieza).
+    const ajustarYDibujar = (txt, x, yPos, maxW, sizeBase, font, color) => {
+      let t = txt || '—';
+      let size = sizeBase;
+      while (font.widthOfTextAtSize(t, size) > maxW && size > 6) size -= 0.5;
+      page.drawText(t, { x, y:yPos, size, font, color });
+    };
+
     const hoy = new Date();
-    const ordenados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v)).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    const ordenados = [...datosFiltrados].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    let totalImporte = 0;
     ordenados.forEach((v,i) => {
       if (y < 60) nuevaPagina();
       const rowH = 22;
       if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
-      const recortar = (txt, maxW, size, font) => { let t = txt||'—'; while (font.widthOfTextAtSize(t,size)>maxW && t.length>3) t=t.slice(0,-4)+'…'; return t; };
-      page.drawText(recortar(v.matricula,100,9.5,fontBold), { x:colX.mat+8, y, size:9.5, font:fontBold, color: navy });
-      page.drawText(recortar(v.modelo,110,9,fontReg), { x:colX.mod+8, y, size:9, font:fontReg, color: gray });
-      page.drawText(recortar(v.compania,110,9,fontReg), { x:colX.comp+8, y, size:9, font:fontReg, color: gray });
+      ajustarYDibujar(v.matricula, colX.mat+8, y, colW.mat-12, 9.5, fontBold, navy);
+      ajustarYDibujar(v.modelo, colX.mod+8, y, colW.mod-12, 9, fontReg, gray);
+      ajustarYDibujar(v.compania, colX.comp+8, y, colW.comp-12, 9, fontReg, gray);
       page.drawText(v.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
       const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
       const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
       page.drawText(v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
-      page.drawText(recortar(v.empresa,130,8.5,fontReg), { x:colX.emp+8, y, size:8.5, font:fontReg, color: gray });
-      page.drawText(ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      ajustarYDibujar(v.empresa, colX.emp+8, y, colW.emp-12, 8.5, fontReg, gray);
+      const importeVeh = ultimoValorAnio(v.importePorAnio);
+      if (importeVeh!=null) totalImporte += importeVeh;
+      page.drawText(importeVeh!=null?importeVeh.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
       y -= rowH;
     });
+
+    // Fila de total al final
+    if (y < 75) nuevaPagina();
+    page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:24, color: navyClaro });
+    page.drawText('TOTAL', { x:colX.mat+8, y, size:10, font:fontBold, color: rgb(1,1,1) });
+    page.drawText(totalImporte.toFixed(2)+' €', { x:colX.imp+8, y, size:10, font:fontBold, color: accent });
+    y -= 30;
 
     const fechaGen = new Date().toLocaleDateString('es-ES');
     pages.forEach((p, idx) => {
       p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
-      p.drawText(`Generado el ${fechaGen} · Total: ${ordenados.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      p.drawText(`Generado el ${fechaGen} · Total: ${ordenados.length} (solo activos)`, { x:M, y:20, size:8, font:fontReg, color: gray });
       const pagTxt = `Página ${idx+1} de ${pages.length}`;
       const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
       p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
@@ -5436,6 +5456,7 @@ window.exportarPdfSegurosPolizas = async () => {
     const W = 841.89, H = 595.28, M = 30;
     const pages = [];
     const colX = { tipo:M, mod:M+150, comp:M+280, pol:M+420, fecha:M+540, cor:M+650, imp:M+700 };
+    const colW = { tipo:135, mod:125, comp:115, cor:95 };
 
     let page, y;
     const nuevaPagina = () => {
@@ -5457,24 +5478,41 @@ window.exportarPdfSegurosPolizas = async () => {
     };
     nuevaPagina();
 
+    // En vez de recortar el texto con "…", reducimos el tamaño de letra progresivamente
+    // hasta que quepa entero, igual que en el resto de PDFs de la app.
+    const ajustarYDibujar = (txt, x, yPos, maxW, sizeBase, font, color) => {
+      let t = txt || '—';
+      let size = sizeBase;
+      while (font.widthOfTextAtSize(t, size) > maxW && size > 6) size -= 0.5;
+      page.drawText(t, { x, y:yPos, size, font, color });
+    };
+
     const hoy = new Date();
     const ordenadas = [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+    let totalImporte = 0;
     ordenadas.forEach((p,i) => {
       if (y < 60) nuevaPagina();
       const rowH = 22;
       if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
-      const recortar = (txt, maxW, size, font) => { let t = txt||'—'; while (font.widthOfTextAtSize(t,size)>maxW && t.length>3) t=t.slice(0,-4)+'…'; return t; };
-      page.drawText(recortar(p.tipoPoliza,135,9.5,fontBold), { x:colX.tipo+8, y, size:9.5, font:fontBold, color: navy });
-      page.drawText(recortar(p.modelo,125,9,fontReg), { x:colX.mod+8, y, size:9, font:fontReg, color: gray });
-      page.drawText(recortar(p.compania,115,9,fontReg), { x:colX.comp+8, y, size:9, font:fontReg, color: gray });
+      ajustarYDibujar(p.tipoPoliza, colX.tipo+8, y, colW.tipo-12, 9.5, fontBold, navy);
+      ajustarYDibujar(p.modelo, colX.mod+8, y, colW.mod-12, 9, fontReg, gray);
+      ajustarYDibujar(p.compania, colX.comp+8, y, colW.comp-12, 9, fontReg, gray);
       page.drawText(p.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
       const dias = p.fechaCaducidad ? Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
       const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
       page.drawText(p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
-      page.drawText(recortar(p.corredor,95,9,fontReg), { x:colX.cor+8, y, size:9, font:fontReg, color: gray });
+      ajustarYDibujar(p.corredor, colX.cor+8, y, colW.cor-12, 9, fontReg, gray);
+      if (p.importe!=null) totalImporte += p.importe;
       page.drawText(p.importe!=null?p.importe.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
       y -= rowH;
     });
+
+    // Fila de total al final
+    if (y < 75) nuevaPagina();
+    page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:24, color: navyClaro });
+    page.drawText('TOTAL', { x:colX.tipo+8, y, size:10, font:fontBold, color: rgb(1,1,1) });
+    page.drawText(totalImporte.toFixed(2)+' €', { x:colX.imp+8, y, size:10, font:fontBold, color: accent });
+    y -= 30;
 
     const fechaGen = new Date().toLocaleDateString('es-ES');
     pages.forEach((p, idx) => {
@@ -5498,8 +5536,8 @@ window.exportarPdfSegurosPolizas = async () => {
 
 // ── Exportar Excel: Seguros de vehículos ──
 window.exportarExcelSegurosVehiculos = () => {
-  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v));
-  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas para exportar.' : 'No hay seguros de vehículos para exportar.'); return; }
+  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
+  if (!datosFiltrados.length) { alert(segVehFiltroTipo==='carretilla' ? 'No hay seguros de carretillas/transpaletas activos para exportar.' : 'No hay seguros de vehículos activos para exportar.'); return; }
   if (typeof XLSX==='undefined') {
     const s=document.createElement('script');
     s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
@@ -5511,16 +5549,20 @@ function _generarExcelSegurosVehiculos() {
   const etiquetasTipo = {vehiculo:'Vehículo', carretilla:'Carretilla', transpaleta:'Transpaleta eléctrica'};
   const header = ['Matrícula/Identificador','Tipo','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Notas'];
   const rows = [header];
-  segurosVehiculosCache.filter(v=>coincideTipoSeguro(v)).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
+  let totalImporte = 0;
+  segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
     const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
     const seguroTxt = Object.entries(v.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
+    const importeVeh = ultimoValorAnio(v.importePorAnio);
+    if (importeVeh!=null) totalImporte += importeVeh;
     rows.push([
       v.matricula||'', etiquetasTipo[v.tipo||'vehiculo']||v.tipo, v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
       v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
-      v.corredor||'', ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio):'', seguroTxt, v.ambito||'', v.empresa||'',
+      v.corredor||'', importeVeh!=null?importeVeh:'', seguroTxt, v.ambito||'', v.empresa||'',
       nombreConductorSeguro(v), v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
     ]);
   });
+  rows.push(['TOTAL','','','','','','','','',totalImporte,'','','','','','','']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [16,16,16,8,12,16,14,14,16,14,30,12,28,22,12,30,30].map(w=>({wch:w}));
@@ -5541,13 +5583,16 @@ window.exportarExcelSegurosPolizas = () => {
 function _generarExcelSegurosPolizas() {
   const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Notas'];
   const rows = [header];
+  let totalImporte = 0;
   [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
+    if (p.importe!=null) totalImporte += p.importe;
     rows.push([
       p.modelo||'', p.tipoPoliza||'', p.compania||'', p.numeroPoliza||'',
       p.fechaCaducidad ? new Date(p.fechaCaducidad).toLocaleDateString('es-ES') : '',
       p.corredor||'', p.importe!=null?p.importe:'', p.notas||''
     ]);
   });
+  rows.push(['TOTAL','','','','','',totalImporte,'']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   ws['!cols'] = [16,18,16,14,14,16,12,30].map(w=>({wch:w}));
