@@ -943,14 +943,12 @@ input[type="number"] { -moz-appearance: textfield; }
               <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" type="text" id="seg-pol-numpoliza"></div>
               <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-pol-fechacad"></div>
             </div>
-            <div class="two-col">
-              <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-pol-corredor"></div>
-              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="seg-pol-importe" placeholder="Ej: 1.438,76"></div>
-            </div>
+            <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-pol-corredor"></div>
             <div class="form-group">
               <label class="form-label">Notas</label>
               <textarea class="form-input" id="seg-pol-notas" placeholder="Cualquier anotación que necesites"></textarea>
             </div>
+            <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe se añade año a año después de guardar: despliega la ficha de la póliza en la lista de abajo.</div>
             <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
             <div id="seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
           </div>
@@ -972,6 +970,11 @@ input[type="number"] { -moz-appearance: textfield; }
           <button class="btn btn-secondary" id="btn-excel-seg-pol" style="font-size:13px;">📊 Excel</button>
         </div>
         <div id="seg-pol-list"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-baja-seg-pol" style="margin-top:1.25rem;font-size:13px;">👤 Ver pólizas de baja (<span id="seg-pol-baja-count">0</span>)</button>
+        <div id="seg-pol-baja-wrapper" style="display:none;margin-top:0.75rem;">
+          <div id="seg-pol-baja-list"></div>
+        </div>
       </div>
 
       <!-- COMPARATIVA ANUAL -->
@@ -1437,6 +1440,26 @@ async function initApp() {
     const segPolSnap = await getDocs(collection(dbFleet, 'segurosPolizas'));
     segurosPolizasCache = segPolSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // Migración: el importe de la póliza también era un único valor y ahora se guarda
+    // por años, igual que en vehículos. Pasamos el valor antiguo al año anterior a la
+    // fecha de caducidad, y además marcamos como activas las que no tuvieran ese campo.
+    for (const p of segurosPolizasCache) {
+      const yaTieneImportePorAnio = p.importePorAnio && Object.keys(p.importePorAnio).length > 0;
+      if (p.importe != null && !yaTieneImportePorAnio) {
+        const anio = p.fechaCaducidad ? (new Date(p.fechaCaducidad).getFullYear() - 1) : new Date().getFullYear();
+        const nuevoMapa = { [anio]: p.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosPolizas',p.id), { importePorAnio: nuevoMapa, activo: p.activo!==false });
+          p.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error migrando importe de póliza:', p.id, err); }
+      } else if (p.activo === undefined) {
+        try {
+          await updateDoc(doc(dbFleet,'segurosPolizas',p.id), { activo: true });
+          p.activo = true;
+        } catch(err) { console.error('Error marcando póliza como activa:', p.id, err); }
+      }
+    }
+
     // Cargar lista adicional de elementos asegurables (carretillas, etc.) — solo para Seguros
     const segExtraDoc = await getDocs(query(collection(dbFleet, 'segurosConfig')));
     const segExtraFound = segExtraDoc.docs.find(d => d.id === 'elementosExtra');
@@ -1705,6 +1728,13 @@ async function initApp() {
     else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; }
   });
   document.getElementById('seg-veh-buscador').addEventListener('input', (e)=>{ segVehBusqueda = e.target.value.trim().toLowerCase(); renderSegurosVehiculos(); });
+  document.getElementById('btn-toggle-baja-seg-pol').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-pol-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-seg-pol');
+    const count = segurosPolizasCache.filter(p=>p.activo===false).length;
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.innerHTML = `👤 Ocultar pólizas de baja (<span id="seg-pol-baja-count">${count}</span>)`; renderSegurosPolizasBaja(); }
+    else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver pólizas de baja (<span id="seg-pol-baja-count">${count}</span>)`; }
+  });
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
@@ -1970,7 +2000,11 @@ function activarListenersTiempoReal() {
     segurosPolizasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (currentUser && currentUser.isAdmin) {
       updateSegurosBadge();
-      if (currentModule==='seguros') renderSegurosPolizas();
+      if (currentModule==='seguros') {
+        renderSegurosPolizas();
+        if (document.getElementById('seg-pol-baja-wrapper').style.display!=='none') renderSegurosPolizasBaja();
+        if (document.getElementById('seg-tab-comparativa').classList.contains('active')) renderComparativaSeguros();
+      }
     }
   });
 
@@ -4656,18 +4690,26 @@ function populateSegurosSelects() {
 function renderComparativaSeguros() {
   const cont = document.getElementById('seg-comparativa-content');
   if (!cont) return;
-  const activos = segurosVehiculosCache.filter(v=>v.activo!==false);
 
-  const bloque = (campo, titulo, icono, tipo) => {
+  // "Seguros" junta TODO: vehículos, tractores, carretillas/transpaletas Y pólizas.
+  // "Impuesto municipal" solo aplica a vehículos/tractores/carretillas (las pólizas no
+  // tienen impuesto municipal), así que ese bloque se queda como estaba.
+  const itemsSeguro = [
+    ...segurosVehiculosCache.filter(v=>v.activo!==false).map(v=>({ nombre: v.matricula, datos: v.importePorAnio })),
+    ...segurosPolizasCache.filter(p=>p.activo!==false).map(p=>({ nombre: (p.tipoPoliza||'Póliza')+(p.modelo?' — '+p.modelo:''), datos: p.importePorAnio }))
+  ];
+  const itemsImpuesto = segurosVehiculosCache.filter(v=>v.activo!==false).map(v=>({ nombre: v.matricula, datos: v.impuestoMunicipal }));
+
+  const bloque = (items, titulo, icono, tipo, nombreColumna) => {
     const aniosSet = new Set();
-    activos.forEach(v=>Object.keys(v[campo]||{}).forEach(a=>aniosSet.add(a)));
+    items.forEach(it=>Object.keys(it.datos||{}).forEach(a=>aniosSet.add(a)));
     const anios = [...aniosSet].sort();
     if (!anios.length) return `<div class="refuel-card" style="margin-bottom:1.25rem;"><div class="section-title">${icono} ${titulo}</div><div style="font-size:13px;color:var(--text-muted);">Todavía no hay ningún año registrado.</div></div>`;
 
-    const conDatos = activos.filter(v=>Object.keys(v[campo]||{}).length>0).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    const conDatos = items.filter(it=>Object.keys(it.datos||{}).length>0).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
     const totalesPorAnio = {};
     anios.forEach(a=>totalesPorAnio[a]=0);
-    conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=extraerValorYNota(v[campo][a]).valor; }); });
+    conDatos.forEach(it=>{ anios.forEach(a=>{ if (it.datos && it.datos[a]!=null) totalesPorAnio[a]+=extraerValorYNota(it.datos[a]).valor; }); });
 
     // Tabla sencilla: Año | Total | Diferencia. Solo se ven los 3 años más recientes de
     // entrada; el resto queda detrás de un botón para no acumular filas con el tiempo.
@@ -4715,17 +4757,17 @@ function renderComparativaSeguros() {
     }
 
     const contId = `seg-comp-detalle-${tipo}`;
-    html += `<button class="btn-sm" onclick="toggleComparativaDetalle('${contId}', this)" style="width:100%;margin-top:0.75rem;font-size:12px;" data-texto="📋 Ver desglose por vehículo">📋 Ver desglose por vehículo</button>
+    html += `<button class="btn-sm" onclick="toggleComparativaDetalle('${contId}', this)" style="width:100%;margin-top:0.75rem;font-size:12px;" data-texto="📋 Ver desglose por ${nombreColumna}">📋 Ver desglose por ${nombreColumna}</button>
       <div id="${contId}" style="display:none;margin-top:0.75rem;overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;">
           <tr style="background:var(--navy-light);">
-            <th style="text-align:left;padding:5px 7px;position:sticky;left:0;background:var(--navy-light);">Vehículo</th>
+            <th style="text-align:left;padding:5px 7px;position:sticky;left:0;background:var(--navy-light);">${nombreColumna[0].toUpperCase()+nombreColumna.slice(1)}</th>
             ${anios.map(a=>`<th style="padding:5px 8px;text-align:right;">${a}</th>`).join('')}
           </tr>
-          ${conDatos.map(v=>`<tr style="border-bottom:1px solid var(--card-border);">
-            <td style="padding:5px 7px;font-weight:600;">${v.matricula}</td>
+          ${conDatos.map(it=>`<tr style="border-bottom:1px solid var(--card-border);">
+            <td style="padding:5px 7px;font-weight:600;">${it.nombre}</td>
             ${anios.map(a=>{
-              const val = v[campo] && v[campo][a]!=null ? extraerValorYNota(v[campo][a]).valor : null;
+              const val = it.datos && it.datos[a]!=null ? extraerValorYNota(it.datos[a]).valor : null;
               return `<td style="padding:5px 8px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
             }).join('')}
           </tr>`).join('')}
@@ -4735,7 +4777,8 @@ function renderComparativaSeguros() {
     return html;
   };
 
-  cont.innerHTML = bloque('importePorAnio', 'Seguros', '💶', 'seg') + bloque('impuestoMunicipal', 'Impuesto municipal', '📅', 'imp');
+  cont.innerHTML = bloque(itemsSeguro, 'Seguros (vehículos, carretillas/transpaletas y pólizas)', '💶', 'seg', 'nombre')
+                  + bloque(itemsImpuesto, 'Impuesto municipal', '📅', 'imp', 'vehículo');
 }
 
 window.toggleComparativaDetalle = (contId, btn) => {
@@ -4748,7 +4791,7 @@ function updateSegurosBadge() {
   const hoy = new Date();
   let alertas = 0;
   segurosVehiculosCache.forEach(v=>{ if(v.activo!==false && v.fechaCaducidad){ const dias=Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
-  segurosPolizasCache.forEach(p=>{ if(p.fechaCaducidad){ const dias=Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
+  segurosPolizasCache.forEach(p=>{ if(p.activo!==false && p.fechaCaducidad){ const dias=Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
   const badge = document.getElementById('home-badge-seguros');
   if (badge) badge.textContent = alertas>0 ? `🔴${alertas}` : '';
 }
@@ -5219,7 +5262,6 @@ async function guardarSeguroPoliza() {
   const numeroPoliza = document.getElementById('seg-pol-numpoliza').value.trim();
   const fechaCaducidad = document.getElementById('seg-pol-fechacad').value;
   const corredor = document.getElementById('seg-pol-corredor').value.trim();
-  const importeVal = parseImporteEuropeo(document.getElementById('seg-pol-importe').value);
   const notas = document.getElementById('seg-pol-notas').value.trim();
 
   if (!tipoPoliza) { showAlert(al,'⚠️ Indica el tipo de póliza',true); return; }
@@ -5228,13 +5270,14 @@ async function guardarSeguroPoliza() {
   const btn = document.getElementById('btn-guardar-seg-pol');
   btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
   try {
-    const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, importe: isNaN(importeVal)?null:importeVal, notas };
-    await addDoc(collection(dbFleet,'segurosPolizas'), registro);
+    const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, notas, importePorAnio: {}, activo: true };
+    const ref = await addDoc(collection(dbFleet,'segurosPolizas'), registro);
     // No tocamos segurosPolizasCache a mano: el onSnapshot ya lo actualiza solo.
-    ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-importe','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
+    ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
     showAlert(al,'✓ Póliza guardada correctamente',false);
     document.getElementById('add-seg-pol-wrapper').style.display='none';
     document.getElementById('btn-toggle-add-seg-pol').textContent='➕ Añadir póliza';
+    setTimeout(()=>abrirFichaSeguroPol(ref.id), 350);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = textoOriginal;
 }
@@ -5244,8 +5287,9 @@ function renderSegurosPolizas() {
   const alertasEl = document.getElementById('seg-pol-alertas');
   if (!list) return;
   const hoy = new Date();
+  const activas = segurosPolizasCache.filter(p=>p.activo!==false);
   let alertasHtml = '';
-  segurosPolizasCache.forEach(p=>{
+  activas.forEach(p=>{
     if (!p.fechaCaducidad) return;
     const dias = Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24));
     if (dias<=DIAS_AVISO_SEGUROS) {
@@ -5255,44 +5299,131 @@ function renderSegurosPolizas() {
     }
   });
   alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
+  document.getElementById('seg-pol-baja-count').textContent = segurosPolizasCache.filter(p=>p.activo===false).length;
 
-  if (!segurosPolizasCache.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div>No hay pólizas registradas</div>'; return; }
+  if (!activas.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div>No hay pólizas activas registradas</div>'; return; }
 
-  const ordenadas = [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+  const ordenadas = [...activas].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
   list.innerHTML = ordenadas.map(p=>{
     const safeId = p.id.replace(/[^a-zA-Z0-9]/g,'_');
     const dias = p.fechaCaducidad ? Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
     let color = 'var(--text-muted)';
     if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
+    const abierta = segVehFichasAbiertas.has('pol-'+safeId);
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleSeguroPol('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
           <div style="font-weight:600;font-size:14px;">📄 ${p.tipoPoliza||'Póliza'}${p.modelo?' — '+p.modelo:''}</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${p.compania||'—'} · <span style="color:${color};font-weight:600;">${p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
         </div>
-        <span id="seg-pol-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
+        <span id="seg-pol-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
       </div>
-      <div id="seg-pol-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+      <div id="seg-pol-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
         <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
           <div><strong>Nº de póliza:</strong> ${p.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${p.corredor||'—'}</div>
-          <div><strong>Importe:</strong> ${p.importe!=null?p.importe.toFixed(2)+' €':'—'}</div>
+          <div><strong>Importe actual:</strong> ${ultimoValorAnio(p.importePorAnio)!=null?ultimoValorAnio(p.importePorAnio).toFixed(2)+' €':'—'}</div>
           ${p.notas?`<div style="margin-top:6px;"><strong>Notas:</strong> ${p.notas}</div>`:''}
         </div>
-        <div style="display:flex;gap:0.5rem;">
+
+        <button class="btn-sm" data-texto="💶 Ver historial del importe" onclick="toggleSeccionAnios('pol-anios-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">💶 Ver historial del importe</button>
+        <div id="pol-anios-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(p.importePorAnio, p.id, 'eliminarImportePolizaAnio', safeId, 'pol')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImportePolizaAnio('${p.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
           <button class="btn-sm" style="flex:1;" onclick="editarSeguroPoliza('${p.id}')">✏️ Editar</button>
-          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarSeguroPoliza('${p.id}')">🗑 Eliminar</button>
+          <button class="btn-del" style="flex:1;" onclick="bajaSeguroPoliza('${p.id}')">📤 Dar de baja</button>
         </div>
       </div>
     </div>`;
   }).join('');
 }
 
+function renderSegurosPolizasBaja() {
+  const list = document.getElementById('seg-pol-baja-list');
+  if (!list) return;
+  const bajas = segurosPolizasCache.filter(p=>p.activo===false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+  if (!bajas.length) { list.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay pólizas de baja</div>'; return; }
+  list.innerHTML = bajas.map(p=>`
+    <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">📄 ${p.tipoPoliza||'Póliza'}${p.modelo?' — '+p.modelo:''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${p.compania||'—'} · Caducidad: ${p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="reactivarSeguroPoliza('${p.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
+        <button class="btn-del" onclick="eliminarSeguroPoliza('${p.id}')">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
 window.toggleSeguroPol = (safeId) => {
   const body = document.getElementById('seg-pol-body-'+safeId);
   const arrow = document.getElementById('seg-pol-arrow-'+safeId);
-  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
-  else { body.style.display = 'none'; arrow.textContent = '▼'; }
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; segVehFichasAbiertas.add('pol-'+safeId); }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; segVehFichasAbiertas.delete('pol-'+safeId); }
+};
+
+function abrirFichaSeguroPol(polizaId) {
+  const safeId = polizaId.replace(/[^a-zA-Z0-9]/g,'_');
+  segVehFichasAbiertas.add('pol-'+safeId);
+  const body = document.getElementById('seg-pol-body-'+safeId);
+  const arrow = document.getElementById('seg-pol-arrow-'+safeId);
+  if (!body) return;
+  body.style.display = 'block';
+  if (arrow) arrow.textContent = '▲';
+  body.scrollIntoView({behavior:'smooth', block:'center'});
+  const seccionAnios = document.getElementById('pol-anios-'+safeId);
+  if (seccionAnios) { seccionAnios.style.display = 'block'; }
+  const inputAnio = document.getElementById('nuevo-anio-pol-'+safeId);
+  if (inputAnio) setTimeout(()=>inputAnio.focus(), 400);
+}
+
+window.anadirImportePolizaAnio = async (polizaId, safeId) => {
+  const anio = document.getElementById('nuevo-anio-pol-'+safeId).value.trim();
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-pol-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-pol-'+safeId).value.trim();
+  if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
+  const p = segurosPolizasCache.find(x=>x.id===polizaId);
+  if (!p) return;
+  try {
+    const nuevoMapa = { ...(p.importePorAnio||{}), [anio]: { importe, nota } };
+    await updateDoc(doc(dbFleet,'segurosPolizas',polizaId), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.eliminarImportePolizaAnio = async (polizaId, anio) => {
+  const p = segurosPolizasCache.find(x=>x.id===polizaId);
+  if (!p) return;
+  const nuevoMapa = { ...(p.importePorAnio||{}) };
+  delete nuevoMapa[anio];
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',polizaId), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.bajaSeguroPoliza = async (id) => {
+  const p = segurosPolizasCache.find(x=>x.id===id);
+  if (!p) return;
+  if (!(await confirmarAccion(`¿Dar de baja la póliza "${p.tipoPoliza||'Póliza'}"? No se borra nada, solo se oculta de la lista activa y puedes reactivarla cuando quieras.`))) return;
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',id), { activo: false });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarSeguroPoliza = async (id) => {
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',id), { activo: true });
+  } catch(e) { alert('Error: '+e.message); }
 };
 
 window.editarSeguroPoliza = (id) => {
@@ -5311,10 +5442,7 @@ window.editarSeguroPoliza = (id) => {
         <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" id="edit-seg-pol-numpoliza" value="${p.numeroPoliza||''}"></div>
         <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-pol-fechacad" value="${p.fechaCaducidad||''}"></div>
       </div>
-      <div class="two-col">
-        <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-pol-corredor" value="${p.corredor||''}"></div>
-        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-seg-pol-importe" value="${p.importe!=null?p.importe.toLocaleString('es-ES'):''}"></div>
-      </div>
+      <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-pol-corredor" value="${p.corredor||''}"></div>
       <div class="form-group">
         <label class="form-label">Notas</label>
         <textarea class="form-input" id="edit-seg-pol-notas">${p.notas||''}</textarea>
@@ -5331,7 +5459,6 @@ window.editarSeguroPoliza = (id) => {
     const al = document.getElementById('edit-seg-pol-alert');
     const fechaCaducidad = document.getElementById('edit-seg-pol-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
-    const importeVal = parseImporteEuropeo(document.getElementById('edit-seg-pol-importe').value);
     const cambios = {
       modelo: document.getElementById('edit-seg-pol-modelo').value.trim(),
       tipoPoliza: document.getElementById('edit-seg-pol-tipo').value.trim(),
@@ -5339,7 +5466,6 @@ window.editarSeguroPoliza = (id) => {
       numeroPoliza: document.getElementById('edit-seg-pol-numpoliza').value.trim(),
       fechaCaducidad,
       corredor: document.getElementById('edit-seg-pol-corredor').value.trim(),
-      importe: isNaN(importeVal)?null:importeVal,
       notas: document.getElementById('edit-seg-pol-notas').value.trim(),
     };
     try {
@@ -5353,11 +5479,15 @@ window.editarSeguroPoliza = (id) => {
 };
 
 window.eliminarSeguroPoliza = async (id) => {
-  if (!(await confirmarAccion('¿Eliminar esta póliza? Esta acción no se puede deshacer.'))) return;
+  const p = segurosPolizasCache.find(x=>x.id===id);
+  const nombreVisible = p ? (p.tipoPoliza||'Póliza') : id;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará la póliza "${nombreVisible}" PARA SIEMPRE, incluido su importe por años.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
   try {
     await deleteDoc(doc(dbFleet,'segurosPolizas',id));
-    segurosPolizasCache = segurosPolizasCache.filter(p=>p.id!==id);
+    segurosPolizasCache = segurosPolizasCache.filter(x=>x.id!==id);
     renderSegurosPolizas();
+    renderSegurosPolizasBaja();
     updateSegurosBadge();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
@@ -5463,7 +5593,7 @@ window.exportarPdfSegurosVehiculos = async () => {
 
 // ── Exportar PDF: Pólizas ──
 window.exportarPdfSegurosPolizas = async () => {
-  if (!segurosPolizasCache.length) { alert('No hay pólizas para exportar.'); return; }
+  if (!segurosPolizasCache.filter(p=>p.activo!==false).length) { alert('No hay pólizas activas para exportar.'); return; }
   const btn = document.getElementById('btn-pdf-seg-pol');
   const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
   try {
@@ -5511,7 +5641,7 @@ window.exportarPdfSegurosPolizas = async () => {
     };
 
     const hoy = new Date();
-    const ordenadas = [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+    const ordenadas = segurosPolizasCache.filter(p=>p.activo!==false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
     let totalImporte = 0;
     ordenadas.forEach((p,i) => {
       if (y < 60) nuevaPagina();
@@ -5525,8 +5655,9 @@ window.exportarPdfSegurosPolizas = async () => {
       const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
       page.drawText(p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
       ajustarYDibujar(p.corredor, colX.cor+8, y, colW.cor-12, 9, fontReg, gray);
-      if (p.importe!=null) totalImporte += p.importe;
-      page.drawText(p.importe!=null?p.importe.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      const importePol = ultimoValorAnio(p.importePorAnio);
+      if (importePol!=null) totalImporte += importePol;
+      page.drawText(importePol!=null?importePol.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
       y -= rowH;
     });
 
@@ -5604,21 +5735,23 @@ window.exportarExcelSegurosPolizas = () => {
 };
 
 function _generarExcelSegurosPolizas() {
-  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe (€)','Notas'];
+  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe por años','Notas'];
   const rows = [header];
   let totalImporte = 0;
-  [...segurosPolizasCache].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
-    if (p.importe!=null) totalImporte += p.importe;
+  segurosPolizasCache.filter(p=>p.activo!==false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
+    const importePol = ultimoValorAnio(p.importePorAnio);
+    if (importePol!=null) totalImporte += importePol;
+    const polTxt = Object.entries(p.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
     rows.push([
       p.modelo||'', p.tipoPoliza||'', p.compania||'', p.numeroPoliza||'',
       p.fechaCaducidad ? new Date(p.fechaCaducidad).toLocaleDateString('es-ES') : '',
-      p.corredor||'', p.importe!=null?p.importe:'', p.notas||''
+      p.corredor||'', importePol!=null?importePol:'', polTxt, p.notas||''
     ]);
   });
-  rows.push(['TOTAL','','','','','',totalImporte,'']);
+  rows.push(['TOTAL','','','','','',totalImporte,'','']);
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols'] = [16,18,16,14,14,16,12,30].map(w=>({wch:w}));
+  ws['!cols'] = [16,18,16,14,14,16,14,30,30].map(w=>({wch:w}));
   XLSX.utils.book_append_sheet(wb, ws, 'Pólizas');
   XLSX.writeFile(wb, 'Manchatrans_Polizas.xlsx');
 }
