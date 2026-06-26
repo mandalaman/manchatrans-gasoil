@@ -4550,25 +4550,25 @@ function renderComparativaSeguros() {
     anios.forEach(a=>totalesPorAnio[a]=0);
     conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=parseFloat(v[campo][a]); }); });
 
-    // Solo el resumen de totales por año, compacto, con la diferencia justo debajo.
-    // Para no acumular decenas de filas con los años, solo se ven los 3 más recientes
-    // de entrada; el resto queda detrás de un botón.
+    // Tabla sencilla: Año | Total | Diferencia. Solo se ven los 3 años más recientes de
+    // entrada; el resto queda detrás de un botón para no acumular filas con el tiempo.
     const filaTotal = (a, i) => {
       const valor = totalesPorAnio[a];
-      let diffHtml = '';
+      let diffHtml = '—';
       if (i>0) {
         const anterior = totalesPorAnio[anios[i-1]];
         if (anterior>0) {
           const diff = valor-anterior;
           const pct = diff/anterior*100;
           const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
-          diffHtml = `<span style="font-size:11.5px;color:${color};font-weight:600;margin-left:8px;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>`;
+          diffHtml = `<span style="color:${color};font-weight:600;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>`;
         }
       }
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--card-border);">
-        <span style="font-size:14px;font-weight:600;">${a}</span>
-        <span style="font-size:15px;font-weight:700;">${valor.toFixed(2)} €${diffHtml}</span>
-      </div>`;
+      return `<tr style="border-bottom:1px solid var(--card-border);">
+        <td style="padding:7px 8px;font-weight:600;">${a}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;">${valor.toFixed(2)} €</td>
+        <td style="padding:7px 8px;text-align:right;font-size:12.5px;">${diffHtml}</td>
+      </tr>`;
     };
 
     const VISIBLES = 3;
@@ -4576,14 +4576,23 @@ function renderComparativaSeguros() {
     const aniosAntiguos = anios.slice(0, -VISIBLES);
 
     let html = `<div class="refuel-card" style="margin-bottom:1.25rem;">
-      <div class="section-title">${icono} ${titulo}</div>`;
-
-    [...aniosRecientes].reverse().forEach(a=>{ html += filaTotal(a, anios.indexOf(a)); });
+      <div class="section-title">${icono} ${titulo}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+        <tr style="background:var(--navy-light);">
+          <th style="text-align:left;padding:6px 8px;">Año</th>
+          <th style="text-align:right;padding:6px 8px;">Total</th>
+          <th style="text-align:right;padding:6px 8px;">Diferencia</th>
+        </tr>
+        ${[...aniosRecientes].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}`;
 
     if (aniosAntiguos.length) {
       const contAntId = `seg-comp-antiguos-${tipo}`;
-      html += `<div id="${contAntId}" style="display:none;">${[...aniosAntiguos].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}</div>
-      <button class="btn-sm" data-texto="🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos" onclick="toggleComparativaDetalle('${contAntId}', this)" style="width:100%;margin-top:0.5rem;font-size:11px;">🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos</button>`;
+      html += `<tbody id="${contAntId}" style="display:none;">${[...aniosAntiguos].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}</tbody>`;
+    }
+    html += `</table>`;
+    if (aniosAntiguos.length) {
+      const contAntId = `seg-comp-antiguos-${tipo}`;
+      html += `<button class="btn-sm" data-texto="🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos" onclick="toggleComparativaDetalle('${contAntId}', this)" style="width:100%;margin-top:0.5rem;font-size:11px;">🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos</button>`;
     }
 
     const contId = `seg-comp-detalle-${tipo}`;
@@ -4612,7 +4621,7 @@ function renderComparativaSeguros() {
 
 window.toggleComparativaDetalle = (contId, btn) => {
   const cont = document.getElementById(contId);
-  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
+  if (cont.style.display === 'none') { cont.style.display = ''; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
   else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
 };
 
