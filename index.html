@@ -4551,10 +4551,9 @@ function renderComparativaSeguros() {
     conDatos.forEach(v=>{ anios.forEach(a=>{ if (v[campo] && v[campo][a]!=null) totalesPorAnio[a]+=parseFloat(v[campo][a]); }); });
 
     // Solo el resumen de totales por año, compacto, con la diferencia justo debajo.
-    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;">
-      <div class="section-title">${icono} ${titulo}</div>`;
-    [...anios].reverse().forEach((a,iRev) => {
-      const i = anios.length - 1 - iRev;
+    // Para no acumular decenas de filas con los años, solo se ven los 3 más recientes
+    // de entrada; el resto queda detrás de un botón.
+    const filaTotal = (a, i) => {
       const valor = totalesPorAnio[a];
       let diffHtml = '';
       if (i>0) {
@@ -4566,11 +4565,26 @@ function renderComparativaSeguros() {
           diffHtml = `<span style="font-size:11.5px;color:${color};font-weight:600;margin-left:8px;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>`;
         }
       }
-      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;${iRev<anios.length-1?'border-bottom:1px solid var(--card-border);':''}">
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--card-border);">
         <span style="font-size:14px;font-weight:600;">${a}</span>
         <span style="font-size:15px;font-weight:700;">${valor.toFixed(2)} €${diffHtml}</span>
       </div>`;
-    });
+    };
+
+    const VISIBLES = 3;
+    const aniosRecientes = anios.slice(-VISIBLES);
+    const aniosAntiguos = anios.slice(0, -VISIBLES);
+
+    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;">
+      <div class="section-title">${icono} ${titulo}</div>`;
+
+    [...aniosRecientes].reverse().forEach(a=>{ html += filaTotal(a, anios.indexOf(a)); });
+
+    if (aniosAntiguos.length) {
+      const contAntId = `seg-comp-antiguos-${tipo}`;
+      html += `<div id="${contAntId}" style="display:none;">${[...aniosAntiguos].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}</div>
+      <button class="btn-sm" data-texto="🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos" onclick="toggleComparativaDetalle('${contAntId}', this)" style="width:100%;margin-top:0.5rem;font-size:11px;">🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos</button>`;
+    }
 
     const contId = `seg-comp-detalle-${tipo}`;
     html += `<button class="btn-sm" onclick="toggleComparativaDetalle('${contId}', this)" style="width:100%;margin-top:0.75rem;font-size:12px;" data-texto="📋 Ver desglose por vehículo">📋 Ver desglose por vehículo</button>
@@ -4598,7 +4612,7 @@ function renderComparativaSeguros() {
 
 window.toggleComparativaDetalle = (contId, btn) => {
   const cont = document.getElementById(contId);
-  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = '🔼 Ocultar desglose'; }
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
   else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
 };
 
