@@ -2040,7 +2040,7 @@ function buildLoginForm() {
       <div class="error-msg" id="login-error"></div>`;
     setTimeout(()=>{
       const el=document.getElementById('login-code');
-      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(el) { el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); el.focus(); }
       const btn=document.getElementById('btn-login');
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-admin');
@@ -2060,7 +2060,7 @@ function buildLoginForm() {
       <div class="error-msg" id="login-error"></div>`;
     setTimeout(()=>{
       const el=document.getElementById('admin-code');
-      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(el) { el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); el.focus(); }
       const btn=document.getElementById('btn-login-admin');
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-driver');
