@@ -1366,18 +1366,34 @@ async function initApp() {
     segurosVehiculosCache = segVehSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     // Migración: el importe del seguro era un único valor (campo "importe") y ahora se
-    // guarda por años (campo "importePorAnio"). A los vehículos que ya tenían un importe
-    // guardado de antes les pasamos ese valor al año de su fecha de caducidad actual,
-    // para no perder el dato.
+    // guarda por años (campo "importePorAnio"). El importe guardado corresponde al año
+    // ANTERIOR a la fecha de caducidad (el año que se está pagando hasta esa renovación).
     for (const v of segurosVehiculosCache) {
       const yaTieneImportePorAnio = v.importePorAnio && Object.keys(v.importePorAnio).length > 0;
       if (v.importe != null && !yaTieneImportePorAnio) {
-        const anio = v.fechaCaducidad ? new Date(v.fechaCaducidad).getFullYear() : new Date().getFullYear();
+        const anio = v.fechaCaducidad ? (new Date(v.fechaCaducidad).getFullYear() - 1) : new Date().getFullYear();
         const nuevoMapa = { [anio]: v.importe };
         try {
           await updateDoc(doc(dbFleet,'segurosVehiculos',v.id), { importePorAnio: nuevoMapa });
           v.importePorAnio = nuevoMapa;
         } catch(err) { console.error('Error migrando importe de seguro:', v.id, err); }
+      }
+    }
+
+    // Corrección: una primera versión de esta migración usó por error el año de la
+    // caducidad en vez del año anterior. Solo corregimos el patrón exacto que generó ese
+    // fallo (un único año que coincide con la caducidad Y cuyo valor es igual al importe
+    // antiguo migrado), para no tocar nada que hayas metido tú a mano.
+    for (const v of segurosVehiculosCache) {
+      if (!v.importePorAnio || !v.fechaCaducidad || v.importe == null) continue;
+      const claves = Object.keys(v.importePorAnio);
+      const anioCaducidad = new Date(v.fechaCaducidad).getFullYear();
+      if (claves.length === 1 && parseInt(claves[0]) === anioCaducidad && parseFloat(v.importePorAnio[claves[0]]) === parseFloat(v.importe)) {
+        const nuevoMapa = { [anioCaducidad - 1]: v.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosVehiculos',v.id), { importePorAnio: nuevoMapa });
+          v.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error corrigiendo año de importe:', v.id, err); }
       }
     }
 
@@ -4666,7 +4682,7 @@ function renderSegurosVehiculos() {
 
   if (!activos.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de vehículos activos registrados</div>'; return; }
 
-  const filtrados = segVehBusqueda ? activos.filter(v=>(v.matricula||'').toLowerCase().includes(segVehBusqueda)) : activos;
+  const filtrados = segVehBusqueda ? activos.filter(v=>(v.matricula||'').toLowerCase().startsWith(segVehBusqueda)) : activos;
   if (segVehBusqueda && !filtrados.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>Ningún vehículo coincide con esa búsqueda</div>'; return; }
   const ordenados = [...filtrados].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
   list.innerHTML = ordenados.map(v=>{
@@ -4698,7 +4714,7 @@ function renderSegurosVehiculos() {
         </div>
 
         <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">💶 Importe del seguro por años</div>
-        ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio')}
+        ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio', safeId, 'seg')}
         <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:1rem;">
           <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
           <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
@@ -4706,7 +4722,7 @@ function renderSegurosVehiculos() {
         </div>
 
         <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">📅 Impuesto municipal por años</div>
-        ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio')}
+        ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio', safeId, 'imp')}
         <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:0.75rem;">
           <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
           <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
@@ -4817,12 +4833,13 @@ function ultimoValorAnio(mapa) {
 }
 
 // Pinta la lista de años de un mapa {año: importe}, con la diferencia en € y % respecto
-// al año anterior justo al lado de cada valor (el más reciente arriba).
-function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar) {
+// al año anterior justo al lado de cada valor. Solo se ve el año más reciente por
+// defecto; el resto se despliega con un botón, para no saturar la pantalla con muchos años.
+function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId, tipo) {
   const entradas = Object.entries(mapa||{}).map(([a,v])=>[a, parseFloat(v)]).sort((a,b)=>a[0]-b[0]);
   if (!entradas.length) return '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>';
-  return entradas.slice().reverse().map(([anio,valor])=>{
-    const idx = entradas.findIndex(e=>e[0]===anio);
+
+  const filaHtml = (anio, valor, idx) => {
     let diffHtml = '';
     if (idx > 0) {
       const anterior = entradas[idx-1][1];
@@ -4835,8 +4852,25 @@ function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar) {
       <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
       <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
     </div>`;
-  }).join('');
+  };
+
+  const ultimoIdx = entradas.length - 1;
+  let html = filaHtml(entradas[ultimoIdx][0], entradas[ultimoIdx][1], ultimoIdx);
+
+  if (entradas.length > 1) {
+    const contId = `lista-anios-${tipo}-${safeId}`;
+    const resto = entradas.slice(0, ultimoIdx).reverse();
+    html += `<div id="${contId}" style="display:none;">${resto.map(([anio,valor])=>filaHtml(anio, valor, entradas.findIndex(e=>e[0]===anio))).join('')}</div>`;
+    html += `<button class="btn-sm" data-texto="▼ Ver ${resto.length} año${resto.length>1?'s':''} más" onclick="toggleListaAnios('${contId}', this)" style="font-size:11px;margin-top:4px;">▼ Ver ${resto.length} año${resto.length>1?'s':''} más</button>`;
+  }
+  return html;
 }
+
+window.toggleListaAnios = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = '▲ Ocultar años anteriores'; }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
 
 window.editarSeguroVehiculo = (id) => {
   const v = segurosVehiculosCache.find(x=>x.id===id);
