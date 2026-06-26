@@ -889,7 +889,7 @@ input[type="number"] { -moz-appearance: textfield; }
               <input class="form-input" type="text" id="seg-veh-conductor" list="seg-conductores-existentes" placeholder="Nombre del conductor">
               <datalist id="seg-conductores-existentes"></datalist>
             </div>
-            <div style="margin-bottom:1.25rem;">
+            <div style="margin-bottom:1.25rem;" id="seg-veh-lunas-wrapper">
               <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
                 <input type="checkbox" id="seg-veh-lunas" style="width:18px;height:18px;"> 🪟 Seguro de lunas
               </label>
@@ -4611,10 +4611,12 @@ function actualizarCamposSegunTipo(prefix) {
   const esVehiculo = tipo === 'vehiculo';
   const wrapperItv = document.getElementById(prefix+'-clasitv-wrapper');
   const wrapperConductor = document.getElementById(prefix+'-conductor-wrapper');
+  const wrapperLunas = document.getElementById(prefix+'-lunas-wrapper');
   const labelAmbito = document.getElementById(prefix+'-ambito-label');
   const inputAmbito = document.getElementById(prefix+'-ambito');
   if (wrapperItv) wrapperItv.style.display = esVehiculo ? 'block' : 'none';
   if (wrapperConductor) wrapperConductor.style.display = esVehiculo ? 'block' : 'none';
+  if (wrapperLunas) wrapperLunas.style.display = esVehiculo ? 'block' : 'none';
   if (labelAmbito) labelAmbito.textContent = esVehiculo ? 'Ámbito' : 'Número';
   if (inputAmbito) {
     inputAmbito.type = esVehiculo ? 'text' : 'number';
@@ -4852,7 +4854,7 @@ function renderSegurosVehiculos() {
           <div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
           ${esVehiculoCard?`<div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>`:''}
-          <div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>
+          ${esVehiculoCard?`<div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>`:''}
           ${v.comentarios?`<div style="margin-top:6px;"><strong>Notas:</strong> ${v.comentarios}</div>`:''}
         </div>
 
@@ -5123,7 +5125,7 @@ window.editarSeguroVehiculo = (id) => {
       <div class="form-group" id="edit-seg-veh-conductor-wrapper"><label class="form-label">Conductor</label>
         <input class="form-input" type="text" id="edit-seg-veh-conductor" list="seg-conductores-existentes" value="${nombreConductorSeguro(v)}" placeholder="Nombre del conductor">
       </div>
-      <div style="margin-bottom:1.25rem;">
+      <div style="margin-bottom:1.25rem;" id="edit-seg-veh-lunas-wrapper">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
           <input type="checkbox" id="edit-seg-veh-lunas" ${v.seguroLunas?'checked':''} style="width:18px;height:18px;"> 🪟 Seguro de lunas
         </label>
