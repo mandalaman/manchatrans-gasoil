@@ -4724,23 +4724,27 @@ function renderSegurosVehiculos() {
           ${v.comentarios?`<div style="margin-top:6px;"><strong>Comentarios:</strong> ${v.comentarios}</div>`:''}
         </div>
 
-        <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">💶 Importe del seguro por años</div>
-        ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio', safeId, 'seg')}
-        <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:1rem;">
-          <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
-          <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
-          <button class="btn-sm" onclick="anadirImporteSeguroAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+        <button class="btn-sm" data-texto="💶 Ver historial del importe del seguro" onclick="toggleSeccionAnios('seg-anios-seg-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">💶 Ver historial del importe del seguro</button>
+        <div id="seg-anios-seg-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio', safeId, 'seg')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImporteSeguroAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
         </div>
 
-        <div style="font-size:12px;color:var(--accent);font-weight:700;margin-top:0.75rem;margin-bottom:0.5rem;">📅 Impuesto municipal por años</div>
-        ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio', safeId, 'imp')}
-        <div style="display:flex;gap:0.4rem;margin-top:0.5rem;margin-bottom:0.75rem;">
-          <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
-          <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
-          <button class="btn-sm" onclick="anadirImpuestoAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+        <button class="btn-sm" data-texto="📅 Ver historial del impuesto municipal" onclick="toggleSeccionAnios('seg-anios-imp-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">📅 Ver historial del impuesto municipal</button>
+        <div id="seg-anios-imp-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio', safeId, 'imp')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImpuestoAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
         </div>
 
-        <div style="display:flex;gap:0.5rem;">
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
           <button class="btn-sm" style="flex:1;" onclick="editarSeguroVehiculo('${v.id}')">✏️ Editar</button>
           <button class="btn-del" style="flex:1;" onclick="bajaSeguroVehiculo('${v.id}')">📤 Dar de baja</button>
         </div>
@@ -4883,6 +4887,12 @@ function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId,
   }
   return html;
 }
+
+window.toggleSeccionAnios = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
 
 window.toggleListaAnios = (contId, btn) => {
   const cont = document.getElementById(contId);
