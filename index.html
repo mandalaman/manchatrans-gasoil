@@ -1365,6 +1365,22 @@ async function initApp() {
     const segVehSnap = await getDocs(collection(dbFleet, 'segurosVehiculos'));
     segurosVehiculosCache = segVehSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // Migración: el importe del seguro era un único valor (campo "importe") y ahora se
+    // guarda por años (campo "importePorAnio"). A los vehículos que ya tenían un importe
+    // guardado de antes les pasamos ese valor al año de su fecha de caducidad actual,
+    // para no perder el dato.
+    for (const v of segurosVehiculosCache) {
+      const yaTieneImportePorAnio = v.importePorAnio && Object.keys(v.importePorAnio).length > 0;
+      if (v.importe != null && !yaTieneImportePorAnio) {
+        const anio = v.fechaCaducidad ? new Date(v.fechaCaducidad).getFullYear() : new Date().getFullYear();
+        const nuevoMapa = { [anio]: v.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosVehiculos',v.id), { importePorAnio: nuevoMapa });
+          v.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error migrando importe de seguro:', v.id, err); }
+      }
+    }
+
     // Cargar pólizas de seguros (Fleet)
     const segPolSnap = await getDocs(collection(dbFleet, 'segurosPolizas'));
     segurosPolizasCache = segPolSnap.docs.map(d => ({ id: d.id, ...d.data() }));
