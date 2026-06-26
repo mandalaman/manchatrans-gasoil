@@ -5133,7 +5133,7 @@ window.toggleSeccionAnios = (contId, btn) => {
 // Rellena el mini-formulario de año/importe/nota con los datos de un año ya existente,
 // para poder corregirlo (al volver a pulsar ➕ con el mismo año, se sobrescribe solo).
 window.editarAnioEnLista = (tipo, safeId, anio, valor, nota) => {
-  const sufijo = tipo === 'seg' ? 'seg-'+safeId : safeId;
+  const sufijo = (tipo === 'seg' || tipo === 'pol') ? tipo+'-'+safeId : safeId;
   const inputAnio = document.getElementById('nuevo-anio-'+sufijo);
   const inputImp = document.getElementById('nuevo-imp-'+sufijo);
   const inputNota = document.getElementById('nuevo-nota-'+sufijo);
@@ -5141,6 +5141,7 @@ window.editarAnioEnLista = (tipo, safeId, anio, valor, nota) => {
   if (inputImp) inputImp.value = valor.toString().replace('.',',');
   if (inputNota) inputNota.value = nota || '';
   if (inputAnio) { inputAnio.scrollIntoView({behavior:'smooth', block:'center'}); inputAnio.focus(); }
+  else { alert('No se ha podido localizar el formulario para editar este año. Despliega primero el historial si está cerrado.'); }
 };
 
 window.toggleListaAnios = (contId, btn) => {
