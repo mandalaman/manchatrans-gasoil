@@ -878,7 +878,8 @@ input[type="number"] { -moz-appearance: textfield; }
                 <select class="form-input" id="seg-veh-empresa"><option value="">— Selecciona empresa —</option></select>
               </div>
               <div class="form-group"><label class="form-label">Conductor</label>
-                <select class="form-input" id="seg-veh-conductor"><option value="">— Selecciona conductor —</option></select>
+                <input class="form-input" type="text" id="seg-veh-conductor" list="seg-conductores-existentes" placeholder="Nombre del conductor">
+                <datalist id="seg-conductores-existentes"></datalist>
               </div>
             </div>
             <div style="margin-bottom:1.25rem;">
@@ -4518,7 +4519,7 @@ function switchSegurosTab(tab) {
 function populateSegurosSelects() {
   const datalistMat = document.getElementById('seg-matriculas-existentes');
   const selEmpresa = document.getElementById('seg-veh-empresa');
-  const selConductor = document.getElementById('seg-veh-conductor');
+  const datalistConductor = document.getElementById('seg-conductores-existentes');
   if (datalistMat) {
     const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(v=>v.activo!==false).map(v=>v.matricula), ...segurosElementosExtraCache];
     datalistMat.innerHTML = todasMat.map(m=>`<option value="${m}">`).join('');
@@ -4527,10 +4528,9 @@ function populateSegurosSelects() {
     selEmpresa.innerHTML = '<option value="">— Selecciona empresa —</option>';
     EMPRESAS_EMPLEADO.forEach(e=>{ selEmpresa.innerHTML += `<option value="${e}">${e}</option>`; });
   }
-  if (selConductor) {
+  if (datalistConductor) {
     const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
-    selConductor.innerHTML = '<option value="">— Selecciona conductor —</option>';
-    activos.forEach(d=>{ selConductor.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+    datalistConductor.innerHTML = activos.map(d=>`<option value="${d.name}">`).join('');
   }
 }
 
@@ -4623,7 +4623,7 @@ async function guardarSeguroVehiculo() {
   const corredor = document.getElementById('seg-veh-corredor').value.trim();
   const ambito = document.getElementById('seg-veh-ambito').value.trim();
   const empresa = document.getElementById('seg-veh-empresa').value;
-  const conductorCode = document.getElementById('seg-veh-conductor').value;
+  const conductor = document.getElementById('seg-veh-conductor').value.trim();
   const seguroLunas = document.getElementById('seg-veh-lunas').checked;
   const comentarios = document.getElementById('seg-veh-comentarios').value.trim();
 
@@ -4640,7 +4640,7 @@ async function guardarSeguroVehiculo() {
     const existente = segurosVehiculosCache.find(v=>v.id===docId);
     const datos = {
       matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
-      fechaCaducidad, corredor, ambito, empresa, conductorCode, seguroLunas, comentarios,
+      fechaCaducidad, corredor, ambito, empresa, conductor, seguroLunas, comentarios,
       impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {},
       importePorAnio: existente ? (existente.importePorAnio||{}) : {},
       activo: existente ? (existente.activo!==false) : true
@@ -4719,7 +4719,7 @@ function renderSegurosVehiculos() {
           <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
           <div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
-          <div><strong>Conductor:</strong> ${v.conductorCode?nombreConductorPorCodigo(v.conductorCode):'—'}</div>
+          <div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>
           <div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>
           ${v.comentarios?`<div style="margin-top:6px;"><strong>Comentarios:</strong> ${v.comentarios}</div>`:''}
         </div>
@@ -4837,6 +4837,13 @@ window.eliminarImporteSeguroAnio = async (matricula, anio) => {
 };
 
 // Devuelve el valor del año más reciente de un mapa {año: importe}, o null si está vacío.
+// Devuelve el nombre del conductor de un seguro, tanto si viene vinculado por código
+// (formato antiguo) como si es texto libre (formato actual, no requiere estar en Configuración).
+function nombreConductorSeguro(v) {
+  if (v.conductorCode) return nombreConductorPorCodigo(v.conductorCode);
+  return v.conductor || '';
+}
+
 function ultimoValorAnio(mapa) {
   if (!mapa) return null;
   const anios = Object.keys(mapa).sort((a,b)=>b-a);
@@ -4918,10 +4925,7 @@ window.editarSeguroVehiculo = (id) => {
           </select>
         </div>
         <div class="form-group"><label class="form-label">Conductor</label>
-          <select class="form-input" id="edit-seg-veh-conductor">
-            <option value="">— Selecciona conductor —</option>
-            ${activos.map(d=>`<option value="${d.code}" ${d.code===v.conductorCode?'selected':''}>${d.name}</option>`).join('')}
-          </select>
+          <input class="form-input" type="text" id="edit-seg-veh-conductor" list="seg-conductores-existentes" value="${nombreConductorSeguro(v)}" placeholder="Nombre del conductor">
         </div>
       </div>
       <div style="margin-bottom:1.25rem;">
@@ -4957,7 +4961,8 @@ window.editarSeguroVehiculo = (id) => {
       corredor: document.getElementById('edit-seg-veh-corredor').value.trim(),
       ambito: document.getElementById('edit-seg-veh-ambito').value.trim(),
       empresa: document.getElementById('edit-seg-veh-empresa').value,
-      conductorCode: document.getElementById('edit-seg-veh-conductor').value,
+      conductor: document.getElementById('edit-seg-veh-conductor').value.trim(),
+      conductorCode: null,
       seguroLunas: document.getElementById('edit-seg-veh-lunas').checked,
       comentarios: document.getElementById('edit-seg-veh-comentarios').value.trim(),
     };
@@ -5303,7 +5308,7 @@ function _generarExcelSegurosVehiculos() {
       v.matricula||'', v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
       v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
       v.corredor||'', ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio):'', seguroTxt, v.ambito||'', v.empresa||'',
-      v.conductorCode ? nombreConductorPorCodigo(v.conductorCode) : '', v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
+      nombreConductorSeguro(v), v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
     ]);
   });
   const wb = XLSX.utils.book_new();
