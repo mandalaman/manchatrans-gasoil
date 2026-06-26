@@ -840,9 +840,9 @@ input[type="number"] { -moz-appearance: textfield; }
     <div id="module-seguros" style="display:none;">
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="seg-tab-btn-vehiculos">🚗 Vehículos</button>
-        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-tractor">🚛 Tractor</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-carretillas">🚜 Carretillas/Transpaletas</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-polizas">📄 Pólizas</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-tractor">🚛 Tractor</button>
         <button class="btn btn-ghost atab-btn" id="seg-tab-btn-comparativa">📊 Comparativa</button>
       </div>
 
@@ -883,7 +883,7 @@ input[type="number"] { -moz-appearance: textfield; }
               <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-veh-fechacad"></div>
             </div>
             <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
-            <div class="form-group"><label class="form-label" id="seg-veh-ambito-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
+            <div class="form-group" id="seg-veh-ambito-wrapper"><label class="form-label" id="seg-veh-ambito-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
             <div class="form-group"><label class="form-label">Empresa</label>
               <select class="form-input" id="seg-veh-empresa"><option value="">— Selecciona empresa —</option></select>
             </div>
@@ -4647,25 +4647,28 @@ function switchSegurosTab(tab) {
 // llevan Clasificación ITV, y el campo "Ámbito" pasa a ser un "Número" para ellas.
 function actualizarCamposSegunTipo(prefix) {
   const tipo = document.getElementById(prefix+'-tipo').value;
-  // "Reducido" = carretilla o transpaleta: sin ITV, conductor, lunas, impuesto municipal,
-  // y el campo Ámbito pasa a ser un Número. El Tractor es como un Vehículo normal, solo
-  // que sin el campo Kilos.
-  const esReducido = tipo === 'carretilla' || tipo === 'transpaleta';
+  // "Reducido" agrupa carretilla, transpaleta y tractor: sin ITV, conductor, lunas ni
+  // impuesto municipal. El Tractor además oculta el campo Ámbito del todo (no lo necesita
+  // ni como "Número"), y nunca muestra Kilos.
+  const esReducido = tipo === 'carretilla' || tipo === 'transpaleta' || tipo === 'tractor';
   const esTractor = tipo === 'tractor';
+  const esCarretillaOTranspaleta = tipo === 'carretilla' || tipo === 'transpaleta';
   const wrapperKilos = document.getElementById(prefix+'-kilos-wrapper');
   const wrapperItv = document.getElementById(prefix+'-clasitv-wrapper');
   const wrapperConductor = document.getElementById(prefix+'-conductor-wrapper');
   const wrapperLunas = document.getElementById(prefix+'-lunas-wrapper');
+  const wrapperAmbito = document.getElementById(prefix+'-ambito-wrapper');
   const labelAmbito = document.getElementById(prefix+'-ambito-label');
   const inputAmbito = document.getElementById(prefix+'-ambito');
   if (wrapperKilos) wrapperKilos.style.display = esTractor ? 'none' : 'block';
   if (wrapperItv) wrapperItv.style.display = esReducido ? 'none' : 'block';
   if (wrapperConductor) wrapperConductor.style.display = esReducido ? 'none' : 'block';
   if (wrapperLunas) wrapperLunas.style.display = esReducido ? 'none' : 'block';
-  if (labelAmbito) labelAmbito.textContent = esReducido ? 'Número' : 'Ámbito';
+  if (wrapperAmbito) wrapperAmbito.style.display = esTractor ? 'none' : 'block';
+  if (labelAmbito) labelAmbito.textContent = esCarretillaOTranspaleta ? 'Número' : 'Ámbito';
   if (inputAmbito) {
-    inputAmbito.type = esReducido ? 'number' : 'text';
-    inputAmbito.placeholder = esReducido ? 'Ej: 3' : 'Ej: Nacional, Europa...';
+    inputAmbito.type = esCarretillaOTranspaleta ? 'number' : 'text';
+    inputAmbito.placeholder = esCarretillaOTranspaleta ? 'Ej: 3' : 'Ej: Nacional, Europa...';
   }
 }
 
@@ -4889,7 +4892,7 @@ function renderSegurosVehiculos() {
     let color = 'var(--text-muted)';
     if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
     const abierta = segVehFichasAbiertas.has(safeId);
-    const esReducidoCard = v.tipo==='carretilla' || v.tipo==='transpaleta';
+    const esReducidoCard = v.tipo==='carretilla' || v.tipo==='transpaleta' || v.tipo==='tractor';
     const esTractorCard = v.tipo==='tractor';
     return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
       <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
@@ -4906,7 +4909,7 @@ function renderSegurosVehiculos() {
           <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
           <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
           <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
-          <div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>
+          ${!esTractorCard?`<div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>`:''}
           <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
           ${!esReducidoCard?`<div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>`:''}
           ${!esReducidoCard?`<div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>`:''}
@@ -5181,7 +5184,7 @@ window.editarSeguroVehiculo = (id) => {
         <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-veh-fechacad" value="${v.fechaCaducidad||''}"></div>
       </div>
       <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
-      <div class="form-group"><label class="form-label" id="edit-seg-veh-ambito-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
+      <div class="form-group" id="edit-seg-veh-ambito-wrapper"><label class="form-label" id="edit-seg-veh-ambito-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
       <div class="form-group"><label class="form-label">Empresa</label>
         <select class="form-input" id="edit-seg-veh-empresa">
           <option value="">— Selecciona empresa —</option>
