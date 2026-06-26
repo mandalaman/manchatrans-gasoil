@@ -4827,9 +4827,18 @@ async function guardarSeguroVehiculo() {
   btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
   try {
     const existente = segurosVehiculosCache.find(v=>v.id===docId);
+    const esReducidoGuardar = tipo === 'carretilla' || tipo === 'transpaleta' || tipo === 'tractor';
+    const esTractorGuardar = tipo === 'tractor';
     const datos = {
-      matricula, modelo, kilos: kilosVal?parseFloat(kilosVal):null, clasificacionItv, compania, numeroPoliza,
-      fechaCaducidad, corredor, ambito, empresa, conductor, seguroLunas, comentarios, tipo,
+      matricula, modelo,
+      kilos: (esTractorGuardar || !kilosVal) ? null : parseFloat(kilosVal),
+      clasificacionItv: esReducidoGuardar ? '' : clasificacionItv,
+      compania, numeroPoliza, fechaCaducidad, corredor,
+      ambito: esTractorGuardar ? '' : ambito,
+      empresa,
+      conductor: esReducidoGuardar ? '' : conductor,
+      seguroLunas: esReducidoGuardar ? false : seguroLunas,
+      comentarios, tipo,
       impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {},
       importePorAnio: existente ? (existente.importePorAnio||{}) : {},
       activo: existente ? (existente.activo!==false) : true
@@ -5219,21 +5228,24 @@ window.editarSeguroVehiculo = (id) => {
     const fechaCaducidad = document.getElementById('edit-seg-veh-fechacad').value;
     if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
     const kilosVal = document.getElementById('edit-seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
+    const tipoEditado = document.getElementById('edit-seg-veh-tipo').value;
+    const esReducidoEdit = tipoEditado === 'carretilla' || tipoEditado === 'transpaleta' || tipoEditado === 'tractor';
+    const esTractorEdit = tipoEditado === 'tractor';
     const cambios = {
       ...v,
-      tipo: document.getElementById('edit-seg-veh-tipo').value,
+      tipo: tipoEditado,
       modelo: document.getElementById('edit-seg-veh-modelo').value.trim(),
-      kilos: kilosVal?parseFloat(kilosVal):null,
-      clasificacionItv: document.getElementById('edit-seg-veh-clasitv').value.trim(),
+      kilos: (esTractorEdit || !kilosVal) ? null : parseFloat(kilosVal),
+      clasificacionItv: esReducidoEdit ? '' : document.getElementById('edit-seg-veh-clasitv').value.trim(),
       compania: document.getElementById('edit-seg-veh-compania').value.trim(),
       numeroPoliza: document.getElementById('edit-seg-veh-numpoliza').value.trim(),
       fechaCaducidad,
       corredor: document.getElementById('edit-seg-veh-corredor').value.trim(),
-      ambito: document.getElementById('edit-seg-veh-ambito').value.trim(),
+      ambito: esTractorEdit ? '' : document.getElementById('edit-seg-veh-ambito').value.trim(),
       empresa: document.getElementById('edit-seg-veh-empresa').value,
-      conductor: document.getElementById('edit-seg-veh-conductor').value.trim(),
+      conductor: esReducidoEdit ? '' : document.getElementById('edit-seg-veh-conductor').value.trim(),
       conductorCode: null,
-      seguroLunas: document.getElementById('edit-seg-veh-lunas').checked,
+      seguroLunas: esReducidoEdit ? false : document.getElementById('edit-seg-veh-lunas').checked,
       comentarios: document.getElementById('edit-seg-veh-comentarios').value.trim(),
     };
     delete cambios.id;
