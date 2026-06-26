@@ -4840,7 +4840,7 @@ function renderSegurosVehiculos() {
       <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
         <div>
           <div style="font-weight:600;font-size:14px;">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':''}${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
         </div>
         <span id="seg-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
       </div>
@@ -4903,7 +4903,7 @@ function renderSegurosVehiculosBaja() {
     <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
       <div style="flex:1;min-width:200px;">
         <div class="driver-info">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':''}${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
       </div>
       <div style="display:flex;gap:0.5rem;">
         <button onclick="reactivarSeguroVehiculo('${v.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
