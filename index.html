@@ -4017,7 +4017,6 @@ function renderMantenimiento() {
               </div>
             </div>
             ${dias!==null?`<div style="font-size:12px;color:${color};font-weight:600;">${dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`}</div>`:''}
-            ${fechaUltimaStr?`<div style="font-size:11px;color:var(--text-muted);">Última vez: ${new Date(fechaUltimaStr).toLocaleDateString('es-ES')}</div>`:''}
           </div>`;
         }).join('')}
       </div>
@@ -4043,9 +4042,7 @@ window.editMant = (mat, rev) => {
   modal.innerHTML=`
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">🔧 ${rev} — ${mat}</div>
-      <div class="form-group"><label class="form-label">Última vez que se pasó</label>
-      <input class="form-input" type="date" id="mant-fecha-ultima" value="${m[keyUltima]||''}"></div>
-      <div class="form-group"><label class="form-label">Próxima fecha</label>
+      <div class="form-group"><label class="form-label">Fecha</label>
       <input class="form-input" type="date" id="mant-fecha" value="${m[key]||''}"></div>
       <div style="display:flex;gap:0.5rem;">
         <button id="btn-save-mant" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
@@ -4057,13 +4054,12 @@ window.editMant = (mat, rev) => {
   document.body.appendChild(modal);
   document.getElementById('btn-save-mant').addEventListener('click', async ()=>{
     const fecha=document.getElementById('mant-fecha').value;
-    const fechaUltima=document.getElementById('mant-fecha-ultima').value;
     const al=document.getElementById('mant-modal-alert');
     if (!fecha) { showAlert(al,'Selecciona la próxima fecha',true); return; }
     try {
       const fechaAnterior = m[key];
       const idx=mantenimientoCache.findIndex(x=>x.matricula===mat);
-      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null};
+      const updates = {[key]:fecha};
       if(idx>=0) { Object.assign(mantenimientoCache[idx],updates); await setDoc(doc(dbFleet,'mantenimiento',mat),mantenimientoCache[idx]); }
       else { const nuevo={matricula:mat,...updates}; mantenimientoCache.push(nuevo); await setDoc(doc(dbFleet,'mantenimiento',mat),nuevo); }
 
