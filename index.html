@@ -3070,7 +3070,7 @@ function renderDriverList() {
         ${sinGasoil}
         ${tallasTxt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
         <div style="font-size:12px;margin-top:4px;" id="salario-line-${d.code}">
-          <button onclick="verSalarioEmpleado('${d.code}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:0;">🔒 Ver salario</button>
+          <button onclick="verSalarioEmpleado('${d.code}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:0;">🔒 Ver salario y cuenta bancaria</button>
         </div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
@@ -3097,10 +3097,10 @@ function renderDriverList() {
 window.verSalarioEmpleado = async (code) => {
   const d = driversCache.find(x=>x.code===code);
   if (!d) return;
-  const ok = await pedirPasswordSuperadmin(`El salario de ${d.name} solo lo puede ver el Admin Superior.`);
+  const ok = await pedirPasswordSuperadmin(`El salario y la cuenta bancaria de ${d.name} solo los puede ver el Admin Superior.`);
   if (!ok) return;
   const linea = document.getElementById('salario-line-'+code);
-  if (linea) linea.innerHTML = `💰 Salario bruto: <strong>${d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES')+' €' : 'No indicado'}</strong>`;
+  if (linea) linea.innerHTML = `💰 Salario bruto: <strong>${d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES')+' €' : 'No indicado'}</strong><br>🏦 Cuenta: <strong>${d.cuentaBancaria || 'No indicada'}</strong>`;
 };
 
 window.eliminarDriverDefinitivo = async (code) => {
@@ -3319,11 +3319,16 @@ window.editDriver = (code) => {
         <input class="form-input" type="email" id="edit-driver-email" value="${d.email||''}" placeholder="Opcional">
       </div>
       <div class="form-group">
-        <label class="form-label">💰 Salario bruto <span style="color:var(--text-muted);font-weight:400;">(solo Admin Superior)</span></label>
+        <label class="form-label">🔒 Datos confidenciales <span style="color:var(--text-muted);font-weight:400;">(solo Admin Superior)</span></label>
         <div id="salario-edit-bloqueado">
-          <button type="button" id="btn-ver-salario-edit" style="width:100%;padding:0.6rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;">🔒 Ver / editar salario</button>
+          <button type="button" id="btn-ver-salario-edit" style="width:100%;padding:0.6rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;">🔒 Ver / editar salario y cuenta bancaria</button>
         </div>
-        <input class="form-input" type="text" inputmode="decimal" id="edit-driver-salario" placeholder="Ej: 1.800,00" style="display:none;">
+        <div id="salario-edit-desbloqueado" style="display:none;">
+          <label class="form-label" style="margin-top:0.5rem;">Salario bruto</label>
+          <input class="form-input" type="text" inputmode="decimal" id="edit-driver-salario" placeholder="Ej: 1.800,00">
+          <label class="form-label" style="margin-top:0.5rem;">Cuenta bancaria (IBAN)</label>
+          <input class="form-input" type="text" id="edit-driver-cuenta" placeholder="Ej: ES00 0000 0000 0000 0000 0000" style="text-transform:uppercase;">
+        </div>
       </div>
       <div style="margin-bottom:0.75rem;">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
@@ -3345,14 +3350,14 @@ window.editDriver = (code) => {
 
   let salarioDesbloqueado = false;
   document.getElementById('btn-ver-salario-edit').addEventListener('click', async () => {
-    const ok = await pedirPasswordSuperadmin(`El salario de ${d.name} solo lo puede ver el Admin Superior.`);
+    const ok = await pedirPasswordSuperadmin(`El salario y la cuenta bancaria de ${d.name} solo los puede ver el Admin Superior.`);
     if (!ok) return;
     salarioDesbloqueado = true;
     document.getElementById('salario-edit-bloqueado').style.display = 'none';
-    const inputSalario = document.getElementById('edit-driver-salario');
-    inputSalario.style.display = 'block';
-    inputSalario.value = d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES') : '';
-    inputSalario.focus();
+    document.getElementById('salario-edit-desbloqueado').style.display = 'block';
+    document.getElementById('edit-driver-salario').value = d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES') : '';
+    document.getElementById('edit-driver-cuenta').value = d.cuentaBancaria || '';
+    document.getElementById('edit-driver-salario').focus();
   });
 
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
@@ -3382,6 +3387,7 @@ window.editDriver = (code) => {
       if (salarioDesbloqueado) {
         const valorSalario = parseImporteEuropeo(document.getElementById('edit-driver-salario').value);
         actualizado.salarioBruto = isNaN(valorSalario) ? null : valorSalario;
+        actualizado.cuentaBancaria = document.getElementById('edit-driver-cuenta').value.trim().toUpperCase();
       }
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
