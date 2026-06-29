@@ -444,6 +444,10 @@ input[type="number"] { -moz-appearance: textfield; }
           <label class="form-label">Extensión de teléfono móvil</label>
           <input class="form-input" type="text" id="new-driver-extension" placeholder="Ej: 105 (opcional)">
         </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" type="email" id="new-driver-email" placeholder="Opcional">
+        </div>
         <div style="margin-bottom:0.75rem;">
           <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
             <input type="checkbox" id="new-driver-permiso-gasoil" checked style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
@@ -3050,7 +3054,8 @@ function renderDriverList() {
       d.dni ? `🪪 ${d.dni}` : null,
       d.telParticular ? `📱 ${d.telParticular}` : null,
       d.telEmpresa ? `🏢 ${d.telEmpresa}` : null,
-      d.extension ? `☎️ Ext. ${d.extension}` : null
+      d.extension ? `☎️ Ext. ${d.extension}` : null,
+      d.email ? `✉️ ${d.email}` : null
     ].filter(Boolean).join(' · ');
     const sinGasoil = d.permisoGasoil===false ? `<div style="font-size:11px;color:var(--danger);font-weight:600;margin-top:3px;">⛔ Sin permiso de Gasoil</div>` : '';
     const ropaDoc = ropaEmpleadosCache.find(e=>e.conductorCode===d.code);
@@ -3064,6 +3069,9 @@ function renderDriverList() {
         ${datosExtra ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">${datosExtra}</div>` : ''}
         ${sinGasoil}
         ${tallasTxt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
+        <div style="font-size:12px;margin-top:4px;" id="salario-line-${d.code}">
+          <button onclick="verSalarioEmpleado('${d.code}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:0;">🔒 Ver salario</button>
+        </div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
@@ -3085,6 +3093,15 @@ function renderDriverList() {
       </div>
     </div>`).join('');
 }
+
+window.verSalarioEmpleado = async (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  const ok = await pedirPasswordSuperadmin(`El salario de ${d.name} solo lo puede ver el Admin Superior.`);
+  if (!ok) return;
+  const linea = document.getElementById('salario-line-'+code);
+  if (linea) linea.innerHTML = `💰 Salario bruto: <strong>${d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES')+' €' : 'No indicado'}</strong>`;
+};
 
 window.eliminarDriverDefinitivo = async (code) => {
   const d = driversCache.find(x=>x.code===code);
@@ -3166,6 +3183,7 @@ function limpiarFormularioEmpleado() {
   document.getElementById('new-driver-tel-particular').value='';
   document.getElementById('new-driver-tel-empresa').value='';
   document.getElementById('new-driver-extension').value='';
+  document.getElementById('new-driver-email').value='';
   document.getElementById('new-driver-permiso-gasoil').checked=true;
   document.getElementById('new-driver-limpieza').checked=false;
 }
@@ -3181,6 +3199,7 @@ window.addDriver = async () => {
   const telParticular=document.getElementById('new-driver-tel-particular').value.trim();
   const telEmpresa=document.getElementById('new-driver-tel-empresa').value.trim();
   const extension=document.getElementById('new-driver-extension').value.trim();
+  const email=document.getElementById('new-driver-email').value.trim();
   const permisoGasoil=document.getElementById('new-driver-permiso-gasoil').checked;
   const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
@@ -3193,7 +3212,7 @@ window.addDriver = async () => {
   if (!code) code = 'SC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
   btnAdd.disabled = true; const textoBtnOriginal = btnAdd.textContent; btnAdd.textContent = 'Guardando...';
   try {
-    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil,sinCodigo:!tieneCodigoReal};
+    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,email,permisoGasoil,sinCodigo:!tieneCodigoReal};
     await setDoc(doc(db,'conductores',code),nuevo);
     // No tocamos driversCache a mano: el listener onSnapshot de conductores ya lo
     // actualiza solo. Si lo hacemos aquí también, el empleado aparece duplicado.
@@ -3295,6 +3314,17 @@ window.editDriver = (code) => {
         <label class="form-label">Extensión de teléfono móvil</label>
         <input class="form-input" type="text" id="edit-driver-extension" value="${d.extension||''}" placeholder="Opcional">
       </div>
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input class="form-input" type="email" id="edit-driver-email" value="${d.email||''}" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label class="form-label">💰 Salario bruto <span style="color:var(--text-muted);font-weight:400;">(solo Admin Superior)</span></label>
+        <div id="salario-edit-bloqueado">
+          <button type="button" id="btn-ver-salario-edit" style="width:100%;padding:0.6rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;">🔒 Ver / editar salario</button>
+        </div>
+        <input class="form-input" type="text" inputmode="decimal" id="edit-driver-salario" placeholder="Ej: 1.800,00" style="display:none;">
+      </div>
       <div style="margin-bottom:0.75rem;">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
           <input type="checkbox" id="edit-driver-permiso-gasoil" ${d.permisoGasoil===false?'':'checked'} style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
@@ -3313,6 +3343,18 @@ window.editDriver = (code) => {
     </div>`;
   document.body.appendChild(modal);
 
+  let salarioDesbloqueado = false;
+  document.getElementById('btn-ver-salario-edit').addEventListener('click', async () => {
+    const ok = await pedirPasswordSuperadmin(`El salario de ${d.name} solo lo puede ver el Admin Superior.`);
+    if (!ok) return;
+    salarioDesbloqueado = true;
+    document.getElementById('salario-edit-bloqueado').style.display = 'none';
+    const inputSalario = document.getElementById('edit-driver-salario');
+    inputSalario.style.display = 'block';
+    inputSalario.value = d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES') : '';
+    inputSalario.focus();
+  });
+
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     let newCode = document.getElementById('edit-driver-code').value.trim();
@@ -3322,6 +3364,7 @@ window.editDriver = (code) => {
     const newTelParticular = document.getElementById('edit-driver-tel-particular').value.trim();
     const newTelEmpresa = document.getElementById('edit-driver-tel-empresa').value.trim();
     const newExtension = document.getElementById('edit-driver-extension').value.trim();
+    const newEmail = document.getElementById('edit-driver-email').value.trim();
     const newPermisoGasoil = document.getElementById('edit-driver-permiso-gasoil').checked;
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
@@ -3333,7 +3376,13 @@ window.editDriver = (code) => {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, permisoGasoil:newPermisoGasoil, sinCodigo:!tieneCodigoReal };
+      // El salario solo se incluye si se desbloqueó con la contraseña de Admin Superior;
+      // si no, se preserva el que ya hubiera (gracias al spread de "d" de más arriba).
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, email:newEmail, permisoGasoil:newPermisoGasoil, sinCodigo:!tieneCodigoReal };
+      if (salarioDesbloqueado) {
+        const valorSalario = parseImporteEuropeo(document.getElementById('edit-driver-salario').value);
+        actualizado.salarioBruto = isNaN(valorSalario) ? null : valorSalario;
+      }
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
@@ -8318,6 +8367,40 @@ function confirmarAccion(mensaje, tituloBoton) {
     document.body.appendChild(modal);
     document.getElementById('btn-confirmar-no').addEventListener('click', () => { modal.remove(); resolve(false); });
     document.getElementById('btn-confirmar-si').addEventListener('click', () => { modal.remove(); resolve(true); });
+  });
+}
+
+// Pide el usuario y contraseña del Admin Superior antes de mostrar algo sensible (por
+// ejemplo el salario de un empleado). Devuelve true/false según si se ha verificado bien.
+function pedirPasswordSuperadmin(mensaje) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.id = 'pedir-superadmin-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:340px;">
+        <div style="font-size:15px;font-weight:700;color:var(--accent);margin-bottom:0.5rem;">🔒 Acceso restringido</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">${mensaje||'Esto solo lo puede ver el Admin Superior.'}</div>
+        <div class="form-group"><label class="form-label">Usuario</label><input class="form-input" type="text" id="superadmin-check-user" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">Contraseña</label><input class="form-input" type="password" id="superadmin-check-pass" autocomplete="off"></div>
+        <div id="superadmin-check-error" style="font-size:12px;color:var(--danger);min-height:16px;margin-bottom:0.5rem;"></div>
+        <div style="display:flex;gap:0.5rem;">
+          <button id="btn-superadmin-check-no" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+          <button id="btn-superadmin-check-si" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Ver</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const cerrar = (ok) => { modal.remove(); resolve(ok); };
+    const comprobar = () => {
+      const u = (document.getElementById('superadmin-check-user').value||'').trim().toLowerCase();
+      const p = (document.getElementById('superadmin-check-pass').value||'').trim();
+      if (u===SUPERADMIN_USER && p===SUPERADMIN_PASS) { cerrar(true); }
+      else { document.getElementById('superadmin-check-error').textContent = 'Usuario o contraseña incorrectos'; }
+    };
+    document.getElementById('btn-superadmin-check-no').addEventListener('click', () => cerrar(false));
+    document.getElementById('btn-superadmin-check-si').addEventListener('click', comprobar);
+    document.getElementById('superadmin-check-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') comprobar(); });
+    setTimeout(()=>document.getElementById('superadmin-check-user').focus(), 50);
   });
 }
 
