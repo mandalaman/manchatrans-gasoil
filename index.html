@@ -1347,45 +1347,32 @@ async function initApp() {
 
   try {
     // Cargar conductores (Gasoil)
+    // IMPORTANTE: antes, si Firestore devolvía la colección vacía (por ejemplo por un
+    // problema de conexión puntual), la app la "rellenaba" sola con una lista básica de
+    // reserva (solo nombre y código), sobrescribiendo a todos los empleados reales y
+    // borrando el resto de sus datos. Esto causó una pérdida de datos real. Ahora NUNCA
+    // se escribe nada automáticamente aquí: solo se carga lo que haya en Firestore, sea
+    // lo que sea. Si algún día la colección está vacía de verdad, los empleados se añaden
+    // a mano desde Configuración, nunca de forma automática.
     const dSnap = await getDocs(collection(db, 'conductores'));
-    if (dSnap.empty) {
-      for (const d of DEFAULT_DRIVERS) {
-        await setDoc(doc(db, 'conductores', d.code), d);
-      }
-      driversCache = [...DEFAULT_DRIVERS];
-    } else {
-      driversCache = dSnap.docs.map(d => d.data());
-    }
+    driversCache = dSnap.docs.map(d => d.data());
 
     // Cargar vehículos (unificado: Gasoil + Flota con casillas)
+    // Mismo arreglo que en conductores: nunca se sobrescribe la colección entera por
+    // verla vacía. Solo se cargan los vehículos que haya, tal cual estén en Firestore.
     const vehSnap = await getDocs(collection(db, 'vehiculos'));
-    if (vehSnap.empty) {
-      const propios = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
-      ];
-      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true, activo: true }); }
-      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true, activo: true }); }
-      for (const p of propios) { await setDoc(doc(db, 'vehiculos', p.matricula), p); }
-      vehiculosCache = [
-        ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true, activo:true})),
-        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true, activo:true})),
-        ...propios
-      ];
-    } else {
-      vehiculosCache = vehSnap.docs.map(d => d.data());
-      // Comprobar si faltan los vehículos propios (de una versión anterior sin este campo)
-      const propiosCheck = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
-      ];
-      for (const p of propiosCheck) {
-        if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
-          await setDoc(doc(db, 'vehiculos', p.matricula), p);
-          vehiculosCache.push(p);
-        }
+    vehiculosCache = vehSnap.docs.map(d => d.data());
+    // Comprobación segura: solo AÑADE los 3 vehículos propios si de verdad no existen
+    // todavía (nunca sobrescribe ni toca los que ya están).
+    const propiosCheck = [
+      {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
+      {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
+      {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
+    ];
+    for (const p of propiosCheck) {
+      if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
+        await setDoc(doc(db, 'vehiculos', p.matricula), p);
+        vehiculosCache.push(p);
       }
     }
     matriculasCache = vehiculosCache.filter(v=>v.gasoil && v.activo!==false).map(v=>v.matricula);
