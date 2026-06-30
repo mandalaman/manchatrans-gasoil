@@ -304,6 +304,14 @@ input[type="number"] { -moz-appearance: textfield; }
           <span style="font-size:28px;">👔</span>
           <span style="font-size:16px;font-weight:700;">Ropa</span>
         </button>
+        <button class="modulo-home-btn" id="home-btn-adrcap">
+          <span style="font-size:28px;">🪪</span>
+          <span style="font-size:16px;font-weight:700;">ADR/CAP <span id="home-badge-adrcap" style="font-size:12px;"></span></span>
+        </button>
+        <button class="modulo-home-btn" id="home-btn-seguros">
+          <span style="font-size:28px;">🛡️</span>
+          <span style="font-size:16px;font-weight:700;">Seguros <span id="home-badge-seguros" style="font-size:12px;"></span></span>
+        </button>
         <button class="modulo-home-btn" id="home-btn-gestion">
           <span style="font-size:28px;">⚙️</span>
           <span style="font-size:16px;font-weight:700;">Configuración</span>
@@ -436,6 +444,10 @@ input[type="number"] { -moz-appearance: textfield; }
           <label class="form-label">Extensión de teléfono móvil</label>
           <input class="form-input" type="text" id="new-driver-extension" placeholder="Ej: 105 (opcional)">
         </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" type="email" id="new-driver-email" placeholder="Opcional">
+        </div>
         <div style="margin-bottom:0.75rem;">
           <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
             <input type="checkbox" id="new-driver-permiso-gasoil" checked style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
@@ -446,7 +458,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <input type="checkbox" id="new-driver-limpieza" style="width:18px;height:18px;"> 🧹 Disponible para labores de limpieza
           </label>
         </div>
-        <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
+        <div class="two-col">
+          <button class="btn btn-primary" id="btn-add-driver">Añadir empleado</button>
+          <button class="btn btn-ghost" id="btn-borrar-driver" type="button">🗑 Borrar</button>
+        </div>
       </div>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-drivers" style="margin-bottom:1rem;">📋 Ver empleados activos (<span id="driver-count">0</span>)</button>
@@ -490,7 +505,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <input type="checkbox" id="new-mat-flota" checked style="width:18px;height:18px;"> 🚛 Flota
           </label>
         </div>
-        <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
+        <div class="two-col">
+          <button class="btn btn-primary" id="btn-add-mat">Añadir vehículo</button>
+          <button class="btn btn-ghost" id="btn-borrar-mat" type="button">🗑 Borrar</button>
+        </div>
       </div>
       <button class="btn btn-secondary" id="btn-toggle-mat" style="margin-bottom:1rem;">📋 Ver vehículos activos (<span class="mat-count">0</span>)</button>
       <div id="mat-list-wrapper" style="display:none;">
@@ -526,7 +544,6 @@ input[type="number"] { -moz-appearance: textfield; }
       <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
         <button class="btn btn-secondary atab-btn" id="ftab-btn-historial">Cambio/Reparación</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-mantenimiento">Mantenimiento</button>
-        <button class="btn btn-ghost atab-btn" id="ftab-btn-mant-conductores">👤 ADR/CAP</button>
         <button class="btn btn-ghost atab-btn" id="ftab-btn-limpieza">🧹 Limpieza</button>
       </div>
 
@@ -545,7 +562,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <label class="form-label">Comentarios <span style="color:var(--danger)">*</span></label>
             <textarea class="form-input" id="hist-comentarios" placeholder="Describe el cambio o reparación realizada..."></textarea>
           </div>
+          <div class="two-col">
           <button class="btn btn-primary" id="btn-guardar-hist">Guardar registro</button>
+          <button class="btn btn-ghost" id="btn-borrar-hist" type="button">🗑 Borrar</button>
+        </div>
         </div>
         <div class="section-title">Historial de Cambio/Reparación</div>
         <button class="btn btn-secondary" id="btn-toggle-hist-cambios" style="margin-bottom:1rem;">📋 Ver historial de cambios</button>
@@ -591,36 +611,6 @@ input[type="number"] { -moz-appearance: textfield; }
           </select>
         </div>
         <div id="hist-mant-list"></div>
-      </div>
-
-      <!-- ADR/CAP POR CONDUCTOR -->
-      <div id="ftab-mant-conductores" class="tab-pane">
-        <div class="section-title">ADR y CAP por conductor</div>
-        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
-          <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
-          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
-        </div>
-        <div class="form-group">
-          <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
-            <option value="">— Selecciona conductor —</option>
-          </select>
-        </div>
-        <div id="mantcond-alertas"></div>
-        <div id="mantcond-list"></div>
-      </div>
-
-      <!-- HISTORIAL DE ADR/CAP -->
-      <div id="ftab-hist-mant-cond" class="tab-pane">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
-          <div class="section-title" style="margin-bottom:0;">Historial de ADR/CAP</div>
-          <button class="btn-sm" id="btn-volver-mant-cond">← Volver</button>
-        </div>
-        <div class="form-group">
-          <select class="form-input" id="hist-mant-cond-filter-cod" style="font-size:14px;padding:0.6rem;">
-            <option value="">Todos los conductores</option>
-          </select>
-        </div>
-        <div id="hist-mant-cond-list"></div>
       </div>
 
       <!-- LIMPIEZA -->
@@ -671,7 +661,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <canvas id="firma-limpieza-veh-canvas" width="500" height="180" style="border:2px dashed var(--accent);border-radius:var(--radius-sm);background:#fff;touch-action:none;width:100%;max-width:500px;height:180px;display:block;margin:0 auto;"></canvas>
               <button type="button" class="btn-sm" id="btn-limpiar-firma-limpieza-veh" style="margin-top:0.5rem;display:block;margin-left:auto;margin-right:auto;">🧹 Borrar firma</button>
             </div>
-            <button class="btn btn-primary" id="btn-guardar-limpieza-veh">Guardar registro</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-limpieza-veh">Guardar registro</button>
+              <button class="btn btn-ghost" id="btn-borrar-limpieza-veh" type="button">🗑 Borrar</button>
+            </div>
           </div>
           <div class="section-title">Historial de limpieza de vehículos</div>
           <button class="btn btn-secondary" id="btn-toggle-hist-limpieza-veh" style="margin-bottom:1rem;">📋 Ver historial</button>
@@ -729,7 +722,10 @@ input[type="number"] { -moz-appearance: textfield; }
               <canvas id="firma-limpieza-inst-canvas" width="500" height="180" style="border:2px dashed var(--accent);border-radius:var(--radius-sm);background:#fff;touch-action:none;width:100%;max-width:500px;height:180px;display:block;margin:0 auto;"></canvas>
               <button type="button" class="btn-sm" id="btn-limpiar-firma-limpieza-inst" style="margin-top:0.5rem;display:block;margin-left:auto;margin-right:auto;">🧹 Borrar firma</button>
             </div>
-            <button class="btn btn-primary" id="btn-guardar-limpieza-inst">Guardar registro</button>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-limpieza-inst">Guardar registro</button>
+              <button class="btn btn-ghost" id="btn-borrar-limpieza-inst" type="button">🗑 Borrar</button>
+            </div>
           </div>
           <div class="section-title">Historial de limpieza de instalaciones</div>
           <button class="btn btn-secondary" id="btn-toggle-hist-limpieza-inst" style="margin-bottom:1rem;">📋 Ver historial</button>
@@ -750,6 +746,273 @@ input[type="number"] { -moz-appearance: textfield; }
       </div>
     </div>
     <!-- ═══════════ FIN MÓDULO FLEET ═══════════ -->
+
+    <!-- ═══════════ MÓDULO ADR/CAP (independiente) ═══════════ -->
+    <div id="module-adrcap" style="display:none;">
+
+      <!-- ADR/CAP POR CONDUCTOR -->
+      <div id="ftab-mant-conductores" class="tab-pane active">
+        <div class="section-title">ADR y CAP por conductor</div>
+        <div style="display:flex;gap:0.5rem;margin-bottom:1rem;">
+          <button class="btn btn-secondary" style="flex:1;font-size:13px;" id="btn-ver-pendientes-cond">📅 Pendiente Mes</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-hist-mant-cond">📋 Historial</button>
+          <button class="btn btn-ghost" style="flex:1;font-size:13px;" id="btn-ver-creditos-formacion">💰 Créditos</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="mantcond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona conductor —</option>
+          </select>
+        </div>
+        <div id="mantcond-alertas"></div>
+        <div id="mantcond-list"></div>
+      </div>
+
+      <!-- HISTORIAL DE ADR/CAP -->
+      <div id="ftab-hist-mant-cond" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Historial de ADR/CAP</div>
+          <button class="btn-sm" id="btn-volver-mant-cond">← Volver</button>
+        </div>
+        <div class="form-group">
+          <select class="form-input" id="hist-mant-cond-filter-cod" style="font-size:14px;padding:0.6rem;">
+            <option value="">Todos los conductores</option>
+          </select>
+        </div>
+        <div id="hist-mant-cond-list"></div>
+      </div>
+
+      <!-- CRÉDITOS DE FORMACIÓN -->
+      <div id="ftab-creditos-formacion" class="tab-pane">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <div class="section-title" style="margin-bottom:0;">Créditos de formación</div>
+          <button class="btn-sm" id="btn-volver-creditos">← Volver</button>
+        </div>
+
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <select class="form-input" id="creditos-sel-empresa" style="font-size:14px;padding:0.6rem;">
+            <option value="">— Selecciona empresa —</option>
+          </select>
+          <select class="form-input" id="creditos-sel-anio" style="font-size:14px;padding:0.6rem;"></select>
+        </div>
+
+        <div id="creditos-resumen"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-asignar-credito" style="margin-bottom:1rem;width:100%;font-size:13px;">✏️ Asignar / cambiar crédito total</button>
+        <div id="asignar-credito-wrapper" style="display:none;margin-bottom:1rem;">
+          <div class="refuel-card">
+            <div class="form-group">
+              <label class="form-label">Crédito total asignado a esta empresa este año (€)</label>
+              <input class="form-input" type="text" inputmode="decimal" id="credito-total-input" placeholder="Ej: 3.000,00">
+            </div>
+            <button class="btn btn-primary" id="btn-guardar-credito-total">Guardar crédito total</button>
+            <div id="credito-total-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" id="btn-toggle-add-curso" style="margin-bottom:1rem;width:100%;">➕ Registrar curso</button>
+        <div id="add-curso-wrapper" style="display:none;">
+          <div class="refuel-card" style="margin-bottom:1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Conductor</label>
+              <select class="form-input" id="curso-sel-conductor"><option value="">— Selecciona conductor —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Empresa</label>
+              <select class="form-input" id="curso-sel-empresa"><option value="">— Selecciona empresa —</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Centro de formación</label>
+              <input class="form-input" type="text" id="curso-centro" placeholder="Ej: Autoescuela XYZ">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Curso</label>
+              <select class="form-input" id="curso-nombre-select">
+                <option value="">— Selecciona curso —</option>
+                <option value="ADR">ADR</option>
+                <option value="ADR Inicial">ADR Inicial</option>
+                <option value="CAP">CAP</option>
+                <option value="CAP Inicial">CAP Inicial</option>
+                <option value="Otros">Otros</option>
+              </select>
+              <input class="form-input" type="text" id="curso-nombre-otro" placeholder="Escribe el curso" style="display:none;margin-top:0.5rem;">
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="curso-fecha"></div>
+              <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="curso-importe" placeholder="Ej: 1.438,76"></div>
+            </div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" type="text" id="curso-num-factura"></div>
+              <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="curso-fecha-factura"></div>
+            </div>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-curso">Guardar curso</button>
+              <button class="btn btn-ghost" id="btn-borrar-curso" type="button">🗑 Borrar</button>
+            </div>
+            <div id="curso-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <div class="section-title">Cursos registrados</div>
+        <div id="cursos-formacion-list"></div>
+      </div>
+    </div>
+    <!-- ═══════════ FIN MÓDULO ADR/CAP ═══════════ -->
+
+    <!-- ═══════════ MÓDULO SEGUROS ═══════════ -->
+    <div id="module-seguros" style="display:none;">
+      <div style="display:flex;gap:0.4rem;margin-bottom:1.25rem;flex-wrap:wrap;">
+        <button class="btn btn-secondary atab-btn" id="seg-tab-btn-vehiculos">🚗 Vehículos</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-carretillas">🚜 Carretillas/Transpaletas</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-polizas">📄 Pólizas</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-tractor">🚛 Tractor</button>
+        <button class="btn btn-ghost atab-btn" id="seg-tab-btn-comparativa">📊 Comparativa</button>
+      </div>
+
+      <!-- SEGUROS DE VEHÍCULOS -->
+      <div id="seg-tab-vehiculos" class="tab-pane active">
+        <button class="btn btn-secondary" id="btn-toggle-add-seg-veh" style="margin-bottom:1rem;width:100%;">➕ Añadir seguro de vehículo</button>
+        <div id="add-seg-veh-wrapper" style="display:none;">
+          <div class="refuel-card" style="margin-bottom:1.25rem;">
+            <div class="form-group">
+              <label class="form-label">Matrícula / Identificador</label>
+              <input class="form-input" type="text" id="seg-veh-matricula" list="seg-matriculas-existentes" placeholder="Ej: 1234-ABC, Carretilla 1, Toro elevador 2...">
+              <datalist id="seg-matriculas-existentes"></datalist>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No tiene que ser una matrícula real — vale para carretillas, máquinas u otros elementos asegurados.</div>
+              <button type="button" class="btn-sm" id="btn-toggle-seg-extra" style="margin-top:0.5rem;">✏️ Gestionar lista de carretillas/otros elementos</button>
+              <div id="seg-extra-wrapper" style="display:none;margin-top:0.5rem;">
+                <textarea class="form-input" id="seg-extra-textarea" placeholder="Uno por línea, ej:&#10;Carretilla 1&#10;Carretilla 2&#10;Toro elevador" style="min-height:120px;"></textarea>
+                <button type="button" class="btn-sm" id="btn-guardar-seg-extra" style="margin-top:0.5rem;width:100%;">💾 Guardar lista</button>
+                <div id="seg-extra-alert" class="alert" style="margin-top:0.5rem;"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tipo</label>
+              <select class="form-input" id="seg-veh-tipo">
+                <option value="vehiculo">🚗 Vehículo</option>
+                <option value="tractor">🚛 Tractor</option>
+                <option value="carretilla">🚜 Carretilla</option>
+                <option value="transpaleta">🔌 Transpaleta eléctrica</option>
+              </select>
+            </div>
+            <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-veh-modelo" placeholder="Ej: Iveco Daily"></div>
+            <div class="two-col">
+              <div class="form-group" id="seg-veh-kilos-wrapper"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="seg-veh-kilos" placeholder="Ej: 18.000"></div>
+              <div class="form-group" id="seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" type="text" id="seg-veh-clasitv" placeholder="Ej: N1"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" type="text" id="seg-veh-compania" placeholder="Ej: Mapfre, Allianz..."></div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" type="text" id="seg-veh-numpoliza"></div>
+              <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-veh-fechacad"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-veh-corredor"></div>
+            <div class="form-group" id="seg-veh-ambito-wrapper"><label class="form-label" id="seg-veh-ambito-label">Ámbito</label><input class="form-input" type="text" id="seg-veh-ambito" placeholder="Ej: Nacional, Europa..."></div>
+            <div class="form-group"><label class="form-label">Empresa</label>
+              <select class="form-input" id="seg-veh-empresa"><option value="">— Selecciona empresa —</option></select>
+            </div>
+            <div class="form-group" id="seg-veh-conductor-wrapper"><label class="form-label">Conductor</label>
+              <input class="form-input" type="text" id="seg-veh-conductor" list="seg-conductores-existentes" placeholder="Nombre del conductor">
+              <datalist id="seg-conductores-existentes"></datalist>
+            </div>
+            <div style="margin-bottom:1.25rem;" id="seg-veh-lunas-wrapper">
+              <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+                <input type="checkbox" id="seg-veh-lunas" style="width:18px;height:18px;"> 🪟 Seguro de lunas
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notas</label>
+              <textarea class="form-input" id="seg-veh-comentarios" placeholder="Cualquier dato adicional (asistencia, franquicia, coberturas extra...)"></textarea>
+            </div>
+            <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe del seguro y el impuesto municipal se añaden año a año después de guardar: despliega la ficha del vehículo en la lista de abajo.</div>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-seg-veh">Guardar seguro de vehículo</button>
+              <button class="btn btn-ghost" id="btn-borrar-seg-veh" type="button">🗑 Borrar</button>
+            </div>
+            <div id="seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <div id="seg-veh-alertas"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-notas-seg-veh" style="margin-bottom:0.75rem;width:100%;font-size:13px;">📝 Notas generales</button>
+        <div id="notas-seg-veh-wrapper" style="display:none;margin-bottom:1.25rem;">
+          <div class="refuel-card">
+            <textarea class="form-input" id="notas-seg-veh-textarea" placeholder="Ej: teléfonos de aseguradoras, contactos de siniestros, cualquier apunte general..." style="min-height:120px;"></textarea>
+            <button class="btn btn-primary" id="btn-guardar-notas-seg-veh" style="margin-top:0.5rem;width:100%;">💾 Guardar notas</button>
+            <div id="notas-seg-veh-alert" class="alert" style="margin-top:0.5rem;"></div>
+          </div>
+        </div>
+
+        <div class="section-title" id="seg-veh-list-titulo">Vehículos asegurados</div>
+        <input class="form-input" type="text" id="seg-veh-buscador" placeholder="🔍 Buscar por matrícula..." style="margin-bottom:0.75rem;">
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <button class="btn btn-secondary" id="btn-pdf-seg-veh" style="font-size:13px;">📄 PDF</button>
+          <button class="btn btn-secondary" id="btn-excel-seg-veh" style="font-size:13px;">📊 Excel</button>
+        </div>
+        <div id="seg-veh-list"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-baja-seg-veh" style="margin-top:1.25rem;font-size:13px;">👤 Ver seguros de baja (<span id="seg-veh-baja-count">0</span>)</button>
+        <div id="seg-veh-baja-wrapper" style="display:none;margin-top:0.75rem;">
+          <div id="seg-veh-baja-list"></div>
+        </div>
+      </div>
+
+      <!-- PÓLIZAS -->
+      <div id="seg-tab-polizas" class="tab-pane">
+        <button class="btn btn-secondary" id="btn-toggle-add-seg-pol" style="margin-bottom:1rem;width:100%;">➕ Añadir póliza</button>
+        <div id="add-seg-pol-wrapper" style="display:none;">
+          <div class="refuel-card" style="margin-bottom:1.25rem;">
+            <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" type="text" id="seg-pol-modelo"></div>
+            <div class="form-group"><label class="form-label">Tipo de póliza</label><input class="form-input" type="text" id="seg-pol-tipo" placeholder="Ej: Responsabilidad civil, Nave, etc."></div>
+            <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" type="text" id="seg-pol-compania"></div>
+            <div class="two-col">
+              <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" type="text" id="seg-pol-numpoliza"></div>
+              <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="seg-pol-fechacad"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" type="text" id="seg-pol-corredor"></div>
+            <div class="form-group">
+              <label class="form-label">Notas</label>
+              <textarea class="form-input" id="seg-pol-notas" placeholder="Cualquier anotación que necesites"></textarea>
+            </div>
+            <div style="font-size:12px;color:var(--accent);margin-bottom:1rem;background:var(--navy-light);border-radius:var(--radius-sm);padding:0.6rem 0.75rem;">💡 El importe se añade año a año después de guardar: despliega la ficha de la póliza en la lista de abajo.</div>
+            <div class="two-col">
+              <button class="btn btn-primary" id="btn-guardar-seg-pol">Guardar póliza</button>
+              <button class="btn btn-ghost" id="btn-borrar-seg-pol" type="button">🗑 Borrar</button>
+            </div>
+            <div id="seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
+          </div>
+        </div>
+
+        <div id="seg-pol-alertas"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-notas-seg-pol" style="margin-bottom:0.75rem;width:100%;font-size:13px;">📝 Notas generales</button>
+        <div id="notas-seg-pol-wrapper" style="display:none;margin-bottom:1.25rem;">
+          <div class="refuel-card">
+            <textarea class="form-input" id="notas-seg-pol-textarea" placeholder="Ej: teléfonos de aseguradoras, contactos de siniestros, cualquier apunte general..." style="min-height:120px;"></textarea>
+            <button class="btn btn-primary" id="btn-guardar-notas-seg-pol" style="margin-top:0.5rem;width:100%;">💾 Guardar notas</button>
+            <div id="notas-seg-pol-alert" class="alert" style="margin-top:0.5rem;"></div>
+          </div>
+        </div>
+        <div class="section-title">Pólizas registradas</div>
+        <div class="two-col" style="margin-bottom:0.75rem;">
+          <button class="btn btn-secondary" id="btn-pdf-seg-pol" style="font-size:13px;">📄 PDF</button>
+          <button class="btn btn-secondary" id="btn-excel-seg-pol" style="font-size:13px;">📊 Excel</button>
+        </div>
+        <div id="seg-pol-list"></div>
+
+        <button class="btn btn-ghost" id="btn-toggle-baja-seg-pol" style="margin-top:1.25rem;font-size:13px;">👤 Ver pólizas de baja (<span id="seg-pol-baja-count">0</span>)</button>
+        <div id="seg-pol-baja-wrapper" style="display:none;margin-top:0.75rem;">
+          <div id="seg-pol-baja-list"></div>
+        </div>
+      </div>
+
+      <!-- COMPARATIVA ANUAL -->
+      <div id="seg-tab-comparativa" class="tab-pane">
+        <div class="section-title">Comparativa de gastos por año</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Suma de todos los vehículos activos, por año. La diferencia se calcula frente al año anterior con datos.</div>
+        <div id="seg-comparativa-content"></div>
+      </div>
+    </div>
+    <!-- ═══════════ FIN MÓDULO SEGUROS ═══════════ -->
 
     <!-- ═══════════ MÓDULO ROPA ═══════════ -->
     <div id="module-ropa" style="display:none;">
@@ -817,7 +1080,10 @@ input[type="number"] { -moz-appearance: textfield; }
             <div><label class="form-label">Talla</label><div id="inv-talla-wrapper"><input class="form-input" type="text" id="inv-talla" placeholder="Ej: L, 42..."></div></div>
             <div><label class="form-label">Cantidad a añadir</label><input class="form-input" type="number" id="inv-cantidad" min="0" placeholder="Ej: 10"></div>
           </div>
-          <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
+          <div class="two-col">
+            <button class="btn btn-primary" id="btn-add-stock">➕ Añadir al inventario</button>
+            <button class="btn btn-ghost" id="btn-borrar-stock" type="button">🗑 Borrar</button>
+          </div>
         </div>
 
         <div id="inv-alertas-bajo"></div>
@@ -880,7 +1146,9 @@ const SUPERADMIN_PASS = 'superadmin2026';
 let MODULO_CODIGOS = {
   gasoil: '1111',
   fleet: '2222',
-  ropa: '3333'
+  ropa: '3333',
+  adrcap: '4444',
+  seguros: '5555'
 };
 const DEPOSITO_CAP = 10000;
 const ALERTA_MIN = 1000;
@@ -1025,6 +1293,19 @@ let mantenimientoCache = [];
 let historialMantCache = [];
 let mantConductoresCache = [];
 let historialMantCondCache = [];
+let creditosFormacionCache = [];
+let cursosFormacionCache = [];
+let creditosFiltroEmpresa = '';
+let creditosFiltroAnio = new Date().getFullYear();
+let segurosVehiculosCache = [];
+let segurosPolizasCache = [];
+let segurosElementosExtraCache = [];
+let segurosNotasVehCache = '';
+let segurosNotasPolCache = '';
+let segVehFichasAbiertas = new Set();
+let segVehBusqueda = '';
+let segVehFiltroTipo = 'vehiculo';
+const DIAS_AVISO_SEGUROS = 30;
 let mantCondFiltroCod = '';
 let histMantCondFiltroCod = '';
 let empleadoFiltroCategoria = '';
@@ -1070,45 +1351,32 @@ async function initApp() {
 
   try {
     // Cargar conductores (Gasoil)
+    // IMPORTANTE: antes, si Firestore devolvía la colección vacía (por ejemplo por un
+    // problema de conexión puntual), la app la "rellenaba" sola con una lista básica de
+    // reserva (solo nombre y código), sobrescribiendo a todos los empleados reales y
+    // borrando el resto de sus datos. Esto causó una pérdida de datos real. Ahora NUNCA
+    // se escribe nada automáticamente aquí: solo se carga lo que haya en Firestore, sea
+    // lo que sea. Si algún día la colección está vacía de verdad, los empleados se añaden
+    // a mano desde Configuración, nunca de forma automática.
     const dSnap = await getDocs(collection(db, 'conductores'));
-    if (dSnap.empty) {
-      for (const d of DEFAULT_DRIVERS) {
-        await setDoc(doc(db, 'conductores', d.code), d);
-      }
-      driversCache = [...DEFAULT_DRIVERS];
-    } else {
-      driversCache = dSnap.docs.map(d => d.data());
-    }
+    driversCache = dSnap.docs.map(d => d.data());
 
     // Cargar vehículos (unificado: Gasoil + Flota con casillas)
+    // Mismo arreglo que en conductores: nunca se sobrescribe la colección entera por
+    // verla vacía. Solo se cargan los vehículos que haya, tal cual estén en Firestore.
     const vehSnap = await getDocs(collection(db, 'vehiculos'));
-    if (vehSnap.empty) {
-      const propios = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
-      ];
-      for (const m of DEFAULT_MATRICULAS) { await setDoc(doc(db, 'vehiculos', m), { matricula: m, gasoil: true, flota: true, activo: true }); }
-      for (const r of DEFAULT_REMOLQUES) { await setDoc(doc(db, 'vehiculos', r), { matricula: r, gasoil: false, flota: true, activo: true }); }
-      for (const p of propios) { await setDoc(doc(db, 'vehiculos', p.matricula), p); }
-      vehiculosCache = [
-        ...DEFAULT_MATRICULAS.map(m=>({matricula:m, gasoil:true, flota:true, activo:true})),
-        ...DEFAULT_REMOLQUES.map(r=>({matricula:r, gasoil:false, flota:true, activo:true})),
-        ...propios
-      ];
-    } else {
-      vehiculosCache = vehSnap.docs.map(d => d.data());
-      // Comprobar si faltan los vehículos propios (de una versión anterior sin este campo)
-      const propiosCheck = [
-        {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
-        {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
-        {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
-      ];
-      for (const p of propiosCheck) {
-        if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
-          await setDoc(doc(db, 'vehiculos', p.matricula), p);
-          vehiculosCache.push(p);
-        }
+    vehiculosCache = vehSnap.docs.map(d => d.data());
+    // Comprobación segura: solo AÑADE los 3 vehículos propios si de verdad no existen
+    // todavía (nunca sobrescribe ni toca los que ya están).
+    const propiosCheck = [
+      {matricula:'8182-MFM', gasoil:true, flota:false, propietario:'3006', activo:true},
+      {matricula:'8343-LXM', gasoil:true, flota:false, propietario:'3007', activo:true},
+      {matricula:'5340-CWZ', gasoil:true, flota:false, propietario:'3007', activo:true}
+    ];
+    for (const p of propiosCheck) {
+      if (!vehiculosCache.find(v=>v.matricula===p.matricula)) {
+        await setDoc(doc(db, 'vehiculos', p.matricula), p);
+        vehiculosCache.push(p);
       }
     }
     matriculasCache = vehiculosCache.filter(v=>v.gasoil && v.activo!==false).map(v=>v.matricula);
@@ -1142,6 +1410,85 @@ async function initApp() {
     const hmcSnap = await getDocs(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')));
     historialMantCondCache = hmcSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
+    // Cargar créditos de formación por empresa/año (Fleet)
+    const credSnap = await getDocs(collection(dbFleet, 'creditosFormacion'));
+    creditosFormacionCache = credSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar cursos de formación registrados (Fleet)
+    const cursosSnap = await getDocs(query(collection(dbFleet, 'cursosFormacion'), orderBy('fechaCurso', 'desc')));
+    cursosFormacionCache = cursosSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Cargar seguros de vehículos (Fleet)
+    const segVehSnap = await getDocs(collection(dbFleet, 'segurosVehiculos'));
+    segurosVehiculosCache = segVehSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Migración: el importe del seguro era un único valor (campo "importe") y ahora se
+    // guarda por años (campo "importePorAnio"). El importe guardado corresponde al año
+    // ANTERIOR a la fecha de caducidad (el año que se está pagando hasta esa renovación).
+    for (const v of segurosVehiculosCache) {
+      const yaTieneImportePorAnio = v.importePorAnio && Object.keys(v.importePorAnio).length > 0;
+      if (v.importe != null && !yaTieneImportePorAnio) {
+        const anio = v.fechaCaducidad ? (new Date(v.fechaCaducidad).getFullYear() - 1) : new Date().getFullYear();
+        const nuevoMapa = { [anio]: v.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosVehiculos',v.id), { importePorAnio: nuevoMapa });
+          v.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error migrando importe de seguro:', v.id, err); }
+      }
+    }
+
+    // Corrección: una primera versión de esta migración usó por error el año de la
+    // caducidad en vez del año anterior. Solo corregimos el patrón exacto que generó ese
+    // fallo (un único año que coincide con la caducidad Y cuyo valor es igual al importe
+    // antiguo migrado), para no tocar nada que hayas metido tú a mano.
+    for (const v of segurosVehiculosCache) {
+      if (!v.importePorAnio || !v.fechaCaducidad || v.importe == null) continue;
+      const claves = Object.keys(v.importePorAnio);
+      const anioCaducidad = new Date(v.fechaCaducidad).getFullYear();
+      if (claves.length === 1 && parseInt(claves[0]) === anioCaducidad && parseFloat(v.importePorAnio[claves[0]]) === parseFloat(v.importe)) {
+        const nuevoMapa = { [anioCaducidad - 1]: v.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosVehiculos',v.id), { importePorAnio: nuevoMapa });
+          v.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error corrigiendo año de importe:', v.id, err); }
+      }
+    }
+
+    // Cargar pólizas de seguros (Fleet)
+    const segPolSnap = await getDocs(collection(dbFleet, 'segurosPolizas'));
+    segurosPolizasCache = segPolSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Migración: el importe de la póliza también era un único valor y ahora se guarda
+    // por años, igual que en vehículos. Pasamos el valor antiguo al año anterior a la
+    // fecha de caducidad, y además marcamos como activas las que no tuvieran ese campo.
+    for (const p of segurosPolizasCache) {
+      const yaTieneImportePorAnio = p.importePorAnio && Object.keys(p.importePorAnio).length > 0;
+      if (p.importe != null && !yaTieneImportePorAnio) {
+        const anio = p.fechaCaducidad ? (new Date(p.fechaCaducidad).getFullYear() - 1) : new Date().getFullYear();
+        const nuevoMapa = { [anio]: p.importe };
+        try {
+          await updateDoc(doc(dbFleet,'segurosPolizas',p.id), { importePorAnio: nuevoMapa, activo: p.activo!==false });
+          p.importePorAnio = nuevoMapa;
+        } catch(err) { console.error('Error migrando importe de póliza:', p.id, err); }
+      } else if (p.activo === undefined) {
+        try {
+          await updateDoc(doc(dbFleet,'segurosPolizas',p.id), { activo: true });
+          p.activo = true;
+        } catch(err) { console.error('Error marcando póliza como activa:', p.id, err); }
+      }
+    }
+
+    // Cargar lista adicional de elementos asegurables (carretillas, etc.) — solo para Seguros
+    const segExtraDoc = await getDocs(query(collection(dbFleet, 'segurosConfig')));
+    const segExtraFound = segExtraDoc.docs.find(d => d.id === 'elementosExtra');
+    segurosElementosExtraCache = segExtraFound ? (segExtraFound.data().items||[]) : [];
+
+    // Cargar notas generales de Vehículos/Carretillas y de Pólizas
+    const segNotasVehFound = segExtraDoc.docs.find(d => d.id === 'notasVehiculos');
+    segurosNotasVehCache = segNotasVehFound ? (segNotasVehFound.data().texto||'') : '';
+    const segNotasPolFound = segExtraDoc.docs.find(d => d.id === 'notasPolizas');
+    segurosNotasPolCache = segNotasPolFound ? (segNotasPolFound.data().texto||'') : '';
+
     // Cargar limpieza de vehículos (Fleet)
     const lvSnap = await getDocs(query(collection(dbFleet, 'limpiezaVehiculos'), orderBy('fecha', 'desc')));
     limpiezaVehCache = lvSnap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -1171,6 +1518,10 @@ async function initApp() {
     const codigosDoc = codigosSnap.docs.find(d => d.id === 'moduloCodigos');
     if (codigosDoc) {
       MODULO_CODIGOS = codigosDoc.data();
+      let faltaAlguno = false;
+      if (!MODULO_CODIGOS.adrcap) { MODULO_CODIGOS.adrcap = '4444'; faltaAlguno = true; }
+      if (!MODULO_CODIGOS.seguros) { MODULO_CODIGOS.seguros = '5555'; faltaAlguno = true; }
+      if (faltaAlguno) await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
     } else {
       await setDoc(doc(db, 'configuracion', 'moduloCodigos'), MODULO_CODIGOS);
     }
@@ -1211,6 +1562,8 @@ async function initApp() {
   document.getElementById('home-btn-gasoil').addEventListener('click', ()=>switchModule('gasoil'));
   document.getElementById('home-btn-fleet').addEventListener('click', ()=>switchModule('fleet'));
   document.getElementById('home-btn-ropa').addEventListener('click', ()=>switchModule('ropa'));
+  document.getElementById('home-btn-adrcap').addEventListener('click', ()=>switchModule('adrcap'));
+  document.getElementById('home-btn-seguros').addEventListener('click', ()=>switchModule('seguros'));
   document.getElementById('home-btn-gestion').addEventListener('click', ()=>switchModule('gestion'));
   document.getElementById('btn-cambiar-modulo').addEventListener('click', volverASeleccionModulo);
   document.getElementById('rtab-btn-entregar').addEventListener('click', ()=>switchRopaTab('entregar'));
@@ -1218,6 +1571,7 @@ async function initApp() {
   document.getElementById('rtab-btn-pendientes').addEventListener('click', ()=>switchRopaTab('pendientes'));
   document.getElementById('rtab-btn-inventario').addEventListener('click', ()=>switchRopaTab('inventario'));
   document.getElementById('btn-add-stock').addEventListener('click', ()=>window.addStockRopa());
+  document.getElementById('btn-borrar-stock').addEventListener('click', limpiarFormularioStockRopa);
   populateInventarioSelect();
   document.getElementById('ropa-sel-empleado').addEventListener('change', (e)=>seleccionarEmpleadoRopa(e.target.value));
   document.getElementById('ropa-hist-filter').addEventListener('change', (e)=>{ ropaFiltroHist=e.target.value; renderRopaHistorial(); });
@@ -1233,6 +1587,7 @@ async function initApp() {
   document.getElementById('ftab-btn-historial').addEventListener('click', ()=>switchFleetTab('historial'));
   document.getElementById('ftab-btn-mantenimiento').addEventListener('click', ()=>switchFleetTab('mantenimiento'));
   document.getElementById('btn-guardar-hist').addEventListener('click', guardarHistorial);
+  document.getElementById('btn-borrar-hist').addEventListener('click', limpiarFormularioHistorial);
   document.getElementById('hist-filter-mat').addEventListener('change', (e)=>{ histFiltroMat=e.target.value; renderHistorial(); });
   document.getElementById('btn-toggle-hist-cambios').addEventListener('click', ()=>{
     const wrapper = document.getElementById('hist-cambios-wrapper');
@@ -1275,29 +1630,144 @@ async function initApp() {
   populateMantMatriculas();
   document.getElementById('mant-filter-mat').addEventListener('change', (e)=>{ mantFiltroMat=e.target.value; renderMantenimiento(); });
 
-  // ADR/CAP de conductores (Flota)
-  document.getElementById('ftab-btn-mant-conductores').addEventListener('click', ()=>switchFleetTab('mant-conductores'));
+  // ADR/CAP de conductores (módulo independiente)
   document.getElementById('mantcond-filter-cod').addEventListener('change', (e)=>{ mantCondFiltroCod=e.target.value; renderMantenimientoConductores(); });
   document.getElementById('btn-ver-pendientes-cond').addEventListener('click', verPendientesMesCond);
   document.getElementById('btn-ver-hist-mant-cond').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-hist-mant-cond').classList.add('active');
     populateHistMantCondConductores();
     renderHistMantCond();
   });
   document.getElementById('btn-volver-mant-cond').addEventListener('click', ()=>{
-    document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('ftab-mant-conductores').classList.add('active');
   });
   document.getElementById('hist-mant-cond-filter-cod').addEventListener('change', (e)=>{ histMantCondFiltroCod=e.target.value; renderHistMantCond(); });
+
+  // Créditos de formación (módulo ADR/CAP)
+  document.getElementById('btn-ver-creditos-formacion').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-creditos-formacion').classList.add('active');
+    populateCreditosSelects();
+    renderCreditosResumen();
+    renderCursosFormacionList();
+  });
+  document.getElementById('btn-volver-creditos').addEventListener('click', ()=>{
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-mant-conductores').classList.add('active');
+  });
+  document.getElementById('creditos-sel-empresa').addEventListener('change', (e)=>{ creditosFiltroEmpresa=e.target.value; renderCreditosResumen(); renderCursosFormacionList(); });
+  document.getElementById('creditos-sel-anio').addEventListener('change', (e)=>{ creditosFiltroAnio=+e.target.value; renderCreditosResumen(); renderCursosFormacionList(); });
+  document.getElementById('btn-toggle-asignar-credito').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('asignar-credito-wrapper');
+    wrapper.style.display = wrapper.style.display==='none' ? 'block' : 'none';
+    if (wrapper.style.display==='block') {
+      const actual = creditosFormacionCache.find(c=>c.empresa===creditosFiltroEmpresa && c.anio===creditosFiltroAnio);
+      document.getElementById('credito-total-input').value = actual ? actual.creditoTotal.toLocaleString('es-ES') : '';
+    }
+  });
+  document.getElementById('btn-guardar-credito-total').addEventListener('click', guardarCreditoTotal);
+  document.getElementById('btn-toggle-add-curso').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('add-curso-wrapper');
+    const btn = document.getElementById('btn-toggle-add-curso');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.textContent = '➖ Ocultar formulario'; }
+    else { wrapper.style.display = 'none'; btn.textContent = '➕ Registrar curso'; }
+  });
+  document.getElementById('btn-guardar-curso').addEventListener('click', guardarCurso);
+  document.getElementById('btn-borrar-curso').addEventListener('click', limpiarFormularioCurso);
+  document.getElementById('curso-nombre-select').addEventListener('change', (e)=>{
+    document.getElementById('curso-nombre-otro').style.display = e.target.value==='Otros' ? 'block' : 'none';
+  });
+
+  // Seguros (módulo independiente)
+  document.getElementById('seg-tab-btn-vehiculos').addEventListener('click', ()=>switchSegurosTab('vehiculos'));
+  document.getElementById('seg-tab-btn-carretillas').addEventListener('click', ()=>switchSegurosTab('carretillas'));
+  document.getElementById('seg-tab-btn-tractor').addEventListener('click', ()=>switchSegurosTab('tractor'));
+  document.getElementById('seg-tab-btn-polizas').addEventListener('click', ()=>switchSegurosTab('polizas'));
+  document.getElementById('seg-tab-btn-comparativa').addEventListener('click', ()=>switchSegurosTab('comparativa'));
+  document.getElementById('btn-toggle-add-seg-veh').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('add-seg-veh-wrapper');
+    const btn = document.getElementById('btn-toggle-add-seg-veh');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.textContent = '➖ Ocultar formulario'; }
+    else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir seguro de vehículo'; }
+  });
+  document.getElementById('btn-guardar-seg-veh').addEventListener('click', guardarSeguroVehiculo);
+  document.getElementById('btn-borrar-seg-veh').addEventListener('click', limpiarFormularioSegVeh);
+  document.getElementById('seg-veh-tipo').addEventListener('change', ()=>actualizarCamposSegunTipo('seg-veh'));
+  document.getElementById('btn-toggle-add-seg-pol').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('add-seg-pol-wrapper');
+    const btn = document.getElementById('btn-toggle-add-seg-pol');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.textContent = '➖ Ocultar formulario'; }
+    else { wrapper.style.display = 'none'; btn.textContent = '➕ Añadir póliza'; }
+  });
+  document.getElementById('btn-guardar-seg-pol').addEventListener('click', guardarSeguroPoliza);
+  document.getElementById('btn-borrar-seg-pol').addEventListener('click', limpiarFormularioSegPol);
+  document.getElementById('btn-pdf-seg-veh').addEventListener('click', exportarPdfSegurosVehiculos);
+  document.getElementById('btn-excel-seg-veh').addEventListener('click', exportarExcelSegurosVehiculos);
+  document.getElementById('btn-pdf-seg-pol').addEventListener('click', exportarPdfSegurosPolizas);
+  document.getElementById('btn-excel-seg-pol').addEventListener('click', exportarExcelSegurosPolizas);
+  document.getElementById('btn-toggle-seg-extra').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-extra-wrapper');
+    if (wrapper.style.display === 'none') {
+      wrapper.style.display = 'block';
+      document.getElementById('seg-extra-textarea').value = segurosElementosExtraCache.join('\n');
+    } else {
+      wrapper.style.display = 'none';
+    }
+  });
+  document.getElementById('btn-guardar-seg-extra').addEventListener('click', guardarSegurosElementosExtra);
+  document.getElementById('btn-toggle-notas-seg-veh').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('notas-seg-veh-wrapper');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; document.getElementById('notas-seg-veh-textarea').value = segurosNotasVehCache; }
+    else { wrapper.style.display = 'none'; }
+  });
+  document.getElementById('btn-guardar-notas-seg-veh').addEventListener('click', async () => {
+    const al = document.getElementById('notas-seg-veh-alert');
+    const texto = document.getElementById('notas-seg-veh-textarea').value;
+    try {
+      await setDoc(doc(dbFleet,'segurosConfig','notasVehiculos'), { texto });
+      showAlert(al, '✓ Notas guardadas', false);
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+  document.getElementById('btn-toggle-notas-seg-pol').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('notas-seg-pol-wrapper');
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; document.getElementById('notas-seg-pol-textarea').value = segurosNotasPolCache; }
+    else { wrapper.style.display = 'none'; }
+  });
+  document.getElementById('btn-guardar-notas-seg-pol').addEventListener('click', async () => {
+    const al = document.getElementById('notas-seg-pol-alert');
+    const texto = document.getElementById('notas-seg-pol-textarea').value;
+    try {
+      await setDoc(doc(dbFleet,'segurosConfig','notasPolizas'), { texto });
+      showAlert(al, '✓ Notas guardadas', false);
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+  document.getElementById('btn-toggle-baja-seg-veh').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-veh-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-seg-veh');
+    const count = segurosVehiculosCache.filter(v=>v.activo===false && coincideTipoSeguro(v)).length;
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.innerHTML = `👤 Ocultar seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; renderSegurosVehiculosBaja(); }
+    else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver seguros de baja (<span id="seg-veh-baja-count">${count}</span>)`; }
+  });
+  document.getElementById('seg-veh-buscador').addEventListener('input', (e)=>{ segVehBusqueda = e.target.value.trim().toLowerCase(); renderSegurosVehiculos(); });
+  document.getElementById('btn-toggle-baja-seg-pol').addEventListener('click', ()=>{
+    const wrapper = document.getElementById('seg-pol-baja-wrapper');
+    const btn = document.getElementById('btn-toggle-baja-seg-pol');
+    const count = segurosPolizasCache.filter(p=>p.activo===false).length;
+    if (wrapper.style.display === 'none') { wrapper.style.display = 'block'; btn.innerHTML = `👤 Ocultar pólizas de baja (<span id="seg-pol-baja-count">${count}</span>)`; renderSegurosPolizasBaja(); }
+    else { wrapper.style.display = 'none'; btn.innerHTML = `👤 Ver pólizas de baja (<span id="seg-pol-baja-count">${count}</span>)`; }
+  });
 
   // Limpieza (Flota)
   document.getElementById('ftab-btn-limpieza').addEventListener('click', ()=>switchFleetTab('limpieza'));
   document.getElementById('lim-subtab-btn-vehiculos').addEventListener('click', ()=>switchLimpiezaSubtab('vehiculos'));
   document.getElementById('lim-subtab-btn-instalaciones').addEventListener('click', ()=>switchLimpiezaSubtab('instalaciones'));
   document.getElementById('btn-guardar-limpieza-veh').addEventListener('click', guardarLimpiezaVehiculo);
+  document.getElementById('btn-borrar-limpieza-veh').addEventListener('click', limpiarFormularioLimpiezaVeh);
   document.getElementById('btn-borrar-fecha-limpieza-veh').addEventListener('click', ()=>{ document.getElementById('lim-veh-fecha').value=''; });
   document.getElementById('btn-guardar-limpieza-inst').addEventListener('click', guardarLimpiezaInstalacion);
+  document.getElementById('btn-borrar-limpieza-inst').addEventListener('click', limpiarFormularioLimpiezaInst);
   document.getElementById('btn-limpiar-firma-limpieza-veh').addEventListener('click', ()=>{ if(firmaLimpiezaVeh) firmaLimpiezaVeh.clear(); });
   document.getElementById('btn-limpiar-firma-limpieza-inst').addEventListener('click', ()=>{ if(firmaLimpiezaInst) firmaLimpiezaInst.clear(); });
   document.getElementById('hist-limpieza-veh-filter-mat').addEventListener('change', (e)=>{ limpiezaVehFiltroMat=e.target.value; renderHistorialLimpiezaVeh(); });
@@ -1342,6 +1812,7 @@ async function initApp() {
   // Añadir conductor
   const btnAddDriver = document.getElementById('btn-add-driver');
   if(btnAddDriver) btnAddDriver.addEventListener('click', ()=>window.addDriver());
+  document.getElementById('btn-borrar-driver').addEventListener('click', limpiarFormularioEmpleado);
   document.getElementById('empleado-filter-categoria').addEventListener('change', (e)=>{ empleadoFiltroCategoria=e.target.value; renderDriverList(); });
   document.getElementById('empleado-filter-empresa').addEventListener('change', (e)=>{ empleadoFiltroEmpresa=e.target.value; renderDriverList(); });
   document.getElementById('btn-exportar-pdf-empleados').addEventListener('click', exportarPdfEmpleados);
@@ -1385,6 +1856,7 @@ async function initApp() {
   document.getElementById('atab-btn-vehiculos').addEventListener('click', ()=>switchGestionTab('vehiculos'));
   document.getElementById('atab-btn-backup').addEventListener('click', ()=>switchGestionTab('backup'));
   document.getElementById('btn-add-mat').addEventListener('click', ()=>window.addMat());
+  document.getElementById('btn-borrar-mat').addEventListener('click', limpiarFormularioVehiculo);
   document.getElementById('btn-backup').addEventListener('click', descargarBackup);
   document.getElementById('btn-importar-backup').addEventListener('click', ()=>document.getElementById('input-importar-backup').click());
   document.getElementById('input-importar-backup').addEventListener('change', (e)=>{ if(e.target.files[0]) importarBackup(e.target.files[0]); });
@@ -1513,13 +1985,68 @@ function activarListenersTiempoReal() {
   // ADR/CAP de conductores (Flota)
   onSnapshot(collection(dbFleet, 'mantenimientoConductores'), (snap) => {
     mantConductoresCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') { renderMantenimientoConductores(); updateFleetBadge(); }
+    if (currentUser && currentUser.isAdmin) {
+      updateAdrCapBadge();
+      if (currentModule==='adrcap') renderMantenimientoConductores();
+    }
   });
 
-  // Historial de ADR/CAP de conductores (Flota)
+  // Historial de ADR/CAP de conductores (ahora módulo independiente ADR/CAP)
   onSnapshot(query(collection(dbFleet, 'historialMantConductores'), orderBy('fecha', 'desc')), (snap) => {
     historialMantCondCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    if (currentUser && currentUser.isAdmin && currentModule==='fleet') renderHistMantCond();
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') renderHistMantCond();
+  });
+
+  // Créditos de formación por empresa/año (módulo ADR/CAP)
+  onSnapshot(collection(dbFleet, 'creditosFormacion'), (snap) => {
+    creditosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') renderCreditosResumen();
+  });
+
+  // Cursos de formación registrados (módulo ADR/CAP)
+  onSnapshot(query(collection(dbFleet, 'cursosFormacion'), orderBy('fechaCurso', 'desc')), (snap) => {
+    cursosFormacionCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin && currentModule==='adrcap') { renderCreditosResumen(); renderCursosFormacionList(); }
+  });
+
+  // Seguros de vehículos (módulo Seguros)
+  onSnapshot(collection(dbFleet, 'segurosVehiculos'), (snap) => {
+    segurosVehiculosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin) {
+      updateSegurosBadge();
+      if (currentModule==='seguros') {
+        renderSegurosVehiculos();
+        if (document.getElementById('seg-veh-baja-wrapper').style.display!=='none') renderSegurosVehiculosBaja();
+        if (document.getElementById('seg-tab-comparativa').classList.contains('active')) renderComparativaSeguros();
+      }
+    }
+  });
+
+  // Pólizas de seguros (módulo Seguros)
+  onSnapshot(collection(dbFleet, 'segurosPolizas'), (snap) => {
+    segurosPolizasCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (currentUser && currentUser.isAdmin) {
+      updateSegurosBadge();
+      if (currentModule==='seguros') {
+        renderSegurosPolizas();
+        if (document.getElementById('seg-pol-baja-wrapper').style.display!=='none') renderSegurosPolizasBaja();
+        if (document.getElementById('seg-tab-comparativa').classList.contains('active')) renderComparativaSeguros();
+      }
+    }
+  });
+
+  // Lista adicional de elementos asegurables (Seguros)
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'elementosExtra'), (snap) => {
+    segurosElementosExtraCache = snap.exists() ? (snap.data().items||[]) : [];
+    if (currentUser && currentUser.isAdmin && currentModule==='seguros') populateSegurosSelects();
+  });
+
+  // Notas generales de Vehículos/Carretillas y de Pólizas (Seguros)
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'notasVehiculos'), (snap) => {
+    segurosNotasVehCache = snap.exists() ? (snap.data().texto||'') : '';
+  });
+  onSnapshot(doc(dbFleet, 'segurosConfig', 'notasPolizas'), (snap) => {
+    segurosNotasPolCache = snap.exists() ? (snap.data().texto||'') : '';
   });
 
   // Limpieza de vehículos (Flota)
@@ -1652,7 +2179,7 @@ function buildLoginForm() {
       <div class="error-msg" id="login-error"></div>`;
     setTimeout(()=>{
       const el=document.getElementById('login-code');
-      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(el) { el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); el.focus(); }
       const btn=document.getElementById('btn-login');
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-admin');
@@ -1672,7 +2199,7 @@ function buildLoginForm() {
       <div class="error-msg" id="login-error"></div>`;
     setTimeout(()=>{
       const el=document.getElementById('admin-code');
-      if(el) el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(el) { el.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); }); el.focus(); }
       const btn=document.getElementById('btn-login-admin');
       if(btn) btn.addEventListener('click', doLogin);
       const lnk=document.getElementById('link-driver');
@@ -1705,6 +2232,7 @@ function buildLoginForm() {
       const adminPass=document.getElementById('admin-pass');
       if(adminUser) adminUser.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
       if(adminPass) adminPass.addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+      if(adminUser) adminUser.focus();
     },50);
   }
 }
@@ -1737,6 +2265,14 @@ function mostrarPantallaSuperAdmin() {
           <label class="form-label">👔 Código de Ropa</label>
           <input class="form-input" type="text" id="codigo-ropa-input" value="${MODULO_CODIGOS.ropa}">
         </div>
+        <div class="form-group">
+          <label class="form-label">🪪 Código de ADR/CAP</label>
+          <input class="form-input" type="text" id="codigo-adrcap-input" value="${MODULO_CODIGOS.adrcap}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🛡️ Código de Seguros</label>
+          <input class="form-input" type="text" id="codigo-seguros-input" value="${MODULO_CODIGOS.seguros}">
+        </div>
         <button class="btn btn-primary" id="btn-guardar-codigos">💾 Guardar cambios</button>
       </div>
 
@@ -1768,9 +2304,11 @@ function mostrarPantallaSuperAdmin() {
     const g = document.getElementById('codigo-gasoil-input').value.trim();
     const f = document.getElementById('codigo-fleet-input').value.trim();
     const r = document.getElementById('codigo-ropa-input').value.trim();
-    if (!g || !f || !r) { showAlert(al,'Los tres campos son obligatorios',true); return; }
+    const a = document.getElementById('codigo-adrcap-input').value.trim();
+    const s = document.getElementById('codigo-seguros-input').value.trim();
+    if (!g || !f || !r || !a || !s) { showAlert(al,'Los cinco campos son obligatorios',true); return; }
     try {
-      const nuevos = { gasoil: g, fleet: f, ropa: r };
+      const nuevos = { gasoil: g, fleet: f, ropa: r, adrcap: a, seguros: s };
       await setDoc(doc(db, 'configuracion', 'moduloCodigos'), nuevos);
       MODULO_CODIGOS = nuevos;
       showAlert(al, '✓ Códigos actualizados correctamente', false);
@@ -1958,7 +2496,7 @@ window.submitRepostaje = async () => {
 // ══════════════════════════════
 // ADMIN
 // ══════════════════════════════
-function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); }
+function renderAdminPage() { populateFilters(); renderAdminStats(); renderDriverList(); updateAdrCapBadge(); updateSegurosBadge(); }
 
 function populateFilters() {
   // Conductores (todos, incluidos los de baja, para poder filtrar su histórico)
@@ -2516,7 +3054,8 @@ function renderDriverList() {
       d.dni ? `🪪 ${d.dni}` : null,
       d.telParticular ? `📱 ${d.telParticular}` : null,
       d.telEmpresa ? `🏢 ${d.telEmpresa}` : null,
-      d.extension ? `☎️ Ext. ${d.extension}` : null
+      d.extension ? `☎️ Ext. ${d.extension}` : null,
+      d.email ? `✉️ ${d.email}` : null
     ].filter(Boolean).join(' · ');
     const sinGasoil = d.permisoGasoil===false ? `<div style="font-size:11px;color:var(--danger);font-weight:600;margin-top:3px;">⛔ Sin permiso de Gasoil</div>` : '';
     const ropaDoc = ropaEmpleadosCache.find(e=>e.conductorCode===d.code);
@@ -2530,6 +3069,9 @@ function renderDriverList() {
         ${datosExtra ? `<div style="font-size:12px;color:var(--accent);margin-top:4px;">${datosExtra}</div>` : ''}
         ${sinGasoil}
         ${tallasTxt ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">📏 ${tallasTxt}</div>` : ''}
+        <div style="font-size:12px;margin-top:4px;" id="salario-line-${d.code}">
+          <button onclick="verSalarioEmpleado('${d.code}')" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:0;">🔒 Ver salario y cuenta bancaria</button>
+        </div>
       </div>
       <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
         <button onclick="editDriver('${d.code}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">Editar</button>
@@ -2551,6 +3093,15 @@ function renderDriverList() {
       </div>
     </div>`).join('');
 }
+
+window.verSalarioEmpleado = async (code) => {
+  const d = driversCache.find(x=>x.code===code);
+  if (!d) return;
+  const ok = await pedirPasswordSuperadmin(`El salario y la cuenta bancaria de ${d.name} solo los puede ver el Admin Superior.`);
+  if (!ok) return;
+  const linea = document.getElementById('salario-line-'+code);
+  if (linea) linea.innerHTML = `💰 Salario bruto: <strong>${d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES')+' €' : 'No indicado'}</strong><br>🏦 Cuenta: <strong>${d.cuentaBancaria || 'No indicada'}</strong>`;
+};
 
 window.eliminarDriverDefinitivo = async (code) => {
   const d = driversCache.find(x=>x.code===code);
@@ -2623,6 +3174,20 @@ async function guardarTallasParaEmpleado(code, categoria, prefix) {
   else ropaEmpleadosCache.push({id: docId, ...datos});
 }
 
+function limpiarFormularioEmpleado() {
+  document.getElementById('new-driver-name').value='';
+  document.getElementById('new-driver-code').value='';
+  document.getElementById('new-driver-dni').value='';
+  document.getElementById('new-driver-categoria').value='';
+  document.getElementById('new-driver-empresa').value='';
+  document.getElementById('new-driver-tel-particular').value='';
+  document.getElementById('new-driver-tel-empresa').value='';
+  document.getElementById('new-driver-extension').value='';
+  document.getElementById('new-driver-email').value='';
+  document.getElementById('new-driver-permiso-gasoil').checked=true;
+  document.getElementById('new-driver-limpieza').checked=false;
+}
+
 window.addDriver = async () => {
   const btnAdd = document.getElementById('btn-add-driver');
   if (btnAdd.disabled) return; // evita crear dos veces el mismo empleado por doble clic
@@ -2634,6 +3199,7 @@ window.addDriver = async () => {
   const telParticular=document.getElementById('new-driver-tel-particular').value.trim();
   const telEmpresa=document.getElementById('new-driver-tel-empresa').value.trim();
   const extension=document.getElementById('new-driver-extension').value.trim();
+  const email=document.getElementById('new-driver-email').value.trim();
   const permisoGasoil=document.getElementById('new-driver-permiso-gasoil').checked;
   const limpieza=document.getElementById('new-driver-limpieza').checked;
   const al=document.getElementById('admin-alert');
@@ -2646,20 +3212,11 @@ window.addDriver = async () => {
   if (!code) code = 'SC' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
   btnAdd.disabled = true; const textoBtnOriginal = btnAdd.textContent; btnAdd.textContent = 'Guardando...';
   try {
-    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,permisoGasoil,sinCodigo:!tieneCodigoReal};
+    const nuevo = {name,code,activo:true,limpieza,dni,categoria,empresa,telParticular,telEmpresa,extension,email,permisoGasoil,sinCodigo:!tieneCodigoReal};
     await setDoc(doc(db,'conductores',code),nuevo);
     // No tocamos driversCache a mano: el listener onSnapshot de conductores ya lo
     // actualiza solo. Si lo hacemos aquí también, el empleado aparece duplicado.
-    document.getElementById('new-driver-name').value='';
-    document.getElementById('new-driver-code').value='';
-    document.getElementById('new-driver-dni').value='';
-    document.getElementById('new-driver-categoria').value='';
-    document.getElementById('new-driver-empresa').value='';
-    document.getElementById('new-driver-tel-particular').value='';
-    document.getElementById('new-driver-tel-empresa').value='';
-    document.getElementById('new-driver-extension').value='';
-    document.getElementById('new-driver-permiso-gasoil').checked=true;
-    document.getElementById('new-driver-limpieza').checked=false;
+    limpiarFormularioEmpleado();
     renderDriverList();
     showAlert(al,`✓ Empleado "${name}" añadido`,false);
     document.getElementById('add-driver-wrapper').style.display = 'none';
@@ -2757,6 +3314,22 @@ window.editDriver = (code) => {
         <label class="form-label">Extensión de teléfono móvil</label>
         <input class="form-input" type="text" id="edit-driver-extension" value="${d.extension||''}" placeholder="Opcional">
       </div>
+      <div class="form-group">
+        <label class="form-label">Correo electrónico</label>
+        <input class="form-input" type="email" id="edit-driver-email" value="${d.email||''}" placeholder="Opcional">
+      </div>
+      <div class="form-group">
+        <label class="form-label">🔒 Datos confidenciales <span style="color:var(--text-muted);font-weight:400;">(solo Admin Superior)</span></label>
+        <div id="salario-edit-bloqueado">
+          <button type="button" id="btn-ver-salario-edit" style="width:100%;padding:0.6rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:13px;cursor:pointer;">🔒 Ver / editar salario y cuenta bancaria</button>
+        </div>
+        <div id="salario-edit-desbloqueado" style="display:none;">
+          <label class="form-label" style="margin-top:0.5rem;">Salario bruto</label>
+          <input class="form-input" type="text" inputmode="decimal" id="edit-driver-salario" placeholder="Ej: 1.800,00">
+          <label class="form-label" style="margin-top:0.5rem;">Cuenta bancaria (IBAN)</label>
+          <input class="form-input" type="text" id="edit-driver-cuenta" placeholder="Ej: ES00 0000 0000 0000 0000 0000" style="text-transform:uppercase;">
+        </div>
+      </div>
       <div style="margin-bottom:0.75rem;">
         <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
           <input type="checkbox" id="edit-driver-permiso-gasoil" ${d.permisoGasoil===false?'':'checked'} style="width:18px;height:18px;"> ⛽ Permiso para registrar repostajes (Gasoil)
@@ -2775,6 +3348,18 @@ window.editDriver = (code) => {
     </div>`;
   document.body.appendChild(modal);
 
+  let salarioDesbloqueado = false;
+  document.getElementById('btn-ver-salario-edit').addEventListener('click', async () => {
+    const ok = await pedirPasswordSuperadmin(`El salario y la cuenta bancaria de ${d.name} solo los puede ver el Admin Superior.`);
+    if (!ok) return;
+    salarioDesbloqueado = true;
+    document.getElementById('salario-edit-bloqueado').style.display = 'none';
+    document.getElementById('salario-edit-desbloqueado').style.display = 'block';
+    document.getElementById('edit-driver-salario').value = d.salarioBruto!=null ? d.salarioBruto.toLocaleString('es-ES') : '';
+    document.getElementById('edit-driver-cuenta').value = d.cuentaBancaria || '';
+    document.getElementById('edit-driver-salario').focus();
+  });
+
   document.getElementById('btn-save-driver-edit').addEventListener('click', async () => {
     const newName = document.getElementById('edit-driver-name').value.trim();
     let newCode = document.getElementById('edit-driver-code').value.trim();
@@ -2784,6 +3369,7 @@ window.editDriver = (code) => {
     const newTelParticular = document.getElementById('edit-driver-tel-particular').value.trim();
     const newTelEmpresa = document.getElementById('edit-driver-tel-empresa').value.trim();
     const newExtension = document.getElementById('edit-driver-extension').value.trim();
+    const newEmail = document.getElementById('edit-driver-email').value.trim();
     const newPermisoGasoil = document.getElementById('edit-driver-permiso-gasoil').checked;
     const newLimpieza = document.getElementById('edit-driver-limpieza').checked;
     const al = document.getElementById('edit-driver-alert');
@@ -2795,7 +3381,14 @@ window.editDriver = (code) => {
       const { doc: fbDoc, setDoc: fbSet, deleteDoc: fbDel } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       // Partimos del objeto completo "d" (conserva activo y cualquier otro campo) y solo
       // sobreescribimos lo editado, para no perder el estado de baja al guardar cambios.
-      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, permisoGasoil:newPermisoGasoil, sinCodigo:!tieneCodigoReal };
+      // El salario solo se incluye si se desbloqueó con la contraseña de Admin Superior;
+      // si no, se preserva el que ya hubiera (gracias al spread de "d" de más arriba).
+      const actualizado = { ...d, name:newName, code:newCode, limpieza:newLimpieza, dni:newDni, categoria:newCategoria, empresa:newEmpresa, telParticular:newTelParticular, telEmpresa:newTelEmpresa, extension:newExtension, email:newEmail, permisoGasoil:newPermisoGasoil, sinCodigo:!tieneCodigoReal };
+      if (salarioDesbloqueado) {
+        const valorSalario = parseImporteEuropeo(document.getElementById('edit-driver-salario').value);
+        actualizado.salarioBruto = isNaN(valorSalario) ? null : valorSalario;
+        actualizado.cuentaBancaria = document.getElementById('edit-driver-cuenta').value.trim().toUpperCase();
+      }
       if (newCode !== code) {
         await fbSet(fbDoc(db,'conductores',newCode), actualizado);
         await fbDel(fbDoc(db,'conductores',code));
@@ -3009,6 +3602,12 @@ function actualizarCachesVehiculos() {
   populateHistMantMatriculas();
 }
 
+function limpiarFormularioVehiculo() {
+  document.getElementById('new-mat').value='';
+  document.getElementById('new-mat-gasoil').checked = true;
+  document.getElementById('new-mat-flota').checked = true;
+}
+
 window.addMat = async () => {
   const btnAddMat = document.getElementById('btn-add-mat');
   if (btnAddMat.disabled) return; // evita crear el vehículo dos veces por doble clic
@@ -3025,9 +3624,7 @@ window.addMat = async () => {
     const nuevo = {matricula:mat, gasoil, flota, activo:true};
     await setDoc(doc(db,'vehiculos',mat),nuevo);
     // No tocamos vehiculosCache a mano: el onSnapshot de vehículos ya lo actualiza solo.
-    matInput.value='';
-    document.getElementById('new-mat-gasoil').checked = true;
-    document.getElementById('new-mat-flota').checked = true;
+    limpiarFormularioVehiculo();
     renderMatList();
     actualizarCachesVehiculos();
     showAlert(al,`✓ Vehículo "${mat}" añadido`,false);
@@ -3119,19 +3716,37 @@ function switchModule(mod) {
   document.getElementById('module-gasoil').style.display = mod==='gasoil' ? 'block' : 'none';
   document.getElementById('module-fleet').style.display = mod==='fleet' ? 'block' : 'none';
   document.getElementById('module-ropa').style.display = mod==='ropa' ? 'block' : 'none';
+  document.getElementById('module-adrcap').style.display = mod==='adrcap' ? 'block' : 'none';
+  document.getElementById('module-seguros').style.display = mod==='seguros' ? 'block' : 'none';
   document.getElementById('module-gestion').style.display = mod==='gestion' ? 'block' : 'none';
   document.getElementById('btn-cambiar-modulo').style.display = 'inline-block';
-  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', gestion:'⚙️ Configuración'};
+  const titulos = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', adrcap:'🪪 ADR/CAP', seguros:'🛡️ Seguros', gestion:'⚙️ Configuración'};
   document.getElementById('admin-topbar-title').textContent = titulos[mod];
   if (mod==='fleet') { renderHistorial(); renderMantenimiento(); updateFleetBadge(); }
   if (mod==='ropa') { populateRopaSelects(); updatePendientesBadge(); }
+  if (mod==='adrcap') {
+    document.querySelectorAll('#module-adrcap .tab-pane').forEach(p=>p.classList.remove('active'));
+    document.getElementById('ftab-mant-conductores').classList.add('active');
+    populateMantCondConductores();
+    renderMantenimientoConductores();
+    updateAdrCapBadge();
+  }
+  if (mod==='seguros') {
+    populateSegurosSelects();
+    switchSegurosTab('vehiculos');
+    renderSegurosPolizas();
+    updateSegurosBadge();
+  }
   if (mod==='gestion') { switchGestionTab('conductores'); }
 }
 
 function volverASeleccionModulo() {
+  segVehFichasAbiertas.clear();
   document.getElementById('module-gasoil').style.display = 'none';
   document.getElementById('module-fleet').style.display = 'none';
   document.getElementById('module-ropa').style.display = 'none';
+  document.getElementById('module-adrcap').style.display = 'none';
+  document.getElementById('module-seguros').style.display = 'none';
   document.getElementById('module-gestion').style.display = 'none';
   document.getElementById('modulo-home-screen').style.display = 'block';
   document.getElementById('btn-cambiar-modulo').style.display = 'none';
@@ -3139,7 +3754,7 @@ function volverASeleccionModulo() {
 }
 
 function pedirCodigoModulo(mod) {
-  const nombres = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa'};
+  const nombres = {gasoil:'⛽ Gasoil', fleet:'🚛 Flota', ropa:'👔 Ropa', adrcap:'🪪 ADR/CAP', seguros:'🛡️ Seguros'};
   const modal = document.createElement('div');
   modal.id = 'codigo-modulo-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
@@ -3183,12 +3798,11 @@ function switchRopaTab(tab) {
 function switchFleetTab(tab) {
   document.querySelectorAll('#module-fleet .tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('ftab-'+tab).classList.add('active');
-  ['historial','mantenimiento','mant-conductores','limpieza'].forEach(t=>{
+  ['historial','mantenimiento','limpieza'].forEach(t=>{
     document.getElementById('ftab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
   });
   if (tab==='historial') renderHistorial();
   if (tab==='mantenimiento') renderMantenimiento();
-  if (tab==='mant-conductores') { populateMantCondConductores(); renderMantenimientoConductores(); }
   if (tab==='limpieza') {
     document.querySelectorAll('#ftab-limpieza .tab-pane').forEach(p=>p.classList.remove('active'));
     document.getElementById('lim-sub-vehiculos').classList.add('active');
@@ -3213,11 +3827,13 @@ function updateFleetBadge() {
   const hoy=new Date(); let alertas=0;
   mantenimientoCache.forEach(m=>{ REVISIONES.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO) alertas++; } }); });
   document.getElementById('ftab-btn-mantenimiento').textContent=alertas>0?`Mantenimiento 🔴${alertas}`:'Mantenimiento';
+}
 
-  let alertasCond=0;
+function updateAdrCapBadge() {
+  const hoy=new Date(); let alertasCond=0;
   mantConductoresCache.forEach(m=>{ REVISIONES_CONDUCTOR.forEach(rev=>{ const key=revKey(rev); if(m[key]){ const dias=Math.ceil((new Date(m[key])-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_CONDUCTOR) alertasCond++; } }); });
-  const btnCond = document.getElementById('ftab-btn-mant-conductores');
-  if (btnCond) btnCond.textContent = alertasCond>0?`👤 ADR/CAP 🔴${alertasCond}`:'👤 ADR/CAP';
+  const badge = document.getElementById('home-badge-adrcap');
+  if (badge) badge.textContent = alertasCond>0 ? `🔴${alertasCond}` : '';
 }
 
 // ══════════════════════════════
@@ -3229,6 +3845,11 @@ function populateHistMatriculas() {
   const todasMat = ['TOROS CESAB',...matriculasCache,...remolquesCache];
   if (sel) { sel.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ sel.innerHTML+=`<option value="${m}">${m}</option>`; }); }
   if (selFilter) { selFilter.innerHTML = '<option value="">— Selecciona vehículo —</option>'; todasMat.forEach(m=>{ selFilter.innerHTML+=`<option value="${m}">${m}</option>`; }); }
+}
+
+function limpiarFormularioHistorial() {
+  document.getElementById('hist-matricula').value='';
+  document.getElementById('hist-comentarios').value='';
 }
 
 async function guardarHistorial() {
@@ -3243,8 +3864,7 @@ async function guardarHistorial() {
     await addDoc(collection(dbFleet,'historial'), registro);
     // No tocamos historialCache a mano: el onSnapshot ya lo actualiza (si lo
     // hacemos también aquí, el registro se duplica en la lista).
-    document.getElementById('hist-matricula').value='';
-    document.getElementById('hist-comentarios').value='';
+    limpiarFormularioHistorial();
     showAlert(al,'✓ Registro guardado correctamente',false);
     renderHistorial();
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
@@ -3423,7 +4043,7 @@ window.editMant = (mat, rev) => {
   modal.innerHTML=`
     <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">🔧 ${rev} — ${mat}</div>
-      <div class="form-group"><label class="form-label">Última vez que se pasó</label>
+      <div class="form-group"><label class="form-label">Última vez que se pasó <span style="color:var(--text-muted);font-weight:400;">(opcional)</span></label>
       <input class="form-input" type="date" id="mant-fecha-ultima" value="${m[keyUltima]||''}"></div>
       <div class="form-group"><label class="form-label">Próxima fecha</label>
       <input class="form-input" type="date" id="mant-fecha" value="${m[key]||''}"></div>
@@ -3615,9 +4235,13 @@ function renderMantenimientoConductores() {
       ${REVISIONES_CONDUCTOR.map(rev=>{
         const key=revKey(rev);
         const keyUltima=key+'_ultima';
+        const keyNoAplica=key+'_noaplica';
+        const keyEmpresa=key+'_empresa';
         const fechaStr=m[key];
         const fecha=fechaStr?new Date(fechaStr):null;
         const fechaUltimaStr=m[keyUltima];
+        const empresaRev=m[keyEmpresa];
+        const noAplica=!fecha && !!m[keyNoAplica];
         const dias=fecha?Math.ceil((fecha-hoy)/(1000*60*60*24)):null;
         let color='var(--text-muted)';
         if(dias!==null){ if(dias<0) color='var(--danger)'; else if(dias<=DIAS_AVISO_CONDUCTOR) color='var(--warning)'; else color='var(--success)'; }
@@ -3625,17 +4249,43 @@ function renderMantenimientoConductores() {
           <div style="display:flex;justify-content:space-between;width:100%;align-items:center;">
             <span style="font-weight:500;">${rev} ${dias!==null && dias<=DIAS_AVISO_CONDUCTOR?`<span style="background:${color};color:#111;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px;">${dias<0?'VENCIDA':'PRÓXIMA'}</span>`:''}</span>
             <div style="display:flex;align-items:center;gap:0.5rem;">
-              <span style="color:${color};font-size:13px;">${fecha?fecha.toLocaleDateString('es-ES'):'Sin fecha'}</span>
+              <span style="color:${noAplica?'var(--text-muted)':color};font-size:13px;font-style:${noAplica?'italic':'normal'};">${fecha?fecha.toLocaleDateString('es-ES'):(noAplica?`No tiene ${rev}`:'Sin fecha')}</span>
               <button class="btn-sm" onclick="editMantCond('${cod}','${rev}')">Editar</button>
             </div>
           </div>
+          ${empresaRev?`<div style="font-size:11px;color:var(--accent);">🏭 ${empresaRev}</div>`:''}
           ${dias!==null?`<div style="font-size:12px;color:${color};font-weight:600;">${dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`}</div>`:''}
           ${fechaUltimaStr?`<div style="font-size:11px;color:var(--text-muted);">Última vez: ${new Date(fechaUltimaStr).toLocaleDateString('es-ES')}</div>`:''}
+          ${!fecha && !noAplica ? `<button class="btn-sm" onclick="marcarNoTieneCond('${cod}','${rev}')" style="font-size:11px;">🚫 No tiene ${rev}</button>` : ''}
+          ${noAplica ? `<button class="btn-sm" onclick="quitarNoTieneCond('${cod}','${rev}')" style="font-size:11px;">↩️ Sí lo necesita</button>` : ''}
         </div>`;
       }).join('')}
     </div>
   </div>`;
 }
+
+window.marcarNoTieneCond = async (cod, rev) => {
+  const key = revKey(rev);
+  const m = mantConductoresCache.find(x=>x.id===cod) || {};
+  const datos = { ...m, [key+'_noaplica']: true };
+  delete datos.id;
+  try {
+    await setDoc(doc(dbFleet,'mantenimientoConductores',cod), datos);
+    // No tocamos mantConductoresCache a mano: el onSnapshot ya lo actualiza solo.
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.quitarNoTieneCond = async (cod, rev) => {
+  const key = revKey(rev);
+  const m = mantConductoresCache.find(x=>x.id===cod);
+  if (!m) return;
+  const datos = { ...m, [key+'_noaplica']: false };
+  delete datos.id;
+  try {
+    await setDoc(doc(dbFleet,'mantenimientoConductores',cod), datos);
+    // No tocamos mantConductoresCache a mano: el onSnapshot ya lo actualiza solo.
+  } catch(e) { alert('Error: '+e.message); }
+};
 
 window.toggleMantCond = (safeId) => {
   const body = document.getElementById('mantcond-body-'+safeId);
@@ -3648,13 +4298,22 @@ window.editMantCond = (cod, rev) => {
   const m = mantConductoresCache.find(x=>x.id===cod) || {id:cod};
   const key=revKey(rev);
   const keyUltima=key+'_ultima';
+  const keyEmpresa=key+'_empresa';
   const tieneFecha = !!m[key];
+  const d = driversCache.find(x=>x.code===cod);
+  const empresaActual = m[keyEmpresa] || (d?d.empresa:'') || '';
   const modal=document.createElement('div');
   modal.id='mant-cond-modal';
-  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
   modal.innerHTML=`
-    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;">
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:380px;max-height:90vh;overflow-y:auto;">
       <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">👤 ${rev} — ${nombreConductorPorCodigo(cod)}</div>
+      <div class="form-group"><label class="form-label">Empresa</label>
+        <select class="form-input" id="mant-cond-empresa">
+          <option value="">— Selecciona empresa —</option>
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===empresaActual?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Última vez que se renovó</label>
       <input class="form-input" type="date" id="mant-cond-fecha-ultima" value="${m[keyUltima]||''}"></div>
       <div class="form-group"><label class="form-label">Próxima fecha de caducidad</label>
@@ -3670,12 +4329,13 @@ window.editMantCond = (cod, rev) => {
   document.getElementById('btn-save-mant-cond').addEventListener('click', async ()=>{
     const fecha=document.getElementById('mant-cond-fecha').value;
     const fechaUltima=document.getElementById('mant-cond-fecha-ultima').value;
+    const empresaSel=document.getElementById('mant-cond-empresa').value;
     const al=document.getElementById('mant-cond-modal-alert');
     if (!fecha) { showAlert(al,'Selecciona la próxima fecha',true); return; }
     try {
       const fechaAnterior = m[key];
       const idx=mantConductoresCache.findIndex(x=>x.id===cod);
-      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null};
+      const updates = {[key]:fecha, [keyUltima]:fechaUltima||null, [key+'_noaplica']:false, [keyEmpresa]:empresaSel||null};
       if(idx>=0) { Object.assign(mantConductoresCache[idx],updates); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),mantConductoresCache[idx]); }
       else { const nuevo={...updates}; mantConductoresCache.push({id:cod,...nuevo}); await setDoc(doc(dbFleet,'mantenimientoConductores',cod),nuevo); }
 
@@ -3690,7 +4350,7 @@ window.editMantCond = (cod, rev) => {
       }
 
       document.getElementById('mant-cond-modal').remove();
-      renderMantenimientoConductores(); updateFleetBadge();
+      renderMantenimientoConductores(); updateAdrCapBadge();
     } catch(e) { showAlert(al,'Error: '+e.message,true); }
   });
   const btnDelete = document.getElementById('btn-delete-mant-cond');
@@ -3706,7 +4366,7 @@ window.editMantCond = (cod, rev) => {
           await setDoc(doc(dbFleet,'mantenimientoConductores',cod), mantConductoresCache[idx]);
         }
         document.getElementById('mant-cond-modal').remove();
-        renderMantenimientoConductores(); updateFleetBadge();
+        renderMantenimientoConductores(); updateAdrCapBadge();
       } catch(e) { showAlert(al,'Error: '+e.message,true); }
     });
   }
@@ -3771,6 +4431,1448 @@ window.eliminarHistMantCond = async (id) => {
     renderHistMantCond();
   } catch(e) { alert('Error al eliminar: '+e.message); }
 };
+
+// ══════════════════════════════
+// CRÉDITOS DE FORMACIÓN (FLEET)
+// ══════════════════════════════
+
+function empresaSlug(empresa) { return (empresa||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'_'); }
+
+// Convierte un importe escrito en formato español ("1.438,76") a número (1438.76).
+// También admite que lo escriban en formato sencillo ("1438.76" o "1438").
+function parseImporteEuropeo(texto) {
+  if (texto === null || texto === undefined) return NaN;
+  const limpio = String(texto).trim().replace(/[.\s]/g,'').replace(',', '.');
+  return parseFloat(limpio);
+}
+
+function populateCreditosSelects() {
+  const selEmp = document.getElementById('creditos-sel-empresa');
+  const selAnio = document.getElementById('creditos-sel-anio');
+  const selCursoConductor = document.getElementById('curso-sel-conductor');
+  const selCursoEmpresa = document.getElementById('curso-sel-empresa');
+  const anioActual = new Date().getFullYear();
+  const anios = [anioActual-2, anioActual-1, anioActual, anioActual+1];
+
+  if (selEmp) {
+    selEmp.innerHTML = '<option value="">— Selecciona empresa —</option>';
+    EMPRESAS_EMPLEADO.forEach(e=>{ selEmp.innerHTML += `<option value="${e}" ${e===creditosFiltroEmpresa?'selected':''}>${e}</option>`; });
+  }
+  if (selAnio) {
+    selAnio.innerHTML = anios.map(a=>`<option value="${a}" ${a===creditosFiltroAnio?'selected':''}>${a}</option>`).join('');
+  }
+  if (selCursoConductor) {
+    const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+    selCursoConductor.innerHTML = '<option value="">— Selecciona conductor —</option>';
+    activos.forEach(d=>{ selCursoConductor.innerHTML += `<option value="${d.code}">${d.name}</option>`; });
+  }
+  if (selCursoEmpresa) {
+    selCursoEmpresa.innerHTML = '<option value="">— Selecciona empresa —</option>';
+    EMPRESAS_EMPLEADO.forEach(e=>{ selCursoEmpresa.innerHTML += `<option value="${e}">${e}</option>`; });
+  }
+}
+
+function renderCreditosResumen() {
+  const el = document.getElementById('creditos-resumen');
+  if (!el) return;
+  if (!creditosFiltroEmpresa) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">💰</div>Selecciona una empresa y un año arriba</div>';
+    return;
+  }
+  const credito = creditosFormacionCache.find(c=>c.empresa===creditosFiltroEmpresa && c.anio===creditosFiltroAnio);
+  const total = credito ? credito.creditoTotal : 0;
+  const gastado = cursosFormacionCache
+    .filter(c => c.empresa===creditosFiltroEmpresa && c.fechaCurso && new Date(c.fechaCurso).getFullYear()===creditosFiltroAnio)
+    .reduce((sum,c) => sum + (parseFloat(c.importe)||0), 0);
+  const restante = total - gastado;
+  const pct = total > 0 ? Math.min(100, (gastado/total)*100) : 0;
+  const color = restante < 0 ? 'var(--danger)' : pct >= 90 ? 'var(--warning)' : 'var(--success)';
+  el.innerHTML = `
+    <div class="refuel-card" style="margin-bottom:1rem;">
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:0.75rem;">${creditosFiltroEmpresa} · ${creditosFiltroAnio}</div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:14px;">
+        <span>Crédito asignado</span><strong>${total.toFixed(2)} €</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;font-size:14px;">
+        <span>Gastado</span><strong>${gastado.toFixed(2)} €</strong>
+      </div>
+      <div style="height:8px;background:var(--navy-light);border-radius:4px;overflow:hidden;margin-bottom:0.75rem;">
+        <div style="height:100%;width:${pct}%;background:${color};"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;">
+        <span>Restante</span><span style="color:${color};">${restante.toFixed(2)} €</span>
+      </div>
+      ${restante < 0 ? `<div style="font-size:12px;color:var(--danger);font-weight:600;margin-top:0.5rem;">⚠️ Se ha superado el crédito asignado</div>` : ''}
+    </div>`;
+}
+
+async function guardarCreditoTotal() {
+  const al = document.getElementById('credito-total-alert');
+  if (!creditosFiltroEmpresa) { showAlert(al,'Selecciona primero una empresa arriba',true); return; }
+  const valor = parseImporteEuropeo(document.getElementById('credito-total-input').value);
+  if (isNaN(valor) || valor < 0) { showAlert(al,'Indica un importe válido',true); return; }
+  try {
+    const docId = empresaSlug(creditosFiltroEmpresa) + '_' + creditosFiltroAnio;
+    await setDoc(doc(dbFleet,'creditosFormacion',docId), { empresa: creditosFiltroEmpresa, anio: creditosFiltroAnio, creditoTotal: valor });
+    // No tocamos creditosFormacionCache a mano: el onSnapshot ya lo actualiza solo.
+    document.getElementById('asignar-credito-wrapper').style.display = 'none';
+    showAlert(al,'✓ Crédito actualizado',false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+}
+
+function limpiarFormularioCurso() {
+  document.getElementById('curso-sel-conductor').value='';
+  document.getElementById('curso-sel-empresa').value='';
+  document.getElementById('curso-centro').value='';
+  document.getElementById('curso-nombre-select').value='';
+  document.getElementById('curso-nombre-otro').value='';
+  document.getElementById('curso-nombre-otro').style.display='none';
+  document.getElementById('curso-fecha').value='';
+  document.getElementById('curso-importe').value='';
+  document.getElementById('curso-num-factura').value='';
+  document.getElementById('curso-fecha-factura').value='';
+}
+
+async function guardarCurso() {
+  const al = document.getElementById('curso-alert');
+  const conductorCode = document.getElementById('curso-sel-conductor').value;
+  const empresa = document.getElementById('curso-sel-empresa').value;
+  const centro = document.getElementById('curso-centro').value.trim();
+  const cursoSel = document.getElementById('curso-nombre-select').value;
+  const curso = cursoSel === 'Otros' ? document.getElementById('curso-nombre-otro').value.trim() : cursoSel;
+  const fechaCurso = document.getElementById('curso-fecha').value;
+  const importe = parseImporteEuropeo(document.getElementById('curso-importe').value);
+  const numFactura = document.getElementById('curso-num-factura').value.trim();
+  const fechaFactura = document.getElementById('curso-fecha-factura').value;
+
+  if (!conductorCode) { showAlert(al,'⚠️ Selecciona el conductor',true); return; }
+  if (!empresa) { showAlert(al,'⚠️ Selecciona la empresa',true); return; }
+  if (!curso) { showAlert(al,'⚠️ Escribe el curso',true); return; }
+  if (!fechaCurso) { showAlert(al,'⚠️ Indica la fecha del curso',true); return; }
+  if (isNaN(importe) || importe < 0) { showAlert(al,'⚠️ Indica un importe válido',true); return; }
+
+  const btn = document.getElementById('btn-guardar-curso');
+  btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
+  try {
+    const registro = { conductorCode, empresa, centro, curso, fechaCurso, importe, numFactura, fechaFactura };
+    await addDoc(collection(dbFleet,'cursosFormacion'), registro);
+    // No tocamos cursosFormacionCache a mano: el onSnapshot ya lo actualiza solo.
+    limpiarFormularioCurso();
+    showAlert(al,'✓ Curso registrado correctamente',false);
+    document.getElementById('add-curso-wrapper').style.display = 'none';
+    document.getElementById('btn-toggle-add-curso').textContent = '➕ Registrar curso';
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+}
+
+function renderCursosFormacionList() {
+  const list = document.getElementById('cursos-formacion-list');
+  if (!list) return;
+  const f = cursosFormacionCache.filter(c => {
+    if (creditosFiltroEmpresa && c.empresa !== creditosFiltroEmpresa) return false;
+    if (creditosFiltroAnio && (!c.fechaCurso || new Date(c.fechaCurso).getFullYear() !== creditosFiltroAnio)) return false;
+    return true;
+  });
+  if (!f.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📚</div>No hay cursos registrados para ese filtro</div>'; return; }
+  list.innerHTML = f.map(c=>{
+    const safeId = c.id.replace(/[^a-zA-Z0-9]/g,'_');
+    return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+      <div onclick="toggleCursoFormacion('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">📚 ${nombreConductorPorCodigo(c.conductorCode)} — ${c.curso}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">📅 ${c.fechaCurso?new Date(c.fechaCurso).toLocaleDateString('es-ES'):'—'} · ${(parseFloat(c.importe)||0).toFixed(2)} €</div>
+        </div>
+        <span id="curso-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">▼</span>
+      </div>
+      <div id="curso-body-${safeId}" style="display:none;padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+        <div style="font-size:13px;line-height:1.6;margin:0.75rem 0;">
+          <div><strong>Empresa:</strong> ${c.empresa||'—'}</div>
+          <div><strong>Centro de formación:</strong> ${c.centro||'—'}</div>
+          <div><strong>Nº de factura:</strong> ${c.numFactura||'—'}</div>
+          <div><strong>Fecha de factura:</strong> ${c.fechaFactura?new Date(c.fechaFactura).toLocaleDateString('es-ES'):'—'}</div>
+        </div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn-sm" style="flex:1;" onclick="editarCurso('${c.id}')">✏️ Editar</button>
+          <button class="btn-sm btn-sm-danger" style="flex:1;" onclick="eliminarCurso('${c.id}')">🗑 Eliminar</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+window.toggleCursoFormacion = (safeId) => {
+  const body = document.getElementById('curso-body-'+safeId);
+  const arrow = document.getElementById('curso-arrow-'+safeId);
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; }
+};
+
+window.editarCurso = (id) => {
+  const c = cursosFormacionCache.find(x=>x.id===id);
+  if (!c) return;
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const modal = document.createElement('div');
+  modal.id = 'edit-curso-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar curso</div>
+      <div class="form-group"><label class="form-label">Conductor</label>
+        <select class="form-input" id="edit-curso-conductor">
+          ${activos.map(d=>`<option value="${d.code}" ${d.code===c.conductorCode?'selected':''}>${d.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Empresa</label>
+        <select class="form-input" id="edit-curso-empresa">
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===c.empresa?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Centro de formación</label><input class="form-input" id="edit-curso-centro" value="${c.centro||''}"></div>
+      <div class="form-group"><label class="form-label">Curso</label>
+        <select class="form-input" id="edit-curso-nombre-select">
+          <option value="ADR" ${c.curso==='ADR'?'selected':''}>ADR</option>
+          <option value="ADR Inicial" ${c.curso==='ADR Inicial'?'selected':''}>ADR Inicial</option>
+          <option value="CAP" ${c.curso==='CAP'?'selected':''}>CAP</option>
+          <option value="CAP Inicial" ${c.curso==='CAP Inicial'?'selected':''}>CAP Inicial</option>
+          <option value="Otros" ${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?'selected':''}>Otros</option>
+        </select>
+        <input class="form-input" type="text" id="edit-curso-nombre-otro" value="${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?(c.curso||''):''}" placeholder="Escribe el curso" style="margin-top:0.5rem;display:${!['ADR','ADR Inicial','CAP','CAP Inicial'].includes(c.curso)?'block':'none'};">
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Fecha del curso</label><input class="form-input" type="date" id="edit-curso-fecha" value="${c.fechaCurso||''}"></div>
+        <div class="form-group"><label class="form-label">Importe (€)</label><input class="form-input" type="text" inputmode="decimal" id="edit-curso-importe" value="${c.importe!=null?c.importe.toLocaleString('es-ES'):''}"></div>
+      </div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Nº de factura</label><input class="form-input" id="edit-curso-num-factura" value="${c.numFactura||''}"></div>
+        <div class="form-group"><label class="form-label">Fecha de factura</label><input class="form-input" type="date" id="edit-curso-fecha-factura" value="${c.fechaFactura||''}"></div>
+      </div>
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+        <button id="btn-save-curso-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-curso-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-curso-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('edit-curso-nombre-select').addEventListener('change', (e)=>{
+    document.getElementById('edit-curso-nombre-otro').style.display = e.target.value==='Otros' ? 'block' : 'none';
+  });
+
+  document.getElementById('btn-save-curso-edit').addEventListener('click', async () => {
+    const al = document.getElementById('edit-curso-alert');
+    const importe = parseImporteEuropeo(document.getElementById('edit-curso-importe').value);
+    if (isNaN(importe) || importe < 0) { showAlert(al,'Indica un importe válido',true); return; }
+    const cursoSelEdit = document.getElementById('edit-curso-nombre-select').value;
+    const cambios = {
+      conductorCode: document.getElementById('edit-curso-conductor').value,
+      empresa: document.getElementById('edit-curso-empresa').value,
+      centro: document.getElementById('edit-curso-centro').value.trim(),
+      curso: cursoSelEdit==='Otros' ? document.getElementById('edit-curso-nombre-otro').value.trim() : cursoSelEdit,
+      fechaCurso: document.getElementById('edit-curso-fecha').value,
+      importe,
+      numFactura: document.getElementById('edit-curso-num-factura').value.trim(),
+      fechaFactura: document.getElementById('edit-curso-fecha-factura').value,
+    };
+    try {
+      await updateDoc(doc(dbFleet,'cursosFormacion',id), cambios);
+      const idx = cursosFormacionCache.findIndex(x=>x.id===id);
+      if (idx>=0) Object.assign(cursosFormacionCache[idx], cambios);
+      document.getElementById('edit-curso-modal').remove();
+      renderCreditosResumen();
+      renderCursosFormacionList();
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+};
+
+window.eliminarCurso = async (id) => {
+  if (!(await confirmarAccion('¿Eliminar este curso del registro? Esto liberará su importe del crédito gastado.'))) return;
+  try {
+    await deleteDoc(doc(dbFleet,'cursosFormacion',id));
+    cursosFormacionCache = cursosFormacionCache.filter(c=>c.id!==id);
+    renderCreditosResumen();
+    renderCursosFormacionList();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+// ══════════════════════════════
+// SEGUROS — VEHÍCULOS Y PÓLIZAS
+// ══════════════════════════════
+
+async function guardarSegurosElementosExtra() {
+  const al = document.getElementById('seg-extra-alert');
+  const texto = document.getElementById('seg-extra-textarea').value;
+  const items = texto.split('\n').map(l=>l.trim()).filter(Boolean);
+  try {
+    await setDoc(doc(dbFleet,'segurosConfig','elementosExtra'), { items });
+    // No tocamos segurosElementosExtraCache a mano: el onSnapshot ya lo actualiza solo.
+    showAlert(al, `✓ Lista guardada (${items.length} elementos)`, false);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+}
+
+function switchSegurosTab(tab) {
+  segVehFichasAbiertas.clear();
+  segVehBusqueda = '';
+  const elBuscador = document.getElementById('seg-veh-buscador');
+  if (elBuscador) elBuscador.value = '';
+  // "carretillas" y "tractor" reutilizan el mismo panel que "vehiculos" (mismo formulario,
+  // misma lista, mismas funciones de PDF/Excel/comparativa) pero filtrado por tipo, para
+  // no duplicar todo el código — la única diferencia real es qué se ve en la lista.
+  const panelReal = (tab==='carretillas' || tab==='tractor') ? 'vehiculos' : tab;
+  segVehFiltroTipo = tab==='carretillas' ? 'carretilla' : (tab==='tractor' ? 'tractor' : (tab==='vehiculos' ? 'vehiculo' : ''));
+  document.querySelectorAll('#module-seguros .tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('seg-tab-'+panelReal).classList.add('active');
+  ['vehiculos','tractor','carretillas','polizas','comparativa'].forEach(t=>{
+    document.getElementById('seg-tab-btn-'+t).className='btn atab-btn '+(t===tab?'btn-secondary':'btn-ghost');
+  });
+  if (tab==='vehiculos' || tab==='carretillas' || tab==='tractor') {
+    const titulos = {carretillas:'Carretillas/Transpaletas aseguradas', tractor:'Tractores asegurados', vehiculos:'Vehículos asegurados'};
+    const botones = {carretillas:'➕ Añadir seguro de carretilla/transpaleta', tractor:'➕ Añadir seguro de tractor', vehiculos:'➕ Añadir seguro de vehículo'};
+    document.getElementById('seg-veh-list-titulo').textContent = titulos[tab];
+    document.getElementById('btn-toggle-add-seg-veh').textContent = botones[tab];
+    document.getElementById('seg-veh-tipo').value = segVehFiltroTipo;
+    actualizarCamposSegunTipo('seg-veh');
+    renderSegurosVehiculos();
+  }
+  if (tab==='polizas') renderSegurosPolizas();
+  if (tab==='comparativa') renderComparativaSeguros();
+}
+
+// Adapta el formulario de seguro de vehículo según el tipo elegido: las carretillas no
+// llevan Clasificación ITV, y el campo "Ámbito" pasa a ser un "Número" para ellas.
+function actualizarCamposSegunTipo(prefix) {
+  const tipo = document.getElementById(prefix+'-tipo').value;
+  // "Reducido" agrupa carretilla, transpaleta y tractor: sin ITV, conductor, lunas ni
+  // impuesto municipal. El Tractor además oculta el campo Ámbito del todo (no lo necesita
+  // ni como "Número"), y nunca muestra Kilos.
+  const esReducido = tipo === 'carretilla' || tipo === 'transpaleta' || tipo === 'tractor';
+  const esTractor = tipo === 'tractor';
+  const esCarretillaOTranspaleta = tipo === 'carretilla' || tipo === 'transpaleta';
+  const wrapperKilos = document.getElementById(prefix+'-kilos-wrapper');
+  const wrapperItv = document.getElementById(prefix+'-clasitv-wrapper');
+  const wrapperConductor = document.getElementById(prefix+'-conductor-wrapper');
+  const wrapperLunas = document.getElementById(prefix+'-lunas-wrapper');
+  const wrapperAmbito = document.getElementById(prefix+'-ambito-wrapper');
+  const labelAmbito = document.getElementById(prefix+'-ambito-label');
+  const inputAmbito = document.getElementById(prefix+'-ambito');
+  if (wrapperKilos) wrapperKilos.style.display = esTractor ? 'none' : 'block';
+  if (wrapperItv) wrapperItv.style.display = esReducido ? 'none' : 'block';
+  if (wrapperConductor) wrapperConductor.style.display = esReducido ? 'none' : 'block';
+  if (wrapperLunas) wrapperLunas.style.display = esReducido ? 'none' : 'block';
+  if (wrapperAmbito) wrapperAmbito.style.display = esTractor ? 'none' : 'block';
+  if (labelAmbito) labelAmbito.textContent = esCarretillaOTranspaleta ? 'Número' : 'Ámbito';
+  if (inputAmbito) {
+    inputAmbito.type = esCarretillaOTranspaleta ? 'number' : 'text';
+    inputAmbito.placeholder = esCarretillaOTranspaleta ? 'Ej: 3' : 'Ej: Nacional, Europa...';
+  }
+}
+
+function populateSegurosSelects() {
+  const datalistMat = document.getElementById('seg-matriculas-existentes');
+  const selEmpresa = document.getElementById('seg-veh-empresa');
+  const datalistConductor = document.getElementById('seg-conductores-existentes');
+  if (datalistMat) {
+    const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(v=>v.activo!==false).map(v=>v.matricula), ...segurosElementosExtraCache];
+    datalistMat.innerHTML = todasMat.map(m=>`<option value="${m}">`).join('');
+  }
+  if (selEmpresa) {
+    selEmpresa.innerHTML = '<option value="">— Selecciona empresa —</option>';
+    EMPRESAS_EMPLEADO.forEach(e=>{ selEmpresa.innerHTML += `<option value="${e}">${e}</option>`; });
+  }
+  if (datalistConductor) {
+    const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+    datalistConductor.innerHTML = activos.map(d=>`<option value="${d.name}">`).join('');
+  }
+}
+
+function renderComparativaSeguros() {
+  const cont = document.getElementById('seg-comparativa-content');
+  if (!cont) return;
+
+  // "Seguros" junta TODO: vehículos, tractores, carretillas/transpaletas Y pólizas.
+  // "Impuesto municipal" solo aplica a vehículos/tractores/carretillas (las pólizas no
+  // tienen impuesto municipal), así que ese bloque se queda como estaba.
+  const itemsSeguro = [
+    ...segurosVehiculosCache.filter(v=>v.activo!==false).map(v=>({ nombre: v.matricula, datos: v.importePorAnio })),
+    ...segurosPolizasCache.filter(p=>p.activo!==false).map(p=>({ nombre: (p.tipoPoliza||'Póliza')+(p.modelo?' — '+p.modelo:''), datos: p.importePorAnio }))
+  ];
+  const itemsImpuesto = segurosVehiculosCache.filter(v=>v.activo!==false).map(v=>({ nombre: v.matricula, datos: v.impuestoMunicipal }));
+
+  const bloque = (items, titulo, icono, tipo, nombreColumna) => {
+    const aniosSet = new Set();
+    items.forEach(it=>Object.keys(it.datos||{}).forEach(a=>aniosSet.add(a)));
+    const anios = [...aniosSet].sort();
+    if (!anios.length) return `<div class="refuel-card" style="margin-bottom:1.25rem;"><div class="section-title">${icono} ${titulo}</div><div style="font-size:13px;color:var(--text-muted);">Todavía no hay ningún año registrado.</div></div>`;
+
+    const conDatos = items.filter(it=>Object.keys(it.datos||{}).length>0).sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+    const totalesPorAnio = {};
+    anios.forEach(a=>totalesPorAnio[a]=0);
+    conDatos.forEach(it=>{ anios.forEach(a=>{ if (it.datos && it.datos[a]!=null) totalesPorAnio[a]+=extraerValorYNota(it.datos[a]).valor; }); });
+
+    // Tabla sencilla: Año | Total | Diferencia. Solo se ven los 3 años más recientes de
+    // entrada; el resto queda detrás de un botón para no acumular filas con el tiempo.
+    const filaTotal = (a, i) => {
+      const valor = totalesPorAnio[a];
+      let diffHtml = '—';
+      if (i>0) {
+        const anterior = totalesPorAnio[anios[i-1]];
+        if (anterior>0) {
+          const diff = valor-anterior;
+          const pct = diff/anterior*100;
+          const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
+          diffHtml = `<span style="color:${color};font-weight:600;">${diff>=0?'+':''}${diff.toFixed(2)}€ (${pct>=0?'+':''}${pct.toFixed(1)}%)</span>`;
+        }
+      }
+      return `<tr style="border-bottom:1px solid var(--card-border);">
+        <td style="padding:7px 8px;font-weight:600;">${a}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;">${valor.toFixed(2)} €</td>
+        <td style="padding:7px 8px;text-align:right;font-size:12.5px;">${diffHtml}</td>
+      </tr>`;
+    };
+
+    const VISIBLES = 3;
+    const aniosRecientes = anios.slice(-VISIBLES);
+    const aniosAntiguos = anios.slice(0, -VISIBLES);
+
+    let html = `<div class="refuel-card" style="margin-bottom:1.25rem;">
+      <div class="section-title">${icono} ${titulo}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
+        <tr style="background:var(--navy-light);">
+          <th style="text-align:left;padding:6px 8px;">Año</th>
+          <th style="text-align:right;padding:6px 8px;">Total</th>
+          <th style="text-align:right;padding:6px 8px;">Diferencia</th>
+        </tr>
+        ${[...aniosRecientes].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}`;
+
+    if (aniosAntiguos.length) {
+      const contAntId = `seg-comp-antiguos-${tipo}`;
+      html += `<tbody id="${contAntId}" style="display:none;">${[...aniosAntiguos].reverse().map(a=>filaTotal(a, anios.indexOf(a))).join('')}</tbody>`;
+    }
+    html += `</table>`;
+    if (aniosAntiguos.length) {
+      const contAntId = `seg-comp-antiguos-${tipo}`;
+      html += `<button class="btn-sm" data-texto="🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos" onclick="toggleComparativaDetalle('${contAntId}', this)" style="width:100%;margin-top:0.5rem;font-size:11px;">🕐 Ver ${aniosAntiguos.length} año${aniosAntiguos.length>1?'s':''} más antiguos</button>`;
+    }
+
+    const contId = `seg-comp-detalle-${tipo}`;
+    html += `<button class="btn-sm" onclick="toggleComparativaDetalle('${contId}', this)" style="width:100%;margin-top:0.75rem;font-size:12px;" data-texto="📋 Ver desglose por ${nombreColumna}">📋 Ver desglose por ${nombreColumna}</button>
+      <div id="${contId}" style="display:none;margin-top:0.75rem;overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap;">
+          <tr style="background:var(--navy-light);">
+            <th style="text-align:left;padding:5px 7px;position:sticky;left:0;background:var(--navy-light);">${nombreColumna[0].toUpperCase()+nombreColumna.slice(1)}</th>
+            ${anios.map(a=>`<th style="padding:5px 8px;text-align:right;">${a}</th>`).join('')}
+          </tr>
+          ${conDatos.map(it=>`<tr style="border-bottom:1px solid var(--card-border);">
+            <td style="padding:5px 7px;font-weight:600;">${it.nombre}</td>
+            ${anios.map(a=>{
+              const val = it.datos && it.datos[a]!=null ? extraerValorYNota(it.datos[a]).valor : null;
+              return `<td style="padding:5px 8px;text-align:right;">${val!=null?val.toFixed(2)+' €':'—'}</td>`;
+            }).join('')}
+          </tr>`).join('')}
+        </table>
+      </div>
+    </div>`;
+    return html;
+  };
+
+  cont.innerHTML = bloque(itemsSeguro, 'Seguros (vehículos, carretillas/transpaletas y pólizas)', '💶', 'seg', 'nombre')
+                  + bloque(itemsImpuesto, 'Impuesto municipal', '📅', 'imp', 'vehículo');
+}
+
+window.toggleComparativaDetalle = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = ''; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
+
+function updateSegurosBadge() {
+  const hoy = new Date();
+  let alertas = 0;
+  segurosVehiculosCache.forEach(v=>{ if(v.activo!==false && v.fechaCaducidad){ const dias=Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
+  segurosPolizasCache.forEach(p=>{ if(p.activo!==false && p.fechaCaducidad){ const dias=Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)); if(dias<=DIAS_AVISO_SEGUROS) alertas++; } });
+  const badge = document.getElementById('home-badge-seguros');
+  if (badge) badge.textContent = alertas>0 ? `🔴${alertas}` : '';
+}
+
+function limpiarFormularioSegVeh() {
+  ['seg-veh-matricula','seg-veh-modelo','seg-veh-kilos','seg-veh-clasitv','seg-veh-compania','seg-veh-numpoliza','seg-veh-fechacad','seg-veh-corredor','seg-veh-ambito','seg-veh-empresa','seg-veh-conductor'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('seg-veh-lunas').checked = false;
+  document.getElementById('seg-veh-comentarios').value = '';
+}
+
+async function guardarSeguroVehiculo() {
+  const al = document.getElementById('seg-veh-alert');
+  const matricula = document.getElementById('seg-veh-matricula').value.trim().toUpperCase();
+  const modelo = document.getElementById('seg-veh-modelo').value.trim();
+  const kilosVal = document.getElementById('seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
+  const clasificacionItv = document.getElementById('seg-veh-clasitv').value.trim();
+  const compania = document.getElementById('seg-veh-compania').value.trim();
+  const numeroPoliza = document.getElementById('seg-veh-numpoliza').value.trim();
+  const fechaCaducidad = document.getElementById('seg-veh-fechacad').value;
+  const corredor = document.getElementById('seg-veh-corredor').value.trim();
+  const ambito = document.getElementById('seg-veh-ambito').value.trim();
+  const empresa = document.getElementById('seg-veh-empresa').value;
+  const conductor = document.getElementById('seg-veh-conductor').value.trim();
+  const tipo = document.getElementById('seg-veh-tipo').value;
+  const seguroLunas = document.getElementById('seg-veh-lunas').checked;
+  const comentarios = document.getElementById('seg-veh-comentarios').value.trim();
+
+  if (!matricula) { showAlert(al,'⚠️ Escribe la matrícula o identificador',true); return; }
+  if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
+
+  // El identificador puede ser cualquier texto (matrícula, "Carretilla 1", etc.), así que
+  // generamos un id de documento seguro a partir de él en vez de usarlo literalmente.
+  const docId = matricula.replace(/[^A-Z0-9]/g,'_');
+
+  const btn = document.getElementById('btn-guardar-seg-veh');
+  btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
+  try {
+    const existente = segurosVehiculosCache.find(v=>v.id===docId);
+    const esReducidoGuardar = tipo === 'carretilla' || tipo === 'transpaleta' || tipo === 'tractor';
+    const esTractorGuardar = tipo === 'tractor';
+    const datos = {
+      matricula, modelo,
+      kilos: (esTractorGuardar || !kilosVal) ? null : parseFloat(kilosVal),
+      clasificacionItv: esReducidoGuardar ? '' : clasificacionItv,
+      compania, numeroPoliza, fechaCaducidad, corredor,
+      ambito: esTractorGuardar ? '' : ambito,
+      empresa,
+      conductor: esReducidoGuardar ? '' : conductor,
+      seguroLunas: esReducidoGuardar ? false : seguroLunas,
+      comentarios, tipo,
+      impuestoMunicipal: existente ? (existente.impuestoMunicipal||{}) : {},
+      importePorAnio: existente ? (existente.importePorAnio||{}) : {},
+      activo: existente ? (existente.activo!==false) : true
+    };
+    await setDoc(doc(dbFleet,'segurosVehiculos',docId), datos);
+    // No tocamos segurosVehiculosCache a mano: el onSnapshot ya lo actualiza solo.
+    limpiarFormularioSegVeh();
+    showAlert(al, existente ? '✓ Seguro actualizado correctamente' : '✓ Seguro guardado correctamente', false);
+    document.getElementById('add-seg-veh-wrapper').style.display='none';
+    document.getElementById('btn-toggle-add-seg-veh').textContent='➕ Añadir seguro de vehículo';
+    // Abrimos directamente su ficha para añadir el impuesto municipal sin tener que buscarla en la lista.
+    setTimeout(()=>abrirFichaSeguroVeh(docId), 350);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+}
+
+function abrirFichaSeguroVeh(docId) {
+  const safeId = docId.replace(/[^a-zA-Z0-9]/g,'_');
+  segVehFichasAbiertas.add(safeId);
+  const body = document.getElementById('seg-veh-body-'+safeId);
+  const arrow = document.getElementById('seg-veh-arrow-'+safeId);
+  if (!body) return;
+  body.style.display = 'block';
+  if (arrow) arrow.textContent = '▲';
+  body.scrollIntoView({behavior:'smooth', block:'center'});
+  const inputAnio = document.getElementById('nuevo-anio-'+safeId);
+  if (inputAnio) setTimeout(()=>inputAnio.focus(), 400);
+}
+
+function renderSegurosVehiculos() {
+  const list = document.getElementById('seg-veh-list');
+  const alertasEl = document.getElementById('seg-veh-alertas');
+  if (!list) return;
+  const hoy = new Date();
+  // Los registros antiguos (de antes de tener "tipo") se consideran "vehiculo" por defecto.
+  const activos = segurosVehiculosCache.filter(v=>v.activo!==false && coincideTipoSeguro(v));
+  let alertasHtml = '';
+  activos.forEach(v=>{
+    if (!v.fechaCaducidad) return;
+    const dias = Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24));
+    if (dias<=DIAS_AVISO_SEGUROS) {
+      const color = dias<0?'var(--danger)':dias<=5?'#ff6b00':'var(--warning)';
+      const txt = dias<0?`Vencido hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`;
+      alertasHtml += `<div style="background:#3a1e1e;border:1px solid ${color};border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:0.5rem;font-size:13px;">⚠️ <strong>${v.matricula}</strong>: <span style="color:${color};font-weight:700;">${txt}</span> (${new Date(v.fechaCaducidad).toLocaleDateString('es-ES')})</div>`;
+    }
+  });
+  alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
+  document.getElementById('seg-veh-baja-count').textContent = segurosVehiculosCache.filter(v=>v.activo===false && coincideTipoSeguro(v)).length;
+
+  if (!activos.length) { list.innerHTML = `<div class="empty-state"><div class="empty-icon">🛡️</div>No hay seguros de ${etiquetasGrupoSeguro().nombre} activos registrados</div>`; return; }
+
+  const filtrados = segVehBusqueda ? activos.filter(v=>(v.matricula||'').toLowerCase().startsWith(segVehBusqueda)) : activos;
+  if (segVehBusqueda && !filtrados.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div>Ningún vehículo coincide con esa búsqueda</div>'; return; }
+  const ordenados = [...filtrados].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+  list.innerHTML = ordenados.map(v=>{
+    const safeId = v.id.replace(/[^a-zA-Z0-9]/g,'_');
+    const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+    let color = 'var(--text-muted)';
+    if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
+    const abierta = segVehFichasAbiertas.has(safeId);
+    const esReducidoCard = v.tipo==='carretilla' || v.tipo==='transpaleta' || v.tipo==='tractor';
+    const esTractorCard = v.tipo==='tractor';
+    return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+      <div onclick="toggleSeguroVeh('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':v.tipo==='tractor'?'🚛':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':v.tipo==='tractor'?'🚛 Tractor · ':''}${v.compania||'—'} · <span style="color:${color};font-weight:600;">${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
+        </div>
+        <span id="seg-veh-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
+      </div>
+      <div id="seg-veh-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+        <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
+          ${!esTractorCard?`<div><strong>Kilos:</strong> ${v.kilos?v.kilos.toLocaleString('es-ES'):'—'}</div>`:''}
+          ${!esReducidoCard?`<div><strong>Clasificación ITV:</strong> ${v.clasificacionItv||'—'}</div>`:''}
+          <div><strong>Nº de póliza:</strong> ${v.numeroPoliza||'—'}</div>
+          <div><strong>Corredor:</strong> ${v.corredor||'—'}</div>
+          <div><strong>Importe actual:</strong> ${ultimoValorAnio(v.importePorAnio)!=null?ultimoValorAnio(v.importePorAnio).toFixed(2)+' €':'—'}</div>
+          ${!esTractorCard?`<div><strong>Ámbito:</strong> ${v.ambito||'—'}</div>`:''}
+          <div><strong>Empresa:</strong> ${v.empresa||'—'}</div>
+          ${!esReducidoCard?`<div><strong>Conductor:</strong> ${nombreConductorSeguro(v)||'—'}</div>`:''}
+          ${!esReducidoCard?`<div><strong>Seguro de lunas:</strong> ${v.seguroLunas?'Sí':'No'}</div>`:''}
+          ${v.comentarios?`<div style="margin-top:6px;"><strong>Notas:</strong> ${v.comentarios}</div>`:''}
+        </div>
+
+        <button class="btn-sm" data-texto="💶 Ver historial del importe del seguro" onclick="toggleSeccionAnios('seg-anios-seg-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">💶 Ver historial del importe del seguro</button>
+        <div id="seg-anios-seg-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(v.importePorAnio, v.id, 'eliminarImporteSeguroAnio', safeId, 'seg')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-seg-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImporteSeguroAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
+        </div>
+
+        ${!esReducidoCard?`
+        <button class="btn-sm" data-texto="📅 Ver historial del impuesto municipal" onclick="toggleSeccionAnios('seg-anios-imp-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">📅 Ver historial del impuesto municipal</button>
+        <div id="seg-anios-imp-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(v.impuestoMunicipal, v.id, 'eliminarImpuestoAnio', safeId, 'imp')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 120,50)" id="nuevo-imp-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImpuestoAnio('${v.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
+        </div>`:''}
+
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+          <button class="btn-sm" style="flex:1;" onclick="editarSeguroVehiculo('${v.id}')">✏️ Editar</button>
+          <button class="btn-del" style="flex:1;" onclick="bajaSeguroVehiculo('${v.id}')">📤 Dar de baja</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSegurosVehiculosBaja() {
+  const list = document.getElementById('seg-veh-baja-list');
+  if (!list) return;
+  const bajas = segurosVehiculosCache.filter(v=>v.activo===false && coincideTipoSeguro(v)).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+  if (!bajas.length) { list.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay seguros de baja</div>'; return; }
+  list.innerHTML = bajas.map(v=>`
+    <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">${v.tipo==='carretilla'?'🚜':v.tipo==='transpaleta'?'🔌':v.tipo==='tractor'?'🚛':'🚗'} ${v.matricula}${v.modelo?' — '+v.modelo:''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${v.tipo==='carretilla'?'🚜 Carretilla · ':v.tipo==='transpaleta'?'🔌 Transpaleta eléctrica · ':v.tipo==='tractor'?'🚛 Tractor · ':''}${v.compania||'—'} · Caducidad: ${v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="reactivarSeguroVehiculo('${v.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
+        <button class="btn-del" onclick="eliminarSeguroVehiculo('${v.id}')">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+window.bajaSeguroVehiculo = async (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  if (!v) return;
+  if (!(await confirmarAccion(`¿Dar de baja el seguro de "${v.matricula}"? No se borra nada, solo se oculta de la lista activa y puedes reactivarlo cuando quieras.`))) return;
+  try {
+    await setDoc(doc(dbFleet,'segurosVehiculos',id), { ...v, activo: false });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarSeguroVehiculo = async (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  if (!v) return;
+  try {
+    await setDoc(doc(dbFleet,'segurosVehiculos',id), { ...v, activo: true });
+    renderSegurosVehiculosBaja();
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.toggleSeguroVeh = (safeId) => {
+  const body = document.getElementById('seg-veh-body-'+safeId);
+  const arrow = document.getElementById('seg-veh-arrow-'+safeId);
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; segVehFichasAbiertas.add(safeId); }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; segVehFichasAbiertas.delete(safeId); }
+};
+
+window.anadirImpuestoAnio = async (matricula, safeId) => {
+  const anio = document.getElementById('nuevo-anio-'+safeId).value.trim();
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-'+safeId).value.trim();
+  if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  try {
+    const nuevoMapa = { ...(v.impuestoMunicipal||{}), [anio]: { importe, nota } };
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { impuestoMunicipal: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.eliminarImpuestoAnio = async (matricula, anio) => {
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  const nuevoMapa = { ...(v.impuestoMunicipal||{}) };
+  delete nuevoMapa[anio];
+  try {
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { impuestoMunicipal: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.anadirImporteSeguroAnio = async (matricula, safeId) => {
+  const anio = document.getElementById('nuevo-anio-seg-'+safeId).value.trim();
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-seg-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-seg-'+safeId).value.trim();
+  if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  try {
+    const nuevoMapa = { ...(v.importePorAnio||{}), [anio]: { importe, nota } };
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.eliminarImporteSeguroAnio = async (matricula, anio) => {
+  const v = segurosVehiculosCache.find(x=>x.id===matricula);
+  if (!v) return;
+  const nuevoMapa = { ...(v.importePorAnio||{}) };
+  delete nuevoMapa[anio];
+  try {
+    await updateDoc(doc(dbFleet,'segurosVehiculos',matricula), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+// Devuelve el valor del año más reciente de un mapa {año: importe}, o null si está vacío.
+// Devuelve el nombre del conductor de un seguro, tanto si viene vinculado por código
+// (formato antiguo) como si es texto libre (formato actual, no requiere estar en Configuración).
+function nombreConductorSeguro(v) {
+  if (v.conductorCode) return nombreConductorPorCodigo(v.conductorCode);
+  return v.conductor || '';
+}
+
+// Cada año puede guardarse como número simple (formato antiguo) o como {importe, nota}
+// (formato actual, con anotación de texto opcional). Esta función siempre devuelve los dos.
+function extraerValorYNota(entry) {
+  if (entry !== null && typeof entry === 'object') {
+    return { valor: parseFloat(entry.importe), nota: entry.nota || '' };
+  }
+  return { valor: parseFloat(entry), nota: '' };
+}
+
+// La pestaña "Vehículos" muestra solo tipo=vehiculo; la pestaña "Carretillas/Transpaletas"
+// agrupa cualquier otro tipo (carretilla, transpaleta...), aunque sean tipos distintos.
+// Textos de título/nombre de archivo según la pestaña activa (Vehículos, Tractor o
+// Carretillas/Transpaletas), para no repetir la misma lista de ternarios por todos lados.
+function etiquetasGrupoSeguro() {
+  if (segVehFiltroTipo === 'tractor') return { nombre: 'tractores', tag: 'SEGUROS DE TRACTORES', archivo: 'Manchatrans_Seguros_Tractores', hoja: 'Seguros tractores' };
+  if (segVehFiltroTipo === 'carretilla') return { nombre: 'carretillas/transpaletas', tag: 'SEGUROS DE CARRETILLAS/TRANSPALETAS', archivo: 'Manchatrans_Seguros_Carretillas_Transpaletas', hoja: 'Carretillas-transpaletas' };
+  return { nombre: 'vehículos', tag: 'SEGUROS DE VEHÍCULOS', archivo: 'Manchatrans_Seguros_Vehiculos', hoja: 'Seguros vehículos' };
+}
+
+function coincideTipoSeguro(v) {
+  const tipo = v.tipo || 'vehiculo';
+  if (segVehFiltroTipo === 'vehiculo') return tipo === 'vehiculo';
+  if (segVehFiltroTipo === 'tractor') return tipo === 'tractor';
+  return tipo === 'carretilla' || tipo === 'transpaleta'; // pestaña Carretillas/Transpaletas
+}
+
+function ultimoValorAnio(mapa) {
+  if (!mapa) return null;
+  const anios = Object.keys(mapa).sort((a,b)=>b-a);
+  return anios.length ? extraerValorYNota(mapa[anios[0]]).valor : null;
+}
+
+// Pinta la lista de años de un mapa {año: importe}, con la diferencia en € y % respecto
+// al año anterior justo al lado de cada valor. Solo se ve el año más reciente por
+// defecto; el resto se despliega con un botón, para no saturar la pantalla con muchos años.
+function renderListaAniosConDiff(mapa, matricula, nombreFuncionEliminar, safeId, tipo) {
+  const entradas = Object.entries(mapa||{}).map(([a,v])=>{
+    const {valor, nota} = extraerValorYNota(v);
+    return [a, valor, nota];
+  }).sort((a,b)=>a[0]-b[0]);
+  if (!entradas.length) return '<div style="font-size:12px;color:var(--text-muted);">Sin años registrados</div>';
+
+  const filaHtml = (anio, valor, nota, idx) => {
+    let diffHtml = '';
+    if (idx > 0) {
+      const anterior = entradas[idx-1][1];
+      const diff = valor - anterior;
+      const pct = anterior !== 0 ? (diff/anterior*100) : null;
+      const color = diff>0?'var(--danger)':diff<0?'var(--success)':'var(--text-muted)';
+      diffHtml = `<span style="font-size:11px;color:${color};margin-left:6px;">(${diff>=0?'+':''}${diff.toFixed(2)}€${pct!=null?' / '+(pct>=0?'+':'')+pct.toFixed(1)+'%':''} vs ${entradas[idx-1][0]})</span>`;
+    }
+    return `<div style="padding:4px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;">
+        <span>${anio}: ${valor.toFixed(2)} €${diffHtml}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="btn-sm" onclick="editarAnioEnLista('${tipo}','${safeId}','${anio}',${valor},'${(nota||'').replace(/'/g,"\\'")}')" style="padding:2px 8px;font-size:11px;">✏️</button>
+          <button class="btn-sm btn-sm-danger" onclick="${nombreFuncionEliminar}('${matricula}','${anio}')" style="padding:2px 8px;font-size:11px;">✕</button>
+        </div>
+      </div>
+      ${nota?`<div style="font-size:11.5px;color:var(--text-muted);margin-top:2px;">📝 ${nota}</div>`:''}
+    </div>`;
+  };
+
+  const ultimoIdx = entradas.length - 1;
+  let html = filaHtml(entradas[ultimoIdx][0], entradas[ultimoIdx][1], entradas[ultimoIdx][2], ultimoIdx);
+
+  if (entradas.length > 1) {
+    const contId = `lista-anios-${tipo}-${safeId}`;
+    const resto = entradas.slice(0, ultimoIdx).reverse();
+    html += `<div id="${contId}" style="display:none;">${resto.map(([anio,valor,nota])=>filaHtml(anio, valor, nota, entradas.findIndex(e=>e[0]===anio))).join('')}</div>`;
+    html += `<button class="btn-sm" data-texto="▼ Ver ${resto.length} año${resto.length>1?'s':''} más" onclick="toggleListaAnios('${contId}', this)" style="font-size:11px;margin-top:4px;">▼ Ver ${resto.length} año${resto.length>1?'s':''} más</button>`;
+  }
+  return html;
+}
+
+window.toggleSeccionAnios = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = btn.dataset.texto.replace('Ver ','Ocultar '); }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
+
+// Rellena el mini-formulario de año/importe/nota con los datos de un año ya existente,
+// para poder corregirlo (al volver a pulsar ➕ con el mismo año, se sobrescribe solo).
+window.editarAnioEnLista = (tipo, safeId, anio, valor, nota) => {
+  const sufijo = (tipo === 'seg' || tipo === 'pol') ? tipo+'-'+safeId : safeId;
+  const inputAnio = document.getElementById('nuevo-anio-'+sufijo);
+  const inputImp = document.getElementById('nuevo-imp-'+sufijo);
+  const inputNota = document.getElementById('nuevo-nota-'+sufijo);
+  if (inputAnio) inputAnio.value = anio;
+  if (inputImp) inputImp.value = valor.toString().replace('.',',');
+  if (inputNota) inputNota.value = nota || '';
+  if (inputAnio) { inputAnio.scrollIntoView({behavior:'smooth', block:'center'}); inputAnio.focus(); }
+  else { alert('No se ha podido localizar el formulario para editar este año. Despliega primero el historial si está cerrado.'); }
+};
+
+window.toggleListaAnios = (contId, btn) => {
+  const cont = document.getElementById(contId);
+  if (cont.style.display === 'none') { cont.style.display = 'block'; btn.textContent = '▲ Ocultar años anteriores'; }
+  else { cont.style.display = 'none'; btn.textContent = btn.dataset.texto; }
+};
+
+window.editarSeguroVehiculo = (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  if (!v) return;
+  const todasMat = ['TOROS CESAB', ...vehiculosCache.filter(x=>x.activo!==false).map(x=>x.matricula)];
+  const activos = driversCache.filter(d=>d.activo!==false).sort((a,b)=>a.name.localeCompare(b.name));
+  const modal = document.createElement('div');
+  modal.id = 'edit-seg-veh-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar seguro — ${v.matricula}</div>
+      <div class="form-group"><label class="form-label">Matrícula / Identificador</label>
+        <input class="form-input" id="edit-seg-veh-matricula" value="${v.matricula}" disabled style="opacity:0.6;">
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">No se puede cambiar; elimina y crea uno nuevo si es otro elemento.</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tipo</label>
+        <select class="form-input" id="edit-seg-veh-tipo">
+          <option value="vehiculo" ${(v.tipo||'vehiculo')==='vehiculo'?'selected':''}>🚗 Vehículo</option>
+          <option value="tractor" ${v.tipo==='tractor'?'selected':''}>🚛 Tractor</option>
+          <option value="carretilla" ${v.tipo==='carretilla'?'selected':''}>🚜 Carretilla</option>
+          <option value="transpaleta" ${v.tipo==='transpaleta'?'selected':''}>🔌 Transpaleta eléctrica</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-veh-modelo" value="${v.modelo||''}"></div>
+      <div class="two-col">
+        <div class="form-group" id="edit-seg-veh-kilos-wrapper"><label class="form-label">Kilos</label><input class="form-input" type="text" inputmode="numeric" id="edit-seg-veh-kilos" value="${v.kilos?v.kilos.toLocaleString('es-ES'):''}"></div>
+        <div class="form-group" id="edit-seg-veh-clasitv-wrapper"><label class="form-label">Clasificación ITV</label><input class="form-input" id="edit-seg-veh-clasitv" value="${v.clasificacionItv||''}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" id="edit-seg-veh-compania" value="${v.compania||''}"></div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" id="edit-seg-veh-numpoliza" value="${v.numeroPoliza||''}"></div>
+        <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-veh-fechacad" value="${v.fechaCaducidad||''}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-veh-corredor" value="${v.corredor||''}"></div>
+      <div class="form-group" id="edit-seg-veh-ambito-wrapper"><label class="form-label" id="edit-seg-veh-ambito-label">Ámbito</label><input class="form-input" id="edit-seg-veh-ambito" value="${v.ambito||''}"></div>
+      <div class="form-group"><label class="form-label">Empresa</label>
+        <select class="form-input" id="edit-seg-veh-empresa">
+          <option value="">— Selecciona empresa —</option>
+          ${EMPRESAS_EMPLEADO.map(e=>`<option value="${e}" ${e===v.empresa?'selected':''}>${e}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-group" id="edit-seg-veh-conductor-wrapper"><label class="form-label">Conductor</label>
+        <input class="form-input" type="text" id="edit-seg-veh-conductor" list="seg-conductores-existentes" value="${nombreConductorSeguro(v)}" placeholder="Nombre del conductor">
+      </div>
+      <div style="margin-bottom:1.25rem;" id="edit-seg-veh-lunas-wrapper">
+        <label style="display:flex;align-items:center;gap:6px;font-size:14px;cursor:pointer;">
+          <input type="checkbox" id="edit-seg-veh-lunas" ${v.seguroLunas?'checked':''} style="width:18px;height:18px;"> 🪟 Seguro de lunas
+        </label>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="edit-seg-veh-comentarios">${v.comentarios||''}</textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-seg-veh-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-seg-veh-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-seg-veh-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  actualizarCamposSegunTipo('edit-seg-veh');
+  document.getElementById('edit-seg-veh-tipo').addEventListener('change', ()=>actualizarCamposSegunTipo('edit-seg-veh'));
+
+  document.getElementById('btn-save-seg-veh-edit').addEventListener('click', async () => {
+    const al = document.getElementById('edit-seg-veh-alert');
+    const fechaCaducidad = document.getElementById('edit-seg-veh-fechacad').value;
+    if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
+    const kilosVal = document.getElementById('edit-seg-veh-kilos').value.trim().replace(/[.\s]/g,'').replace(',','.');
+    const tipoEditado = document.getElementById('edit-seg-veh-tipo').value;
+    const esReducidoEdit = tipoEditado === 'carretilla' || tipoEditado === 'transpaleta' || tipoEditado === 'tractor';
+    const esTractorEdit = tipoEditado === 'tractor';
+    const cambios = {
+      ...v,
+      tipo: tipoEditado,
+      modelo: document.getElementById('edit-seg-veh-modelo').value.trim(),
+      kilos: (esTractorEdit || !kilosVal) ? null : parseFloat(kilosVal),
+      clasificacionItv: esReducidoEdit ? '' : document.getElementById('edit-seg-veh-clasitv').value.trim(),
+      compania: document.getElementById('edit-seg-veh-compania').value.trim(),
+      numeroPoliza: document.getElementById('edit-seg-veh-numpoliza').value.trim(),
+      fechaCaducidad,
+      corredor: document.getElementById('edit-seg-veh-corredor').value.trim(),
+      ambito: esTractorEdit ? '' : document.getElementById('edit-seg-veh-ambito').value.trim(),
+      empresa: document.getElementById('edit-seg-veh-empresa').value,
+      conductor: esReducidoEdit ? '' : document.getElementById('edit-seg-veh-conductor').value.trim(),
+      conductorCode: null,
+      seguroLunas: esReducidoEdit ? false : document.getElementById('edit-seg-veh-lunas').checked,
+      comentarios: document.getElementById('edit-seg-veh-comentarios').value.trim(),
+    };
+    delete cambios.id;
+    try {
+      await setDoc(doc(dbFleet,'segurosVehiculos',id), cambios);
+      document.getElementById('edit-seg-veh-modal').remove();
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+};
+
+window.eliminarSeguroVehiculo = async (id) => {
+  const v = segurosVehiculosCache.find(x=>x.id===id);
+  const nombreVisible = v ? v.matricula : id;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará el seguro de "${nombreVisible}" PARA SIEMPRE, incluido el impuesto municipal guardado.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
+  try {
+    await deleteDoc(doc(dbFleet,'segurosVehiculos',id));
+    segurosVehiculosCache = segurosVehiculosCache.filter(x=>x.id!==id);
+    renderSegurosVehiculos();
+    renderSegurosVehiculosBaja();
+    updateSegurosBadge();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+function limpiarFormularioSegPol() {
+  ['seg-pol-modelo','seg-pol-tipo','seg-pol-compania','seg-pol-numpoliza','seg-pol-fechacad','seg-pol-corredor','seg-pol-notas'].forEach(idEl=>{ document.getElementById(idEl).value=''; });
+}
+
+async function guardarSeguroPoliza() {
+  const al = document.getElementById('seg-pol-alert');
+  const modelo = document.getElementById('seg-pol-modelo').value.trim();
+  const tipoPoliza = document.getElementById('seg-pol-tipo').value.trim();
+  const compania = document.getElementById('seg-pol-compania').value.trim();
+  const numeroPoliza = document.getElementById('seg-pol-numpoliza').value.trim();
+  const fechaCaducidad = document.getElementById('seg-pol-fechacad').value;
+  const corredor = document.getElementById('seg-pol-corredor').value.trim();
+  const notas = document.getElementById('seg-pol-notas').value.trim();
+
+  if (!tipoPoliza) { showAlert(al,'⚠️ Indica el tipo de póliza',true); return; }
+  if (!fechaCaducidad) { showAlert(al,'⚠️ Indica la fecha de caducidad',true); return; }
+
+  const btn = document.getElementById('btn-guardar-seg-pol');
+  btn.disabled = true; const textoOriginal = btn.textContent; btn.textContent = 'Guardando...';
+  try {
+    const registro = { modelo, tipoPoliza, compania, numeroPoliza, fechaCaducidad, corredor, notas, importePorAnio: {}, activo: true };
+    const ref = await addDoc(collection(dbFleet,'segurosPolizas'), registro);
+    // No tocamos segurosPolizasCache a mano: el onSnapshot ya lo actualiza solo.
+    limpiarFormularioSegPol();
+    showAlert(al,'✓ Póliza guardada correctamente',false);
+    document.getElementById('add-seg-pol-wrapper').style.display='none';
+    document.getElementById('btn-toggle-add-seg-pol').textContent='➕ Añadir póliza';
+    setTimeout(()=>abrirFichaSeguroPol(ref.id), 350);
+  } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+}
+
+function renderSegurosPolizas() {
+  const list = document.getElementById('seg-pol-list');
+  const alertasEl = document.getElementById('seg-pol-alertas');
+  if (!list) return;
+  const hoy = new Date();
+  const activas = segurosPolizasCache.filter(p=>p.activo!==false);
+  let alertasHtml = '';
+  activas.forEach(p=>{
+    if (!p.fechaCaducidad) return;
+    const dias = Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24));
+    if (dias<=DIAS_AVISO_SEGUROS) {
+      const color = dias<0?'var(--danger)':dias<=5?'#ff6b00':'var(--warning)';
+      const txt = dias<0?`Vencida hace ${Math.abs(dias)} días`:dias===0?'Vence hoy':`Vence en ${dias} días`;
+      alertasHtml += `<div style="background:#3a1e1e;border:1px solid ${color};border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:0.5rem;font-size:13px;">⚠️ <strong>${p.tipoPoliza||'Póliza'}</strong>: <span style="color:${color};font-weight:700;">${txt}</span> (${new Date(p.fechaCaducidad).toLocaleDateString('es-ES')})</div>`;
+    }
+  });
+  alertasEl.innerHTML = alertasHtml ? `<div style="margin-bottom:1.25rem;">${alertasHtml}</div>` : '';
+  document.getElementById('seg-pol-baja-count').textContent = segurosPolizasCache.filter(p=>p.activo===false).length;
+
+  if (!activas.length) { list.innerHTML = '<div class="empty-state"><div class="empty-icon">📄</div>No hay pólizas activas registradas</div>'; return; }
+
+  const ordenadas = [...activas].sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+  list.innerHTML = ordenadas.map(p=>{
+    const safeId = p.id.replace(/[^a-zA-Z0-9]/g,'_');
+    const dias = p.fechaCaducidad ? Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+    let color = 'var(--text-muted)';
+    if (dias!==null) { if (dias<0) color='var(--danger)'; else if (dias<=DIAS_AVISO_SEGUROS) color='var(--warning)'; else color='var(--success)'; }
+    const abierta = segVehFichasAbiertas.has('pol-'+safeId);
+    return `<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius-sm);margin-bottom:0.5rem;overflow:hidden;">
+      <div onclick="toggleSeguroPol('${safeId}')" style="display:flex;justify-content:space-between;align-items:center;padding:0.85rem 1rem;cursor:pointer;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">📄 ${p.tipoPoliza||'Póliza'}${p.modelo?' — '+p.modelo:''}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${p.compania||'—'} · <span style="color:${color};font-weight:600;">${p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'Sin fecha'}</span></div>
+        </div>
+        <span id="seg-pol-arrow-${safeId}" style="color:var(--text-muted);font-size:12px;">${abierta?'▲':'▼'}</span>
+      </div>
+      <div id="seg-pol-body-${safeId}" style="display:${abierta?'block':'none'};padding:0 1rem 1rem 1rem;border-top:1px solid var(--card-border);">
+        <div style="font-size:13px;line-height:1.7;margin:0.75rem 0;">
+          <div><strong>Nº de póliza:</strong> ${p.numeroPoliza||'—'}</div>
+          <div><strong>Corredor:</strong> ${p.corredor||'—'}</div>
+          <div><strong>Importe actual:</strong> ${ultimoValorAnio(p.importePorAnio)!=null?ultimoValorAnio(p.importePorAnio).toFixed(2)+' €':'—'}</div>
+          ${p.notas?`<div style="margin-top:6px;"><strong>Notas:</strong> ${p.notas}</div>`:''}
+        </div>
+
+        <button class="btn-sm" data-texto="💶 Ver historial del importe" onclick="toggleSeccionAnios('pol-anios-${safeId}', this)" style="width:100%;margin-bottom:0.4rem;font-size:12px;">💶 Ver historial del importe</button>
+        <div id="pol-anios-${safeId}" style="display:none;margin-bottom:0.75rem;">
+          ${renderListaAniosConDiff(p.importePorAnio, p.id, 'eliminarImportePolizaAnio', safeId, 'pol')}
+          <div style="display:flex;gap:0.4rem;margin-top:0.5rem;">
+            <input class="form-input" type="number" placeholder="Año" id="nuevo-anio-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <input class="form-input" type="text" inputmode="decimal" placeholder="Importe € (ej: 1.438,76)" id="nuevo-imp-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+          </div>
+          <div style="display:flex;gap:0.4rem;margin-top:0.4rem;">
+            <input class="form-input" type="text" placeholder="Nota (opcional)" id="nuevo-nota-pol-${safeId}" style="font-size:13px;padding:0.5rem;">
+            <button class="btn-sm" onclick="anadirImportePolizaAnio('${p.id}','${safeId}')" style="flex-shrink:0;">➕</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem;">
+          <button class="btn-sm" style="flex:1;" onclick="editarSeguroPoliza('${p.id}')">✏️ Editar</button>
+          <button class="btn-del" style="flex:1;" onclick="bajaSeguroPoliza('${p.id}')">📤 Dar de baja</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSegurosPolizasBaja() {
+  const list = document.getElementById('seg-pol-baja-list');
+  if (!list) return;
+  const bajas = segurosPolizasCache.filter(p=>p.activo===false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+  if (!bajas.length) { list.innerHTML = '<div class="empty-state" style="padding:1.5rem;"><div class="empty-icon">✅</div>No hay pólizas de baja</div>'; return; }
+  list.innerHTML = bajas.map(p=>`
+    <div class="driver-list-item" style="opacity:0.7;flex-wrap:wrap;">
+      <div style="flex:1;min-width:200px;">
+        <div class="driver-info">📄 ${p.tipoPoliza||'Póliza'}${p.modelo?' — '+p.modelo:''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">${p.compania||'—'} · Caducidad: ${p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—'}</div>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="reactivarSeguroPoliza('${p.id}')" style="padding:4px 10px;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:12px;cursor:pointer;">↩️ Reactivar</button>
+        <button class="btn-del" onclick="eliminarSeguroPoliza('${p.id}')">🗑 Eliminar</button>
+      </div>
+    </div>`).join('');
+}
+
+window.toggleSeguroPol = (safeId) => {
+  const body = document.getElementById('seg-pol-body-'+safeId);
+  const arrow = document.getElementById('seg-pol-arrow-'+safeId);
+  if (body.style.display === 'none') { body.style.display = 'block'; arrow.textContent = '▲'; segVehFichasAbiertas.add('pol-'+safeId); }
+  else { body.style.display = 'none'; arrow.textContent = '▼'; segVehFichasAbiertas.delete('pol-'+safeId); }
+};
+
+function abrirFichaSeguroPol(polizaId) {
+  const safeId = polizaId.replace(/[^a-zA-Z0-9]/g,'_');
+  segVehFichasAbiertas.add('pol-'+safeId);
+  const body = document.getElementById('seg-pol-body-'+safeId);
+  const arrow = document.getElementById('seg-pol-arrow-'+safeId);
+  if (!body) return;
+  body.style.display = 'block';
+  if (arrow) arrow.textContent = '▲';
+  body.scrollIntoView({behavior:'smooth', block:'center'});
+  const seccionAnios = document.getElementById('pol-anios-'+safeId);
+  if (seccionAnios) { seccionAnios.style.display = 'block'; }
+  const inputAnio = document.getElementById('nuevo-anio-pol-'+safeId);
+  if (inputAnio) setTimeout(()=>inputAnio.focus(), 400);
+}
+
+window.anadirImportePolizaAnio = async (polizaId, safeId) => {
+  const anio = document.getElementById('nuevo-anio-pol-'+safeId).value.trim();
+  const importe = parseImporteEuropeo(document.getElementById('nuevo-imp-pol-'+safeId).value);
+  const nota = document.getElementById('nuevo-nota-pol-'+safeId).value.trim();
+  if (!anio || isNaN(importe)) { alert('Indica el año y el importe'); return; }
+  const p = segurosPolizasCache.find(x=>x.id===polizaId);
+  if (!p) return;
+  try {
+    const nuevoMapa = { ...(p.importePorAnio||{}), [anio]: { importe, nota } };
+    await updateDoc(doc(dbFleet,'segurosPolizas',polizaId), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.eliminarImportePolizaAnio = async (polizaId, anio) => {
+  const p = segurosPolizasCache.find(x=>x.id===polizaId);
+  if (!p) return;
+  const nuevoMapa = { ...(p.importePorAnio||{}) };
+  delete nuevoMapa[anio];
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',polizaId), { importePorAnio: nuevoMapa });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.bajaSeguroPoliza = async (id) => {
+  const p = segurosPolizasCache.find(x=>x.id===id);
+  if (!p) return;
+  if (!(await confirmarAccion(`¿Dar de baja la póliza "${p.tipoPoliza||'Póliza'}"? No se borra nada, solo se oculta de la lista activa y puedes reactivarla cuando quieras.`))) return;
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',id), { activo: false });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.reactivarSeguroPoliza = async (id) => {
+  try {
+    await updateDoc(doc(dbFleet,'segurosPolizas',id), { activo: true });
+  } catch(e) { alert('Error: '+e.message); }
+};
+
+window.editarSeguroPoliza = (id) => {
+  const p = segurosPolizasCache.find(x=>x.id===id);
+  if (!p) return;
+  const modal = document.createElement('div');
+  modal.id = 'edit-seg-pol-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto;';
+  modal.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;">
+      <div style="font-size:16px;font-weight:700;margin-bottom:1.25rem;color:var(--accent);">✏️ Editar póliza</div>
+      <div class="form-group"><label class="form-label">Modelo</label><input class="form-input" id="edit-seg-pol-modelo" value="${p.modelo||''}"></div>
+      <div class="form-group"><label class="form-label">Tipo de póliza</label><input class="form-input" id="edit-seg-pol-tipo" value="${p.tipoPoliza||''}"></div>
+      <div class="form-group"><label class="form-label">Compañía</label><input class="form-input" id="edit-seg-pol-compania" value="${p.compania||''}"></div>
+      <div class="two-col">
+        <div class="form-group"><label class="form-label">Nº de póliza</label><input class="form-input" id="edit-seg-pol-numpoliza" value="${p.numeroPoliza||''}"></div>
+        <div class="form-group"><label class="form-label">Fecha de caducidad</label><input class="form-input" type="date" id="edit-seg-pol-fechacad" value="${p.fechaCaducidad||''}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Corredor</label><input class="form-input" id="edit-seg-pol-corredor" value="${p.corredor||''}"></div>
+      <div class="form-group">
+        <label class="form-label">Notas</label>
+        <textarea class="form-input" id="edit-seg-pol-notas">${p.notas||''}</textarea>
+      </div>
+      <div style="display:flex;gap:0.5rem;">
+        <button id="btn-save-seg-pol-edit" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Guardar</button>
+        <button onclick="document.getElementById('edit-seg-pol-modal').remove()" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+      </div>
+      <div id="edit-seg-pol-alert" class="alert" style="margin-top:0.75rem;"></div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('btn-save-seg-pol-edit').addEventListener('click', async () => {
+    const al = document.getElementById('edit-seg-pol-alert');
+    const fechaCaducidad = document.getElementById('edit-seg-pol-fechacad').value;
+    if (!fechaCaducidad) { showAlert(al,'Indica la fecha de caducidad',true); return; }
+    const cambios = {
+      modelo: document.getElementById('edit-seg-pol-modelo').value.trim(),
+      tipoPoliza: document.getElementById('edit-seg-pol-tipo').value.trim(),
+      compania: document.getElementById('edit-seg-pol-compania').value.trim(),
+      numeroPoliza: document.getElementById('edit-seg-pol-numpoliza').value.trim(),
+      fechaCaducidad,
+      corredor: document.getElementById('edit-seg-pol-corredor').value.trim(),
+      notas: document.getElementById('edit-seg-pol-notas').value.trim(),
+    };
+    try {
+      await updateDoc(doc(dbFleet,'segurosPolizas',id), cambios);
+      const idx = segurosPolizasCache.findIndex(x=>x.id===id);
+      if (idx>=0) Object.assign(segurosPolizasCache[idx], cambios);
+      document.getElementById('edit-seg-pol-modal').remove();
+      renderSegurosPolizas();
+    } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
+  });
+};
+
+window.eliminarSeguroPoliza = async (id) => {
+  const p = segurosPolizasCache.find(x=>x.id===id);
+  const nombreVisible = p ? (p.tipoPoliza||'Póliza') : id;
+  if (!(await confirmarAccion(`⚠️ ATENCIÓN: esto eliminará la póliza "${nombreVisible}" PARA SIEMPRE, incluido su importe por años.\n\n¿Seguro que quieres continuar?`))) return;
+  if (!(await confirmarAccion('Confirma una segunda vez: esta acción no se puede deshacer. ¿Eliminar definitivamente?'))) return;
+  try {
+    await deleteDoc(doc(dbFleet,'segurosPolizas',id));
+    segurosPolizasCache = segurosPolizasCache.filter(x=>x.id!==id);
+    renderSegurosPolizas();
+    renderSegurosPolizasBaja();
+    updateSegurosBadge();
+  } catch(e) { alert('Error al eliminar: '+e.message); }
+};
+
+// ── Exportar PDF: Seguros de vehículos ──
+window.exportarPdfSegurosVehiculos = async () => {
+  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
+  if (!datosFiltrados.length) { alert(`No hay seguros de ${etiquetasGrupoSeguro().nombre} activos para exportar.`); return; }
+  const btn = document.getElementById('btn-pdf-seg-veh');
+  const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 30;
+    const pages = [];
+    const colX = { mat:M, mod:M+110, comp:M+230, pol:M+350, fecha:M+460, emp:M+560, imp:M+700 };
+    const colW = { mat:100, mod:110, comp:110, emp:130 };
+
+    let page, y;
+    const nuevaPagina = () => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText(`Seguros de ${etiquetasGrupoSeguro().nombre} (activos) · NexoFlota`, { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = etiquetasGrupoSeguro().tag;
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('MATRÍCULA/ID', colX.mat+8); cab('MODELO', colX.mod+8); cab('COMPAÑÍA', colX.comp+8);
+      cab('Nº PÓLIZA', colX.pol+8); cab('CADUCIDAD', colX.fecha+8); cab('EMPRESA', colX.emp+8); cab('IMPORTE', colX.imp+8);
+      y -= 38;
+    };
+    nuevaPagina();
+
+    // En vez de recortar el texto con "…", reducimos el tamaño de letra progresivamente
+    // hasta que quepa entero — así nunca se pierde parte del nombre (mismo criterio que
+    // ya usamos en los PDF de Ropa/Limpieza).
+    const ajustarYDibujar = (txt, x, yPos, maxW, sizeBase, font, color) => {
+      let t = txt || '—';
+      let size = sizeBase;
+      while (font.widthOfTextAtSize(t, size) > maxW && size > 6) size -= 0.5;
+      page.drawText(t, { x, y:yPos, size, font, color });
+    };
+
+    const hoy = new Date();
+    const ordenados = [...datosFiltrados].sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||''));
+    let totalImporte = 0;
+    ordenados.forEach((v,i) => {
+      if (y < 60) nuevaPagina();
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      ajustarYDibujar(v.matricula, colX.mat+8, y, colW.mat-12, 9.5, fontBold, navy);
+      ajustarYDibujar(v.modelo, colX.mod+8, y, colW.mod-12, 9, fontReg, gray);
+      ajustarYDibujar(v.compania, colX.comp+8, y, colW.comp-12, 9, fontReg, gray);
+      page.drawText(v.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
+      const dias = v.fechaCaducidad ? Math.ceil((new Date(v.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+      const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
+      page.drawText(v.fechaCaducidad?new Date(v.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
+      ajustarYDibujar(v.empresa, colX.emp+8, y, colW.emp-12, 8.5, fontReg, gray);
+      const importeVeh = ultimoValorAnio(v.importePorAnio);
+      if (importeVeh!=null) totalImporte += importeVeh;
+      page.drawText(importeVeh!=null?importeVeh.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      y -= rowH;
+    });
+
+    // Fila de total al final
+    if (y < 75) nuevaPagina();
+    page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:24, color: navyClaro });
+    page.drawText('TOTAL', { x:colX.mat+8, y, size:10, font:fontBold, color: rgb(1,1,1) });
+    page.drawText(totalImporte.toFixed(2)+' €', { x:colX.imp+8, y, size:10, font:fontBold, color: accent });
+    y -= 30;
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total: ${ordenados.length} (solo activos)`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = etiquetasGrupoSeguro().archivo + '.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Error al generar el PDF: '+e.message); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+};
+
+// ── Exportar PDF: Pólizas ──
+window.exportarPdfSegurosPolizas = async () => {
+  if (!segurosPolizasCache.filter(p=>p.activo!==false).length) { alert('No hay pólizas activas para exportar.'); return; }
+  const btn = document.getElementById('btn-pdf-seg-pol');
+  const textoOriginal = btn.textContent; btn.disabled = true; btn.textContent = 'Generando...';
+  try {
+    const { PDFDocument, rgb, StandardFonts } = PDFLib;
+    const pdfDoc = await PDFDocument.create();
+    const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const navy = rgb(0.102, 0.227, 0.361);
+    const navyClaro = rgb(0.16, 0.30, 0.44);
+    const gray = rgb(0.45, 0.49, 0.54);
+    const accent = rgb(0.96, 0.65, 0.14);
+    const grisFila = rgb(0.96, 0.965, 0.975);
+    const W = 841.89, H = 595.28, M = 30;
+    const pages = [];
+    const colX = { tipo:M, mod:M+150, comp:M+280, pol:M+420, fecha:M+540, cor:M+650, imp:M+700 };
+    const colW = { tipo:135, mod:125, comp:115, cor:95 };
+
+    let page, y;
+    const nuevaPagina = () => {
+      page = pdfDoc.addPage([W, H]);
+      pages.push(page);
+      page.drawRectangle({ x:0, y:H-66, width:W, height:66, color: navy });
+      page.drawRectangle({ x:0, y:H-70, width:W, height:4, color: accent });
+      page.drawText('MANCHATRANS S.L.', { x:M, y:H-30, size:14, font:fontBold, color: rgb(1,1,1) });
+      page.drawText('Pólizas de seguros · NexoFlota', { x:M, y:H-47, size:9, font:fontReg, color: rgb(0.78,0.84,0.92) });
+      const tagTxt = 'PÓLIZAS';
+      const tagW = fontBold.widthOfTextAtSize(tagTxt, 12);
+      page.drawText(tagTxt, { x:W-M-tagW, y:H-34, size:12, font:fontBold, color: accent });
+      y = H - 95;
+      page.drawRectangle({ x:M, y:y-18, width:W-2*M, height:24, color: navyClaro });
+      const cab = (txt,x) => page.drawText(txt, { x, y:y-10, size:8.5, font:fontBold, color: rgb(1,1,1) });
+      cab('TIPO DE PÓLIZA', colX.tipo+8); cab('MODELO', colX.mod+8); cab('COMPAÑÍA', colX.comp+8);
+      cab('Nº PÓLIZA', colX.pol+8); cab('CADUCIDAD', colX.fecha+8); cab('CORREDOR', colX.cor+8); cab('IMPORTE', colX.imp+8);
+      y -= 38;
+    };
+    nuevaPagina();
+
+    // En vez de recortar el texto con "…", reducimos el tamaño de letra progresivamente
+    // hasta que quepa entero, igual que en el resto de PDFs de la app.
+    const ajustarYDibujar = (txt, x, yPos, maxW, sizeBase, font, color) => {
+      let t = txt || '—';
+      let size = sizeBase;
+      while (font.widthOfTextAtSize(t, size) > maxW && size > 6) size -= 0.5;
+      page.drawText(t, { x, y:yPos, size, font, color });
+    };
+
+    const hoy = new Date();
+    const ordenadas = segurosPolizasCache.filter(p=>p.activo!==false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||''));
+    let totalImporte = 0;
+    ordenadas.forEach((p,i) => {
+      if (y < 60) nuevaPagina();
+      const rowH = 22;
+      if (i % 2 === 0) page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:rowH, color: grisFila });
+      ajustarYDibujar(p.tipoPoliza, colX.tipo+8, y, colW.tipo-12, 9.5, fontBold, navy);
+      ajustarYDibujar(p.modelo, colX.mod+8, y, colW.mod-12, 9, fontReg, gray);
+      ajustarYDibujar(p.compania, colX.comp+8, y, colW.comp-12, 9, fontReg, gray);
+      page.drawText(p.numeroPoliza||'—', { x:colX.pol+8, y, size:9, font:fontReg, color: navy });
+      const dias = p.fechaCaducidad ? Math.ceil((new Date(p.fechaCaducidad)-hoy)/(1000*60*60*24)) : null;
+      const colorFecha = dias===null?gray:(dias<0?rgb(0.75,0.2,0.2):dias<=DIAS_AVISO_SEGUROS?accent:gray);
+      page.drawText(p.fechaCaducidad?new Date(p.fechaCaducidad).toLocaleDateString('es-ES'):'—', { x:colX.fecha+8, y, size:9, font:fontBold, color: colorFecha });
+      ajustarYDibujar(p.corredor, colX.cor+8, y, colW.cor-12, 9, fontReg, gray);
+      const importePol = ultimoValorAnio(p.importePorAnio);
+      if (importePol!=null) totalImporte += importePol;
+      page.drawText(importePol!=null?importePol.toFixed(2)+' €':'—', { x:colX.imp+8, y, size:9, font:fontReg, color: navy });
+      y -= rowH;
+    });
+
+    // Fila de total al final
+    if (y < 75) nuevaPagina();
+    page.drawRectangle({ x:M, y:y-6, width:W-2*M, height:24, color: navyClaro });
+    page.drawText('TOTAL', { x:colX.tipo+8, y, size:10, font:fontBold, color: rgb(1,1,1) });
+    page.drawText(totalImporte.toFixed(2)+' €', { x:colX.imp+8, y, size:10, font:fontBold, color: accent });
+    y -= 30;
+
+    const fechaGen = new Date().toLocaleDateString('es-ES');
+    pages.forEach((p, idx) => {
+      p.drawLine({ start:{x:M,y:34}, end:{x:W-M,y:34}, thickness:0.5, color: rgb(0.85,0.87,0.9) });
+      p.drawText(`Generado el ${fechaGen} · Total: ${ordenadas.length}`, { x:M, y:20, size:8, font:fontReg, color: gray });
+      const pagTxt = `Página ${idx+1} de ${pages.length}`;
+      const pagW = fontReg.widthOfTextAtSize(pagTxt, 8);
+      p.drawText(pagTxt, { x:W-M-pagW, y:20, size:8, font:fontReg, color: gray });
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const blob = new Blob([pdfBytes], {type:'application/pdf'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'Manchatrans_Polizas.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('Error al generar el PDF: '+e.message); }
+  btn.disabled = false; btn.textContent = textoOriginal;
+};
+
+// ── Exportar Excel: Seguros de vehículos ──
+window.exportarExcelSegurosVehiculos = () => {
+  const datosFiltrados = segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false);
+  if (!datosFiltrados.length) { alert(`No hay seguros de ${etiquetasGrupoSeguro().nombre} activos para exportar.`); return; }
+  if (typeof XLSX==='undefined') {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>_generarExcelSegurosVehiculos(); document.head.appendChild(s);
+  } else { _generarExcelSegurosVehiculos(); }
+};
+
+function _generarExcelSegurosVehiculos() {
+  const etiquetasTipo = {vehiculo:'Vehículo', tractor:'Tractor', carretilla:'Carretilla', transpaleta:'Transpaleta eléctrica'};
+  const header = ['Matrícula/Identificador','Tipo','Modelo','Kilos','Clasificación ITV','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe del seguro por años','Ámbito','Empresa','Conductor','Seguro de lunas','Impuesto municipal por años','Notas'];
+  const rows = [header];
+  let totalImporte = 0;
+  segurosVehiculosCache.filter(v=>coincideTipoSeguro(v) && v.activo!==false).sort((a,b)=>(a.matricula||'').localeCompare(b.matricula||'')).forEach(v=>{
+    const impTxt = Object.entries(v.impuestoMunicipal||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
+    const seguroTxt = Object.entries(v.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
+    const importeVeh = ultimoValorAnio(v.importePorAnio);
+    if (importeVeh!=null) totalImporte += importeVeh;
+    rows.push([
+      v.matricula||'', etiquetasTipo[v.tipo||'vehiculo']||v.tipo, v.modelo||'', v.kilos||'', v.clasificacionItv||'', v.compania||'', v.numeroPoliza||'',
+      v.fechaCaducidad ? new Date(v.fechaCaducidad).toLocaleDateString('es-ES') : '',
+      v.corredor||'', importeVeh!=null?importeVeh:'', seguroTxt, v.ambito||'', v.empresa||'',
+      nombreConductorSeguro(v), v.seguroLunas?'Sí':'No', impTxt, v.comentarios||''
+    ]);
+  });
+  rows.push(['TOTAL','','','','','','','','',totalImporte,'','','','','','','']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [16,16,16,8,12,16,14,14,16,14,30,12,28,22,12,30,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, etiquetasGrupoSeguro().hoja);
+  XLSX.writeFile(wb, etiquetasGrupoSeguro().archivo + '.xlsx');
+}
+
+// ── Exportar Excel: Pólizas ──
+window.exportarExcelSegurosPolizas = () => {
+  if (!segurosPolizasCache.length) { alert('No hay pólizas para exportar.'); return; }
+  if (typeof XLSX==='undefined') {
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload=()=>_generarExcelSegurosPolizas(); document.head.appendChild(s);
+  } else { _generarExcelSegurosPolizas(); }
+};
+
+function _generarExcelSegurosPolizas() {
+  const header = ['Modelo','Tipo de póliza','Compañía','Nº póliza','Fecha caducidad','Corredor','Importe actual (€)','Importe por años','Notas'];
+  const rows = [header];
+  let totalImporte = 0;
+  segurosPolizasCache.filter(p=>p.activo!==false).sort((a,b)=>(a.tipoPoliza||'').localeCompare(b.tipoPoliza||'')).forEach(p=>{
+    const importePol = ultimoValorAnio(p.importePorAnio);
+    if (importePol!=null) totalImporte += importePol;
+    const polTxt = Object.entries(p.importePorAnio||{}).sort((a,b)=>a[0]-b[0]).map(([anio,imp])=>{ const {valor,nota}=extraerValorYNota(imp); return `${anio}: ${valor.toFixed(2)}€${nota?' ('+nota+')':''}`; }).join(' / ');
+    rows.push([
+      p.modelo||'', p.tipoPoliza||'', p.compania||'', p.numeroPoliza||'',
+      p.fechaCaducidad ? new Date(p.fechaCaducidad).toLocaleDateString('es-ES') : '',
+      p.corredor||'', importePol!=null?importePol:'', polTxt, p.notas||''
+    ]);
+  });
+  rows.push(['TOTAL','','','','','',totalImporte,'','']);
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [16,18,16,14,14,16,14,30,30].map(w=>({wch:w}));
+  XLSX.utils.book_append_sheet(wb, ws, 'Pólizas');
+  XLSX.writeFile(wb, 'Manchatrans_Polizas.xlsx');
+}
 
 window.verPendientesMesCond = () => {
   const hoy = new Date();
@@ -3962,6 +6064,16 @@ function initFirmaLimpiezaInstSiNecesario() {
   if (!firmaLimpiezaInst) firmaLimpiezaInst = crearFirmaTactil('firma-limpieza-inst-canvas');
 }
 
+function limpiarFormularioLimpiezaVeh() {
+  document.getElementById('lim-veh-matricula').value='';
+  document.getElementById('lim-veh-operario').value='';
+  document.getElementById('lim-veh-interior').checked=false;
+  document.getElementById('lim-veh-exterior').checked=false;
+  document.getElementById('lim-veh-desinfeccion').checked=false;
+  document.getElementById('lim-veh-obs').value='LEJIA DILUCION 1:50';
+  if (firmaLimpiezaVeh) firmaLimpiezaVeh.clear();
+}
+
 async function guardarLimpiezaVehiculo() {
   const al = document.getElementById('lim-veh-alert');
   const fecha = document.getElementById('lim-veh-fecha').value;
@@ -3991,16 +6103,18 @@ async function guardarLimpiezaVehiculo() {
     // No tocamos limpiezaVehCache a mano: el listener onSnapshot de arriba ya
     // añade este registro automáticamente. Si lo añadiéramos aquí también,
     // se duplicaría en la lista (esto es lo que estaba pasando).
-    document.getElementById('lim-veh-matricula').value='';
-    document.getElementById('lim-veh-operario').value='';
-    document.getElementById('lim-veh-interior').checked=false;
-    document.getElementById('lim-veh-exterior').checked=false;
-    document.getElementById('lim-veh-desinfeccion').checked=false;
-    document.getElementById('lim-veh-obs').value='LEJIA DILUCION 1:50';
-    firmaLimpiezaVeh.clear();
+    limpiarFormularioLimpiezaVeh();
     showAlert(al,'✓ Registro guardado correctamente',false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = 'Guardar registro';
+}
+
+function limpiarFormularioLimpiezaInst() {
+  document.getElementById('lim-inst-area').value='';
+  document.getElementById('lim-inst-operario').value='';
+  document.getElementById('lim-inst-material').value='';
+  document.getElementById('lim-inst-obs').value='';
+  if (firmaLimpiezaInst) firmaLimpiezaInst.clear();
 }
 
 async function guardarLimpiezaInstalacion() {
@@ -4027,11 +6141,7 @@ async function guardarLimpiezaInstalacion() {
   try {
     await addDoc(collection(dbFleet,'limpiezaInstalaciones'), registro);
     // Igual que en vehículos: no tocamos la caché a mano, el onSnapshot ya la actualiza.
-    document.getElementById('lim-inst-area').value='';
-    document.getElementById('lim-inst-operario').value='';
-    document.getElementById('lim-inst-material').value='';
-    document.getElementById('lim-inst-obs').value='';
-    firmaLimpiezaInst.clear();
+    limpiarFormularioLimpiezaInst();
     showAlert(al,'✓ Registro guardado correctamente',false);
   } catch(e) { showAlert(al,'Error al guardar: '+e.message,true); }
   btn.disabled = false; btn.textContent = 'Guardar registro';
@@ -5001,6 +7111,11 @@ function marcarArticuloSeleccionadoInventario() {
   });
 }
 
+function limpiarFormularioStockRopa() {
+  document.getElementById('inv-talla').value = '';
+  document.getElementById('inv-cantidad').value = '';
+}
+
 window.addStockRopa = async () => {
   const articuloId = inventarioArticuloSeleccionado;
   const talla = document.getElementById('inv-talla').value.trim();
@@ -5018,8 +7133,7 @@ window.addStockRopa = async () => {
     // ya se encarga de mantenerlo sincronizado en tiempo real con Firestore.
     // Si lo modificamos aquí también, se duplica el artículo en la lista.
     await setDoc(doc(db,'ropaInventario',key), {articuloId, talla, cantidad:nuevaCantidad});
-    document.getElementById('inv-talla').value = '';
-    document.getElementById('inv-cantidad').value = '';
+    limpiarFormularioStockRopa();
     renderInventarioRopa();
     showAlert(al, `✓ Stock actualizado`, false);
   } catch(e) { showAlert(al,'Error: '+e.message,true); }
@@ -6262,6 +8376,40 @@ function confirmarAccion(mensaje, tituloBoton) {
   });
 }
 
+// Pide el usuario y contraseña del Admin Superior antes de mostrar algo sensible (por
+// ejemplo el salario de un empleado). Devuelve true/false según si se ha verificado bien.
+function pedirPasswordSuperadmin(mensaje) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.id = 'pedir-superadmin-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:999999;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    modal.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:1.5rem;width:100%;max-width:340px;">
+        <div style="font-size:15px;font-weight:700;color:var(--accent);margin-bottom:0.5rem;">🔒 Acceso restringido</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">${mensaje||'Esto solo lo puede ver el Admin Superior.'}</div>
+        <div class="form-group"><label class="form-label">Usuario</label><input class="form-input" type="text" id="superadmin-check-user" autocomplete="off"></div>
+        <div class="form-group"><label class="form-label">Contraseña</label><input class="form-input" type="password" id="superadmin-check-pass" autocomplete="off"></div>
+        <div id="superadmin-check-error" style="font-size:12px;color:var(--danger);min-height:16px;margin-bottom:0.5rem;"></div>
+        <div style="display:flex;gap:0.5rem;">
+          <button id="btn-superadmin-check-no" style="flex:1;padding:0.75rem;background:var(--navy-light);color:var(--text);border:1px solid var(--card-border);border-radius:var(--radius-sm);font-size:15px;cursor:pointer;">Cancelar</button>
+          <button id="btn-superadmin-check-si" style="flex:1;padding:0.75rem;background:var(--accent);color:#111;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;">Ver</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+    const cerrar = (ok) => { modal.remove(); resolve(ok); };
+    const comprobar = () => {
+      const u = (document.getElementById('superadmin-check-user').value||'').trim().toLowerCase();
+      const p = (document.getElementById('superadmin-check-pass').value||'').trim();
+      if (u===SUPERADMIN_USER && p===SUPERADMIN_PASS) { cerrar(true); }
+      else { document.getElementById('superadmin-check-error').textContent = 'Usuario o contraseña incorrectos'; }
+    };
+    document.getElementById('btn-superadmin-check-no').addEventListener('click', () => cerrar(false));
+    document.getElementById('btn-superadmin-check-si').addEventListener('click', comprobar);
+    document.getElementById('superadmin-check-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') comprobar(); });
+    setTimeout(()=>document.getElementById('superadmin-check-user').focus(), 50);
+  });
+}
+
 function mostrarAvisoInventarioBajo(avisos) {
   const modal = document.createElement('div');
   modal.id = 'aviso-inventario-modal';
@@ -6320,6 +8468,13 @@ async function descargarBackup() {
       mantenimiento: mantenimientoCache,
       historialMantenimiento: historialMantCache,
       mantenimientoConductores: mantConductoresCache,
+      creditosFormacion: creditosFormacionCache,
+      cursosFormacion: cursosFormacionCache,
+      segurosVehiculos: segurosVehiculosCache,
+      segurosPolizas: segurosPolizasCache,
+      segurosElementosExtra: segurosElementosExtraCache,
+      segurosNotasVehiculos: segurosNotasVehCache,
+      segurosNotasPolizas: segurosNotasPolCache,
       historialMantConductores: historialMantCondCache,
       ropaEmpleados: ropaEmpleadosCache,
       ropaHistorial: ropaHistorialCache,
@@ -6352,6 +8507,10 @@ const BACKUP_COLECCIONES = [
   { key:'mantenimiento', db:'dbFleet', col:'mantenimiento', cache:()=>mantenimientoCache, idField:'id' },
   { key:'historialMantenimiento', db:'dbFleet', col:'historialMantenimiento', cache:()=>historialMantCache, idField:'id' },
   { key:'mantenimientoConductores', db:'dbFleet', col:'mantenimientoConductores', cache:()=>mantConductoresCache, idField:'id' },
+  { key:'creditosFormacion', db:'dbFleet', col:'creditosFormacion', cache:()=>creditosFormacionCache, idField:'id' },
+  { key:'cursosFormacion', db:'dbFleet', col:'cursosFormacion', cache:()=>cursosFormacionCache, idField:'id' },
+  { key:'segurosVehiculos', db:'dbFleet', col:'segurosVehiculos', cache:()=>segurosVehiculosCache, idField:'id' },
+  { key:'segurosPolizas', db:'dbFleet', col:'segurosPolizas', cache:()=>segurosPolizasCache, idField:'id' },
   { key:'historialMantConductores', db:'dbFleet', col:'historialMantConductores', cache:()=>historialMantCondCache, idField:'id' },
   { key:'ropaEmpleados', db:'db', col:'ropaEmpleados', cache:()=>ropaEmpleadosCache, idField:'id' },
   { key:'ropaHistorial', db:'db', col:'ropaHistorial', cache:()=>ropaHistorialCache, idField:'id' },
@@ -6376,6 +8535,27 @@ window.importarBackup = async (file) => {
   btn.disabled = true; btn.textContent = 'Importando...';
   const resumen = [];
   try {
+    // Caso especial: la lista de elementos extra de Seguros es un array de texto simple,
+    // no de objetos con id — la fusionamos sin duplicar en vez de usar el bucle genérico.
+    if (Array.isArray(backup.segurosElementosExtra) && backup.segurosElementosExtra.length) {
+      const actuales = new Set(segurosElementosExtraCache);
+      const nuevos = backup.segurosElementosExtra.filter(x => x && !actuales.has(x));
+      if (nuevos.length) {
+        const fusion = [...segurosElementosExtraCache, ...nuevos];
+        await setDoc(doc(dbFleet,'segurosConfig','elementosExtra'), { items: fusion });
+        resumen.push(`segurosElementosExtra: ${nuevos.length} restaurados, ${segurosElementosExtraCache.length} ya existían`);
+      }
+    }
+    // Las notas generales solo se restauran si ahora mismo están vacías, para no
+    // sobreescribir algo que ya se hubiera escrito después de la copia.
+    if (backup.segurosNotasVehiculos && !segurosNotasVehCache) {
+      await setDoc(doc(dbFleet,'segurosConfig','notasVehiculos'), { texto: backup.segurosNotasVehiculos });
+      resumen.push('segurosNotasVehiculos: restauradas');
+    }
+    if (backup.segurosNotasPolizas && !segurosNotasPolCache) {
+      await setDoc(doc(dbFleet,'segurosConfig','notasPolizas'), { texto: backup.segurosNotasPolizas });
+      resumen.push('segurosNotasPolizas: restauradas');
+    }
     for (const conf of BACKUP_COLECCIONES) {
       const items = backup[conf.key];
       if (!Array.isArray(items) || !items.length) continue;
